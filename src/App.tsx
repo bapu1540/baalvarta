@@ -29,6 +29,7 @@ import {
   deleteStoredReview,
   loadPersistentData,
 } from './utils/storage';
+import { saveToServerDatabase } from './utils/dbStorage';
 import { WebsiteHeader } from './components/WebsiteHeader';
 import { WebsiteFooter } from './components/WebsiteFooter';
 import { WebsiteHome } from './components/WebsiteHome';
@@ -58,6 +59,14 @@ import {
 } from './utils/themeManager';
 import { ArrowLeft, Home } from 'lucide-react';
 import { playPopSound, stopSpeech } from './utils/soundEffects';
+import {
+  subscribeToFirestoreStories,
+  subscribeToFirestoreWorksheets,
+  testConnectionOnBoot,
+  seedInitialFirestoreDataIfNeeded,
+  fetchStoriesFromFirestore,
+  fetchWorksheetsFromFirestore,
+} from './utils/firebase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
@@ -145,6 +154,50 @@ export default function App() {
         setReviews(persistent.user_reviews);
       }
     });
+
+    // Validate connection to Firebase and auto-seed initial data if Firestore is empty
+    testConnectionOnBoot().then((connected) => {
+      if (connected) {
+        seedInitialFirestoreDataIfNeeded(getStoredStories(), getStoredWorksheets());
+        // Directly fetch once to ensure immediate multi-device fresh state
+        fetchStoriesFromFirestore().then((cloudStories) => {
+          if (cloudStories && cloudStories.length > 0) {
+            const sorted = [...cloudStories].sort((a, b) => (a.number || 0) - (b.number || 0));
+            setStories(sorted);
+            saveStoredStories(sorted);
+          }
+        });
+        fetchWorksheetsFromFirestore().then((cloudWorksheets) => {
+          if (cloudWorksheets && cloudWorksheets.length > 0) {
+            setWorksheets(cloudWorksheets);
+            saveStoredWorksheets(cloudWorksheets);
+          }
+        });
+      }
+    });
+
+    // Real-time synchronization with Firebase Firestore across all devices
+    const unsubStories = subscribeToFirestoreStories((cloudStories) => {
+      if (cloudStories && cloudStories.length > 0) {
+        const sorted = [...cloudStories].sort((a, b) => (a.number || 0) - (b.number || 0));
+        setStories(sorted);
+        saveStoredStories(sorted);
+        saveToServerDatabase({ stories: sorted });
+      }
+    });
+
+    const unsubWorksheets = subscribeToFirestoreWorksheets((cloudWorksheets) => {
+      if (cloudWorksheets && cloudWorksheets.length > 0) {
+        setWorksheets(cloudWorksheets);
+        saveStoredWorksheets(cloudWorksheets);
+        saveToServerDatabase({ worksheets: cloudWorksheets });
+      }
+    });
+
+    return () => {
+      if (unsubStories) unsubStories();
+      if (unsubWorksheets) unsubWorksheets();
+    };
   }, []);
 
   const handleDataRestored = (restored: any) => {
@@ -185,6 +238,7 @@ export default function App() {
   const handleSaveStories = (newStories: Story[]) => {
     setStories(newStories);
     saveStoredStories(newStories);
+    saveToServerDatabase({ stories: newStories });
   };
 
   const handleSaveFacts = (newFacts: FunFact[]) => {

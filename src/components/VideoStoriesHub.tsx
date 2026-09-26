@@ -72,14 +72,14 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
 
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight drop-shadow-xs">
             {language === 'hi'
-              ? '🎬 सचित्र वीडियो कहानियाँ व 9:16 शॉर्ट्स'
-              : '🎬 Animated Video Stories & 9:16 Shorts'}
+              ? '🎬 सचित्र वीडियो कहानियाँ (YouTube 16:9)'
+              : '🎬 Animated Video Stories (YouTube 16:9)'}
           </h1>
 
           <p className="text-sm sm:text-base text-red-50 max-w-2xl font-medium leading-relaxed">
             {language === 'hi'
-              ? 'यहाँ आप बालवार्ता की मनोरंजक और सीख देने वाली वीडियो कहानियाँ 9:16 आकार में देख सकते हैं। किसी भी कहानी पर क्लिक करें और वीडियो का आनंद लें!'
-              : 'Watch engaging moral and educational video stories in vertical 9:16 format. Click any story to watch and enjoy!'}
+              ? 'यहाँ आप बालवार्ता की मनोरंजक और सीख देने वाली 16:9 वीडियो कहानियाँ देख सकते हैं। किसी भी कहानी पर क्लिक करें और सीधे हमारे यूट्यूब चैनल पर वीडियो का आनंद लें!'
+              : 'Watch engaging moral and educational video stories in standard 16:9 format. Click any story to jump directly to YouTube!'}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -128,7 +128,7 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>{language === 'hi' ? '9:16 कार्ड' : '9:16 Cards'}</span>
+            <span>{language === 'hi' ? '16:9 कार्ड' : '16:9 Cards'}</span>
           </button>
           <button
             onClick={() => {
@@ -230,16 +230,16 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
           </button>
         </div>
       ) : viewMode === 'grid' ? (
-        /* 9:16 Aspect Ratio Responsive Cards Grid */
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+        /* 16:9 Aspect Ratio Responsive Cards Grid */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredVideos.map((video) => (
             <div
               key={video.id}
               onClick={() => handleOpenVideo(video)}
               className="group relative flex flex-col bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-2xl border-2 border-red-100 hover:border-red-400 transition-all duration-300 cursor-pointer transform hover:-translate-y-1.5"
             >
-              {/* 9:16 Aspect Ratio Thumbnail Container */}
-              <div className="relative w-full aspect-[9/16] overflow-hidden bg-slate-950">
+              {/* 16:9 Aspect Ratio Thumbnail Container */}
+              <div className="relative w-full aspect-video overflow-hidden bg-slate-950">
                 <img
                   src={video.thumbnail}
                   alt={language === 'hi' ? video.titleHi : video.titleEn}
@@ -264,15 +264,15 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
                   )}
                 </div>
 
-                {/* Center Play Icon Hover Effect */}
+                {/* Center YouTube Play Icon Hover Effect */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-13 h-13 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-xl group-hover:scale-115 group-hover:bg-red-600 transition-all duration-300 border-2 border-white/80">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl group-hover:scale-115 group-hover:bg-red-700 transition-all duration-300 border-2 border-white/90">
                     <Play className="w-6 h-6 fill-white ml-0.5" />
                   </div>
                 </div>
 
                 {/* Bottom Story Name & YouTube Direct Link Tag */}
-                <div className="absolute bottom-0 inset-x-0 p-3 space-y-1 text-white">
+                <div className="absolute bottom-0 inset-x-0 p-3.5 space-y-1 text-white">
                   {video.viewsCount && (
                     <div className="flex items-center gap-1 text-[10px] text-amber-200 font-bold">
                       <Eye className="w-3 h-3" />
@@ -281,12 +281,17 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
                   )}
 
                   <h3 className="text-xs sm:text-sm font-black leading-tight line-clamp-2 drop-shadow-sm group-hover:text-red-200 transition-colors">
-                    {language === 'hi' ? video.titleHi : video.titleEn}
+                    {language === 'hi' ? video.titleHi : (video.titleEn || video.titleHi)}
                   </h3>
+                  {video.titleEn && video.titleEn !== video.titleHi && language === 'hi' && (
+                    <p className="text-[10px] text-red-200/90 font-medium line-clamp-1">
+                      {video.titleEn}
+                    </p>
+                  )}
 
                   <div className="pt-1 flex items-center justify-between text-[11px] font-bold text-red-300 group-hover:text-white">
                     <span className="flex items-center gap-1">
-                      <span>▶️</span> {language === 'hi' ? 'वीडियो देखें' : 'Watch Video'}
+                      <span>▶️</span> {language === 'hi' ? 'यूट्यूब पर देखें' : 'Watch on YouTube'}
                     </span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </div>
@@ -296,16 +301,16 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
           ))}
         </div>
       ) : (
-        /* List View (Vertical list with 9:16 thumbnail + Story name list-wise) */
+        /* List View (16:9 Thumbnail + Story Title) */
         <div className="space-y-3">
           {filteredVideos.map((video) => (
             <div
               key={video.id}
               onClick={() => handleOpenVideo(video)}
-              className="group flex items-center gap-4 p-3 sm:p-4 rounded-2xl bg-white border-2 border-red-100 hover:border-red-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
+              className="group flex flex-col sm:flex-row sm:items-center gap-4 p-3 sm:p-4 rounded-2xl bg-white border-2 border-red-100 hover:border-red-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
             >
-              {/* 9:16 Thumbnail Preview in List */}
-              <div className="relative w-16 sm:w-20 aspect-[9/16] rounded-xl overflow-hidden bg-black shrink-0 shadow-sm border border-red-200">
+              {/* 16:9 Thumbnail Preview in List */}
+              <div className="relative w-full sm:w-44 md:w-52 aspect-video rounded-xl overflow-hidden bg-black shrink-0 shadow-sm border border-red-200">
                 <img
                   src={video.thumbnail}
                   alt={language === 'hi' ? video.titleHi : video.titleEn}
@@ -314,8 +319,8 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <div className="w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                    <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+                  <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                    <Play className="w-4 h-4 fill-white ml-0.5" />
                   </div>
                 </div>
               </div>
@@ -362,8 +367,8 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-sm group-hover:shadow-md transition-all cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5 fill-white" />
-                  <span className="hidden sm:inline">
-                    {language === 'hi' ? 'वीडियो देखें' : 'Watch Video'}
+                  <span>
+                    {language === 'hi' ? 'यूट्यूब पर देखें' : 'Watch on YouTube'}
                   </span>
                   <ExternalLink className="w-3 h-3" />
                 </button>

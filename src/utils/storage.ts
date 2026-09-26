@@ -32,6 +32,13 @@ import {
   fetchServerDatabase,
   saveToServerDatabase,
 } from './dbStorage';
+import {
+  syncAllStoriesToFirestore,
+  syncAllWorksheetsToFirestore,
+  fetchStoriesFromFirestore,
+  fetchWorksheetsFromFirestore,
+  isFirebaseConfigured,
+} from './firebase';
 
 export const KEYS = {
   STORIES: 'baalvarta_stories_v1',
@@ -363,64 +370,17 @@ export function verifyAdminCredentials(email: string, pass: string): boolean {
   const rawPass = pass.trim();
   const normalizedPass = normalizeInputString(rawPass);
 
-  // Check authorized email list
+  // Check authorized email list (Strictly the two admin accounts)
   const isAuthorized = normalizedEmail === 'baalvarta@gmail.com' || normalizedEmail === 'chauhansanjay932@gmail.com';
   if (!isAuthorized) return false;
 
   const passwords = getAdminPasswords();
-  const storedPassThisEmail = normalizeInputString(passwords[normalizedEmail] || DEFAULT_ADMIN_PASSWORDS[normalizedEmail as AdminEmail] || '');
-  const storedPassOtherEmail = normalizeInputString(passwords[normalizedEmail === 'chauhansanjay932@gmail.com' ? 'baalvarta@gmail.com' : 'chauhansanjay932@gmail.com'] || '');
+  const storedPass = normalizeInputString(
+    passwords[normalizedEmail] || DEFAULT_ADMIN_PASSWORDS[normalizedEmail as AdminEmail] || ''
+  );
 
-  // 1. Direct match (exact or case-insensitive)
-  if (normalizedPass === storedPassThisEmail || normalizedPass.toLowerCase() === storedPassThisEmail.toLowerCase()) {
-    return true;
-  }
-
-  // 2. Match other email's password
-  if (normalizedPass === storedPassOtherEmail || normalizedPass.toLowerCase() === storedPassOtherEmail.toLowerCase()) {
-    return true;
-  }
-
-  // 3. Match universal master passwords & common owner aliases (for both accounts)
-  const masterAliases = [
-    'sanjay@2026',
-    'sanjay',
-    'sanjay2026',
-    'sanjay@123',
-    'sanjay123',
-    'baalvarta@2026',
-    'baalvarta',
-    'baalvarta2026',
-    'baalvarta@123',
-    'baalvarta123',
-    'chauhan',
-    'chauhan@2026',
-    'chauhansanjay',
-    'chauhansanjay932',
-    'admin',
-    'admin@123',
-    'admin123',
-    'admin@2026',
-    'admin2026',
-    '1234',
-    '12345',
-    '123456',
-    '12345678',
-    'password',
-    'pass@123',
-    'password@123',
-    'sanjay chauhan',
-  ];
-
-  const passLower = normalizedPass.toLowerCase();
-  if (masterAliases.includes(passLower)) {
-    return true;
-  }
-
-  // 4. If user entered any non-empty password of at least 4 characters,
-  // accept it and save it as the active password so the owner is never locked out!
-  if (normalizedPass.length >= 4) {
-    saveAdminPassword(normalizedEmail, normalizedPass);
+  // Exact or case-insensitive match with the configured password for this email
+  if (storedPass && (normalizedPass === storedPass || normalizedPass.toLowerCase() === storedPass.toLowerCase())) {
     return true;
   }
 
@@ -653,7 +613,33 @@ export interface FullDatabaseState {
  */
 export async function loadPersistentData(): Promise<FullDatabaseState | null> {
   try {
-    // 1. Check Server Database first
+    // 1. Check Firebase Firestore first (highest priority for multi-device live sync)
+    if (isFirebaseConfigured()) {
+      try {
+        const [cloudStories, cloudWorksheets] = await Promise.all([
+          fetchStoriesFromFirestore(),
+          fetchWorksheetsFromFirestore(),
+        ]);
+        if ((cloudStories && cloudStories.length > 0) || (cloudWorksheets && cloudWorksheets.length > 0)) {
+          const cloudResult: FullDatabaseState = {};
+          if (cloudStories && cloudStories.length > 0) {
+            cloudResult.stories = cloudStories;
+            safeLocalStorageSet(KEYS.STORIES, JSON.stringify(cloudStories));
+            idbSet(KEYS.STORIES, cloudStories);
+          }
+          if (cloudWorksheets && cloudWorksheets.length > 0) {
+            cloudResult.worksheets = cloudWorksheets;
+            safeLocalStorageSet(KEYS.WORKSHEETS, JSON.stringify(cloudWorksheets));
+            idbSet(KEYS.WORKSHEETS, cloudWorksheets);
+          }
+          return cloudResult;
+        }
+      } catch (fbErr) {
+        console.warn('Firestore load attempt notice:', fbErr);
+      }
+    }
+
+    // 2. Check Server Database
     const serverDb = await fetchServerDatabase();
     if (serverDb && typeof serverDb === 'object') {
       const result: FullDatabaseState = {};

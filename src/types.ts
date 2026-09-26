@@ -27,6 +27,7 @@ export interface Story {
   likes: number;
   isFeatured?: boolean;
   format?: 'standard' | 'picture_book';
+  createdAt?: number;
   scenes?: StoryScene[];
   illustrations?: string[];
   vocabulary?: Array<{ word: string; meaningHi: string; meaningEn: string }>;
@@ -100,6 +101,31 @@ export interface PrintableWorksheet {
   ageGroup: string;
   descriptionHi: string;
   descriptionEn: string;
+  createdAt?: number;
+}
+
+export interface FirebaseConfig {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  firestoreDatabaseId?: string;
+  databaseURL?: string;
+  measurementId?: string;
+}
+
+export interface AdConfig {
+  enabled: boolean;
+  adSenseClientId?: string;
+  adSlots?: {
+    homeLeaderboard?: string;
+    storyReaderBanner?: string;
+    storiesHubBanner?: string;
+    quizHubBanner?: string;
+  };
+  customCodeSnippet?: string;
 }
 
 export interface AudioStory {

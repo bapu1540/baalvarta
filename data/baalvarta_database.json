@@ -1,0 +1,208 @@
+{
+  "stories": [
+    {
+      "moralHi": "सच्चा दोस्त वही होता है जो मुसीबत की घड़ी में आपका साथ निभाए।",
+      "recommendedAge": "4-10 वर्ष",
+      "readTime": "3 मिनट (3 min)",
+      "format": "picture_book",
+      "isFeatured": true,
+      "summaryEn": "When a bear appeared on the forest path, Rohan and Sohan learned the true meaning of friendship.",
+      "contentHi": "एक छोटे से सुंदर गाँव में रोहन और सोहन नाम के दो गहरे दोस्त रहते थे। वे दोनों बचपन से साथ खेलते, साथ पढ़ते और हर सुख-दुख बाँटते थे। \n\nएक दिन दोनों गाँव के पास वाले घने जंगल से गुजर रहे थे। पक्षी चहचहा रहे थे और ठंडी हवा बह रही थी। अचानक झाड़ियों में से एक बड़ा सा काला भालू बाहर निकल आया!\n\nसोहन बहुत घबरा गया। वह बिना कुछ सोचे-समझे पास के एक ऊँचे पेड़ पर चढ़ गया। उसने अपने दोस्त रोहन की बिल्कुल परवाह नहीं की। रोहन को पेड़ पर चढ़ना नहीं आता था।\n\nरोहन ने अपनी दादी की एक बात याद की कि भालू मरे हुए इंसानों को नुकसान नहीं पहुँचाता। रोहन तुरंत जमीन पर लेट गया और अपनी साँसें रोक लीं।\n\nभालू पास आया, उसने रोहन के कानों और चेहरे को सूंघा। रोहन बिल्कुल स्थिर रहा। भालू ने समझा कि यह मरा हुआ है, और वह चुपचाप जंगल में चला गया।\n\nजब भालू चला गया, तो सोहन पेड़ से नीचे उतरा और हँसते हुए पूछा, \"दोस्त! भालू तुम्हारे कान में क्या फुसफुसा रहा था?\"\n\nरोहन ने मुस्कुराते हुए कहा, \"भालू ने मुझसे कहा कि जो मुसीबत के समय अपने दोस्त का साथ छोड़ दे, उससे कभी दोस्ती मत करना!\" यह सुनकर सोहन का सिर शर्म से झुक गया।",
+      "likes": 342,
+      "id": "story-1",
+      "scenes": [
+        {
+          "textHi": "एक छोटे से सुंदर गाँव में रोहन और सोहन नाम के दो गहरे दोस्त रहते थे। वे दोनों बचपन से साथ खेलते, साथ पढ़ते और हर सुख-दुख बाँटते थे।",
+          "image": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=700&auto=format&fit=crop&q=80",
+          "sceneNumber": 1,
+          "captionHi": "दृश्य 1: रोहन और सोहन की पक्की दोस्ती",
+          "textEn": "In a charming village lived two best friends named Rohan and Sohan. They did everything together since childhood.",
+          "id": "s1-scene-1"
+        },
+        {
+          "textHi": "एक दिन दोनों गाँव के पास वाले घने जंगल से गुजर रहे थे। अचानक झाड़ियों में से एक बड़ा सा काला भालू बाहर निकल आया!",
+          "sceneNumber": 2,
+          "captionHi": "दृश्य 2: घने जंगल में अचानक भालू का आगमन",
+          "image": "https://images.unsplash.com/photo-1448375240586-882707db888b?w=700&auto=format&fit=crop&q=80",
+          "textEn": "One afternoon, while walking through the nearby forest, a huge black bear suddenly emerged from behind the bushes!",
+          "id": "s1-scene-2"
+        },
+        {
+          "textHi": "सोहन घबरा गया और तुरंत पास के एक ऊँचे पेड़ पर चढ़ गया। रोहन को पेड़ पर चढ़ना नहीं आता था, इसलिए वह जमीन पर लेट गया और अपनी साँसें रोक लीं।",
+          "id": "s1-scene-3",
+          "image": "https://images.unsplash.com/photo-1520262494112-9fe481d36ec3?w=700&auto=format&fit=crop&q=80",
+          "textEn": "Sohan panicked and climbed a tree. Rohan could not climb, so he calmly lay down on the ground and held his breath.",
+          "sceneNumber": 3,
+          "captionHi": "दृश्य 3: सोहन पेड़ पर चढ़ा और रोहन ने समझदारी दिखाई"
+        },
+        {
+          "id": "s1-scene-4",
+          "textHi": "भालू रोहन के पास आया और उसके चेहरे को सूंघा। रोहन बिल्कुल शांत रहा। भालू ने उसे निर्जीव समझा और चुपचाप आगे चला गया।",
+          "sceneNumber": 4,
+          "image": "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=700&auto=format&fit=crop&q=80",
+          "captionHi": "दृश्य 4: भालू रोहन को सूंघकर आगे निकल गया",
+          "textEn": "The bear approached and sniffed Rohan. Rohan stayed utterly still. Convinced he was harmless, the bear ambled away."
+        },
+        {
+          "textEn": "Rohan reminded Sohan—\"A true friend is one who stands by you in times of trouble!\" Sohan learned a lifelong lesson.",
+          "image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=700&auto=format&fit=crop&q=80",
+          "captionHi": "दृश्य 5: सच्ची मित्रता का अनमोल पाठ",
+          "textHi": "रोहन ने सोहन को समझाया—\"सच्चा दोस्त वही होता है जो विपत्ति और संकट में साथ न छोड़े!\" सोहन को अपनी गलती का गहरा एहसास हुआ।",
+          "id": "s1-scene-5",
+          "sceneNumber": 5
+        }
+      ],
+      "titleEn": "Sachchi Dosti (True Friendship)",
+      "contentEn": "In a charming village lived two best friends named Rohan and Sohan. They did everything together since childhood.\n\nOne afternoon, while walking through the nearby forest, a huge black bear suddenly emerged from behind the bushes!\n\nPanicking, Sohan quickly climbed up a tall tree without thinking about Rohan. Rohan didn't know how to climb trees.\n\nRemembering a wise trick his grandmother had told him—that bears seldom touch creatures they believe are motionless or lifeless—Rohan calmly lay down on the ground and held his breath.\n\nThe bear stepped closer, sniffed around Rohan's ears and nose. Rohan stayed utterly still. Convinced there was no movement, the bear gently ambled back into the woods.\n\nAfter the coast was clear, Sohan scrambled down from the tree and asked jokingly, \"What secret was the bear whispering in your ear, my friend?\"\n\nRohan looked at him calmly and replied, \"The bear whispered: Never trust someone who runs away and leaves their friend behind in times of trouble.\" Sohan lowered his head in regret and apologized from his heart.",
+      "summaryHi": "जंगल के रास्ते में जब भालू आया, तो रोहन और सोहन ने जाना कि सच्चा दोस्त कौन होता है।",
+      "coverImage": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=700&auto=format&fit=crop&q=80",
+      "_syncedAt": 1790445111916,
+      "titleHi": "सच्ची दोस्ती",
+      "category": "moral",
+      "illustrations": [
+        "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=700&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=700&auto=format&fit=crop&q=80"
+      ],
+      "moralEn": "A friend in need is a friend indeed.",
+      "number": 1
+    },
+    {
+      "moralEn": "Wisdom, patience, and honesty can overcome any hardship.",
+      "coverImage": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=700&auto=format&fit=crop&q=80",
+      "titleHi": "किसान की मजबूरी और अकलमंदी",
+      "number": 2,
+      "titleEn": "Kisan ki Majboori (The Wise Farmer)",
+      "id": "story-2",
+      "readTime": "4 मिनट (4 min)",
+      "contentHi": "रामनगर गाँव में रामू नाम का एक सीधा-साधा किसान रहता था। वह दिन-रात अपने छोटे से खेत में पसीना बहाता था। \n\nएक वर्ष बारिश बहुत कम हुई, जिससे फसल कमजोर हो गई। रामू के पास अपने बच्चों को खिलाने और खेत के बीज खरीदने के लिए पैसे नहीं बचे थे। मजबूर होकर वह गाँव के लालची सेठ धनीराम के पास गया।\n\nसेठ ने रामू को कर्ज तो दिया, लेकिन शर्त रखी कि अगर वह अगली फसल पर दोगुना अनाज न लौटा सका, तो उसका खेत सेठ का हो जाएगा।\n\nरामू ने हिम्मत नहीं हारी। उसने दिन-रात मेहनत की, कुएं से बाल्टियों से पानी सींचा और जैविक खाद बनाई। भगवान की कृपा से इस बार मक्का और गेहूं की शानदार फसल हुई।\n\nजब फसल कटने का समय आया, तो लालची सेठ खेत पर पहुँच गया और बेईमानी करने लगा। उसने कहा, \"जमीन के ऊपर जो भी उगा है वह मेरा, और जमीन के नीचे का तुम्हारा!\"\n\nरामू मुस्कुराया, क्योंकि उसने इस बार खेत में आलू, गाजर और मूंगफली बोई थी! रामू ने जमीन के अंदर की भरपूर फसल निकाल ली और सेठ को ऊपर के सूखे पत्ते पकड़ा दिए।\n\nसेठ भौंचक्का रह गया। रामू ने कर्ज का पूरा पैसा चुका दिया और अपनी सूझबूझ से अपना खेत बचा लिया।",
+      "summaryEn": "A humble farmer uses quick wit and patience to overcome an unjust challenge and secure his harvest.",
+      "recommendedAge": "5-12 वर्ष",
+      "summaryHi": "एक गरीब किसान ने अपनी सूझबूझ और ईमानदारी से लालची साहूकार को सबक सिखाया।",
+      "contentEn": "In a peaceful village lived Ramu, an honest and hardworking farmer who cherished his little patch of fertile land.\n\nOne harsh summer, the monsoon failed. With empty grain bins, Ramu was forced to borrow money from the wealthy, cunning moneylender Dhaniram.\n\nDhaniram gave him the loan on an unfair condition, hoping to take over Ramu's beloved farm if repayment fell short.\n\nInstead of losing hope, Ramu woke before sunrise every day, tended each plant with devotion, and cultivated organic crops.\n\nWhen harvest approached, the greedy moneylender tried a trick: \"Whatever grows above the soil belongs to me, and whatever is beneath belongs to you!\"\n\nRamu grinned politely—he had strategically planted potatoes, carrots, and sweet peanuts! Ramu harvested tons of nourishing root crops, leaving the dried foliage on top for the scheming lender.\n\nDhaniram was completely outwitted. Ramu repaid his debt in full, proving that wisdom and honest sweat always triumph over deceit.",
+      "isFeatured": true,
+      "category": "wisdom",
+      "likes": 289,
+      "_syncedAt": 1790445111916,
+      "moralHi": "मुसीबत के समय घबराने की बजाय समझदारी और धैर्य से काम लेना चाहिए।"
+    },
+    {
+      "contentHi": "एक जंगल के किनारे एक कौवे को कहीं से पनीर का एक स्वादिष्ट टुकड़ा मिला। कौवा बहुत खुश हुआ और वह पेड़ की एक सुरक्षित डाली पर बैठकर मजे से पनीर खाने की सोचने लगा।\n\nतभी वहाँ से एक भूखी लोमड़ी निकली। उसकी नज़र कौवे की चोंच में दबे उस पनीर के टुकड़े पर पड़ी। लोमड़ी के मुँह में पानी आ गया।\n\nलोमड़ी बहुत चालाक थी। उसने सोचा, \"अगर मैं पेड़ पर चढ़ने की कोशिश करूँगी तो कौवा उड़ जाएगा। मुझे अपनी बातों के जाल से यह पनीर हासिल करना होगा।\"\n\nलोमड़ी पेड़ के नीचे खड़ी हुई और बड़े मीठे स्वर में बोली, \"अरे वाह! आज कितने दिनों बाद मुझे इतना सुंदर पक्षी देखने को मिला है। तुम्हारे काले पंख सूरज की धूप में रेशम की तरह चमक रहे हैं!\"\n\nकौवे ने लोमड़ी की ओर देखा। लोमड़ी ने फिर कहा, \"मैंने सुना है कि जंगल में सबसे मधुर गाना सिर्फ आप ही गाते हैं। क्या आप मुझे अपना एक मधुर गीत नहीं सुनाएंगे?\"\n\nअपनी झूठी प्रशंसा सुनकर कौवा फूला न समाया। जैसे ही उसने गाना गाने के लिए अपनी चोंच खोली— \"काँव-काँव!\", पनीर का टुकड़ा नीचे गिर पड़ा!\n\nलोमड़ी ने लपक कर पनीर उठाया, उसे चट कर गई और हँसते हुए जंगल में भाग गई। कौवा पछताता रह गया।",
+      "summaryEn": "How a crow lost his tasty cheese to a sly fox because of sweet flattery.",
+      "coverImage": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=700&auto=format&fit=crop&q=80",
+      "moralHi": "झूठी तारीफ करने वालों की चिकनी-चुपड़ी बातों में कभी नहीं आना चाहिए।",
+      "category": "panchatantra",
+      "readTime": "2.5 मिनट (2.5 min)",
+      "id": "story-3",
+      "isFeatured": false,
+      "titleHi": "चतुर लोमड़ी और कौवा",
+      "_syncedAt": 1790445111916,
+      "recommendedAge": "3-8 वर्ष",
+      "moralEn": "Beware of flatterers; do not let sweet words cloud your good judgment.",
+      "likes": 412,
+      "titleEn": "Chatur Lomdi aur Kauwa (The Fox and Crow)",
+      "number": 3,
+      "contentEn": "High upon an oak branch sat a glossy black crow, holding a fresh piece of delicious cheese he had just discovered.\n\nDown below strolled a clever fox whose stomach was growling. Seeing the cheese, she concocted a smart plan.\n\n\"Good day, noble Crow!\" the fox greeted with a warm smile. \"How dazzling your feathers look today! Your eyes sparkle like sapphires!\"\n\nThe crow leaned forward, flattered by the praise.\n\n\"Surely,\" the fox continued, \"a bird with such regal beauty must have the most melodious voice in all the woodland! Would you honor me with a single song?\"\n\nDrunk on compliments, the crow puffed his chest, spread his wings, and opened his beak wide to sing—\"Caw! Caw!\"\n\nDown tumbled the cheese! In a flash, the fox caught the snack, swallowed it with delight, and slipped away into the trees, leaving the foolish crow with an empty belly.",
+      "summaryHi": "झूठी तारीफ के लालच में आकर कौवे ने अपनी रोटी गंवा दी।"
+    },
+    {
+      "readTime": "3 मिनट (3 min)",
+      "titleHi": "शेर और नन्हा चूहा",
+      "moralEn": "No act of kindness is ever wasted, and no one is too small to help.",
+      "summaryEn": "A tiny mouse proves that even the smallest creature can help the mighty king of the jungle.",
+      "contentHi": "एक दोपहर जंगल का राजा शेर एक घने बरगद के पेड़ के नीचे गहरी नींद में सो रहा था।\n\nतभी वहाँ खेलता हुआ एक नन्हा चूहा गलती से शेर की पीठ पर चढ़ गया और उछल-कूद करने लगा। शेर की नींद टूट गई। क्रोधित होकर शेर ने अपने विशाल पंजे में चूहे को दबोच लिया।\n\nशेर दहाड़ा, \"तुझे मेरी नींद खराब करने की सजा अपनी जान देकर चुकानी होगी!\"\n\nनन्हा चूहा थर-थर कांपने लगा और हाथ जोड़कर बोला, \"हे जंगल के राजा! मुझे क्षमा कर दीजिए। यदि आप मुझे छोड़ देंगे, तो मैं जीवन भर आपका आभारी रहूँगा। क्या पता कभी मैं भी आपके किसी काम आ सकूँ!\"\n\nचूहे की बात सुनकर शेर ठहाका मारकर हँसा, \"तू इतना सा नन्हा जीव मेरी क्या मदद करेगा? चल, आज मैं तुझ पर दया करके छोड़ देता हूँ।\"\n\nकुछ दिनों बाद, जंगल में कुछ शिकारी आए। उन्होंने शेर को पकड़ने के लिए एक मजबूत जाल बिछाया। शेर जाल में फँस गया और जोर-जोर से दहाड़ने लगा।\n\nचूहे ने शेर की दहाड़ पहचान ली। वह दौड़ता हुआ पहुँचा और अपने तेज नुकीले दांतों से जाल की रस्सियों को कुतरना शुरू कर दिया। कुछ ही देर में शेर आज़ाद हो गया!\n\nशेर ने चूहे का दिल से धन्यवाद किया और दोनों पक्के दोस्त बन गए।",
+      "coverImage": "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=700&auto=format&fit=crop&q=80",
+      "likes": 520,
+      "titleEn": "Sher aur Nanha Chuha (The Lion and Mouse)",
+      "recommendedAge": "3-9 वर्ष",
+      "summaryHi": "एक छोटे से चूहे ने जंगल के सबसे बलशाली राजा शेर की जान बचाई।",
+      "contentEn": "One sleepy afternoon, a mighty lion was resting peacefully beneath a banyan tree.\n\nA playful little mouse, scurrying around, accidentally ran up the lion's mane. The lion awoke with a furious roar, pinning the mouse under his colossal paw!\n\n\"How dare you disturb the king of beasts?\" the lion growled. \"You shall pay with your life!\"\n\n\"Forgive me, Your Majesty!\" squeaked the tiny mouse trembling. \"Spare me today, and someday I might be able to help you in return!\"\n\nThe lion chuckled heartily at the thought of a tiny mouse helping the strongest animal in the jungle. Amused, he opened his paw and let him scamper free.\n\nA few weeks later, hunters spread strong rope nets across the jungle trail. The lion stumbled into the trap and was hopelessly bound. His distressed roars shook the forest.\n\nHearing his friend's voice, the little mouse dashed to the rescue. Using his razor-sharp teeth, he gnawed through the thick fibers until the lion stepped free!\n\nThe lion bowed respectfully to the tiny creature, learning that no act of kindness is ever wasted.",
+      "illustrations": [
+        "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=700&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=700&auto=format&fit=crop&q=80"
+      ],
+      "_syncedAt": 1790445111916,
+      "id": "story-4",
+      "isFeatured": true,
+      "moralHi": "किसी को भी छोटा या कमजोर समझकर उसका अनादर नहीं करना चाहिए।",
+      "number": 4,
+      "category": "animals"
+    },
+    {
+      "readTime": "2 मिनट (2 min)",
+      "titleHi": "प्यासा कौवा और कंकड़",
+      "moralEn": "Where there is a will and thoughtful persistence, there is always a way.",
+      "contentHi": "भीषण गर्मी का दिन था। सूरज आग उगल रहा था। एक प्यासा कौवा पानी की तलाश में यहाँ-वहाँ उड़ रहा था। दूर-दूर तक कहीं कोई तालाब या नदी नहीं दिखाई दे रही थी।\n\nकौवा थककर चूर हो गया। तभी उसे एक बगीचे में मिट्टी का एक घड़ा दिखाई दिया।\n\nकौवा खुशी से उड़कर घड़े की मुँडेर पर बैठा। उसने झाँककर देखा तो घड़े के तले में थोड़ा सा पानी था। कौवे ने अपनी चोंच अंदर डाली, लेकिन पानी बहुत नीचे था, उसकी चोंच वहाँ तक नहीं पहुँच सकी।\n\nकौवे ने हिम्मत नहीं हारी। उसने चारों ओर देखा। बगीचे के फर्श पर बहुत सारे छोटे-छोटे कंकड़ पड़े हुए थे। कौवे के दिमाग में एक शानदार योजना आई!\n\nउसने अपनी चोंच से एक-एक कंकड़ उठाना शुरू किया और घड़े में डालना शुरू किया। जैसे-जैसे कंकड़ घड़े के तले में जमा होते गए, पानी का स्तर धीरे-धीरे ऊपर उठता गया।\n\nकौवे ने लगातार मेहनत की। अंत में पानी घड़े के मुँह तक आ गया! कौवे ने जी भरकर ठंडा-मीठा पानी पिया और खुशी-खुशी अपनी उड़ान भरी।",
+      "summaryEn": "How a thirsty crow used small pebbles and creative patience to raise water in a pitcher.",
+      "coverImage": "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=700&auto=format&fit=crop&q=80",
+      "likes": 310,
+      "titleEn": "Pyasa Kauwa (The Thirsty Crow)",
+      "recommendedAge": "3-8 वर्ष",
+      "summaryHi": "गर्मी की दोपहर में एक कौवे ने मटके में कंकड़ डालकर अपनी प्यास बुझाई।",
+      "contentEn": "On a sweltering summer afternoon, the scorching sun dried up every puddle in sight. A weary crow flew over fields desperately searching for water.\n\nExhausted, he spotted a terracotta pitcher resting in a garden shade.\n\nExcited, the crow perched on the rim and peered inside. There was water at the bottom, but the water level was too low for his beak to reach.\n\nInstead of giving up, the crow looked around the garden path and noticed countless smooth little pebbles. An ingenious spark struck him!\n\nPatiently, picking up one pebble at a time with his beak, he dropped them into the pitcher. Plop! Plop! Plop!\n\nWith each stone that settled at the bottom, the water level rose higher and higher. Soon, the cool, refreshing water reached the brim. The crow drank to his heart's content and flew into the sky in triumph.",
+      "_syncedAt": 1790445111916,
+      "id": "story-5",
+      "moralHi": "जहाँ चाह होती है, वहाँ राह निकल ही आती है। बुद्धि और धैर्य से हर कठिनाई हल हो सकती है।",
+      "isFeatured": false,
+      "number": 5,
+      "category": "panchatantra"
+    },
+    {
+      "titleHi": "लालची कुत्ता और परछाईं",
+      "id": "story-6",
+      "moralEn": "Be content with what you have. Greed causes you to lose everything.",
+      "_syncedAt": 1790445111917,
+      "coverImage": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=700&auto=format&fit=crop&q=80",
+      "category": "moral",
+      "summaryHi": "नदी में अपनी ही परछाईं को दूसरा कुत्ता समझकर लालची कुत्ते ने अपनी रोटी भी खो दी।",
+      "contentEn": "One bright morning, a hungry stray dog found a large, juicy bone near the town bakery. Overjoyed, he decided to carry it to a peaceful meadow across the river.\n\nAs he was trotting over the wooden footbridge spanning the crystal-clear brook, he glanced down into the quiet water.\n\nThere, looking up at him, was his own clear reflection.\n\nBeing greedy and foolish, he mistook his reflection for another dog holding another delicious bone. He thought, \"If I scare him and snatch his bone too, I will have double the feast!\"\n\nWithout hesitation, he opened his jaws wide to bark—\"Woof!\"\n\nThe moment his teeth parted, his prize slipped from his mouth, plunged into the rushing water, and sank to the riverbed out of sight. The greedy dog trotted home hungry, having learned a bitter lesson.",
+      "titleEn": "Lalchi Kutta (The Greedy Dog)",
+      "number": 6,
+      "recommendedAge": "4-9 वर्ष",
+      "summaryEn": "A greedy dog barking at his own reflection in the stream loses the juicy bone he already held.",
+      "contentHi": "एक गाँव में शेरू नाम का एक कुत्ता रहता था। वह अक्सर खाने की तलाश में इधर-उधर भटकता रहता था।\n\nएक दिन उसे कसाई की दुकान के बाहर एक स्वादिष्ट हड्डी का टुकड़ा मिला। शेरू बेहद खुश हुआ। उसने सोचा, \"मैं इसे किसी शांत जगह ले जाकर अकेले मजे से खाऊँगा।\"\n\nवह हड्डी को अपने मुँह में दबाकर जंगल की ओर जाने लगा। रास्ते में एक साफ पानी की छोटी सी नदी बह रही थी, जिस पर लकड़ी का एक संकरा पुल बना हुआ था।\n\nजब शेरू पुल के बीच पहुँचा, तो उसने नीचे नदी के शांत जल में झाँका। उसे पानी में अपनी ही परछाईं दिखाई दी।\n\nमगर नासमझ शेरू ने सोचा कि पानी में कोई दूसरा कुत्ता खड़ा है जिसके मुँह में भी एक बड़ी सी हड्डी है। शेरू के मन में लालच आ गया— \"अगर मैं उस कुत्ते की हड्डी भी छीन लूँ, तो मेरे पास दो-दो हड्डियाँ हो जाएँगी!\"\n\nउसने पानी में दिख रहे कुत्ते को डराने के लिए जैसे ही भौंकने के लिए मुँह खोला— \"भौंक!\", उसके मुँह की हड्डी छूटकर सीधे नदी के गहरे पानी में गिर गई और बह गई।\n\nशेरू भूखा रह गया और अपने लालच पर पछताने लगा।",
+      "isFeatured": false,
+      "readTime": "2.5 मिनट (2.5 min)",
+      "moralHi": "जो हमारे पास है उसी में संतुष्ट रहना चाहिए। लालच का फल हमेशा बुरा होता है।",
+      "likes": 245
+    }
+  ],
+  "_lastSaved": "2026-09-26T17:52:07.912Z",
+  "worksheets": [
+    {
+      "printUrl": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&auto=format&fit=crop&q=90",
+      "descriptionEn": "High-contrast printable line artwork for children to color with crayons and sketches.",
+      "descriptionHi": "बच्चों के लिए सुंदर आउटलाइन स्केच जिसमें वे अपनी पसंद के रंग भर सकते हैं। प्रिंट करने के लिए तैयार!",
+      "titleEn": "Lion & Tortoise Coloring Activity Sheet",
+      "category": "coloring",
+      "titleHi": "शेर और कछुए का कलरिंग पेज",
+      "_syncedAt": 1790445112559,
+      "ageGroup": "3-8 वर्ष",
+      "id": "ws-1",
+      "thumbnailUrl": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&auto=format&fit=crop&q=80"
+    },
+    {
+      "printUrl": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&auto=format&fit=crop&q=90",
+      "descriptionEn": "Dotted tracing lines helping kids practice neat Hindi letter handwriting and stroke order.",
+      "descriptionHi": "सुंदर बिंदुओं (Dots) वाली वर्कशीट जिससे बच्चे सही तरीके से स्वर और व्यंजन लिखना सीख सकें।",
+      "titleEn": "Hindi Varnamala Letter Tracing Worksheet",
+      "_syncedAt": 1790445112559,
+      "thumbnailUrl": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&auto=format&fit=crop&q=80",
+      "category": "tracing",
+      "id": "ws-2",
+      "ageGroup": "4-9 वर्ष",
+      "titleHi": "हिंदी वर्णमाला (अ से ज्ञ) ट्रेसिंग वर्कशीट"
+    },
+    {
+      "titleHi": "जंगल भूलभुलैया (Jungle Maze Puzzle)",
+      "category": "puzzle",
+      "_syncedAt": 1790445112559,
+      "printUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=90",
+      "thumbnailUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
+      "ageGroup": "5-10 वर्ष",
+      "id": "ws-3",
+      "descriptionHi": "नन्हे खरगोश को गाजर तक पहुँचाने की दिमाग की कसरत वाली भूलभुलैया पहेली।",
+      "descriptionEn": "Exciting visual brain maze puzzle to guide the cute bunny through forest paths to the carrot.",
+      "titleEn": "Find the Way to Forest: Jungle Maze"
+    }
+  ]
+}

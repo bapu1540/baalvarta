@@ -13,11 +13,16 @@ import {
   Volume2,
   Brain,
   Share2,
-  BookOpen
+  BookOpen,
+  Star,
+  Printer,
+  Download,
+  Medal
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { QuizSet, QuizQuestion, Language } from '../types';
 import { playPopSound, playSuccessSound, speakText } from '../utils/soundEffects';
+import { AdBannerSlot } from './AdBannerSlot';
 
 interface KidsQuizHubProps {
   quizSets: QuizSet[];
@@ -38,6 +43,8 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Array<{ qIndex: number; selected: number; isCorrect: boolean }>>([]);
   const [quizFinished, setQuizFinished] = useState(false);
+  const [childName, setChildName] = useState('');
+  const [showCertificate, setShowCertificate] = useState(false);
 
   const isHi = language === 'hi';
 
@@ -168,47 +175,177 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
     );
   }
 
-  // Quiz Finished View (Scorecard & Explanation Review)
+  // Quiz Finished View (Scorecard, Interactive Stars, Badges & Certificate)
   if (quizFinished) {
     const totalQuestions = activeQuiz.questions.length;
     const percentage = Math.round((score / totalQuestions) * 100);
+    const starCount = Math.max(1, Math.min(5, score));
 
-    let badgeTitle = isHi ? '🌟 सुपर स्टार' : '🌟 Super Star';
-    let badgeDesc = isHi ? 'अद्भुत प्रदर्शन! आपने सभी सवालों के सही जवाब दिए।' : 'Phenomenal work! You mastered every question.';
-    if (percentage < 60) {
-      badgeTitle = isHi ? '🌱 नन्हा जिज्ञासु' : '🌱 Little Explorer';
-      badgeDesc = isHi ? 'बहुत अच्छा प्रयास! हर गलती एक नई सीख देती है।' : 'Great effort! Review the explanations below to learn more.';
+    let badgeTitle = isHi ? '⭐⭐⭐⭐⭐ गोल्ड मास्टर (Gold Champion)' : '⭐⭐⭐⭐⭐ Gold Champion Badge';
+    let badgeDesc = isHi ? 'अद्भुत प्रदर्शन! आपने सभी 5 सवालों के सटीक जवाब दिए और 5-स्टार हासिल किए।' : 'Phenomenal work! You answered all questions correctly and won 5 Stars!';
+    let badgeColor = 'from-amber-400 to-yellow-500 text-amber-950 border-amber-300';
+    let badgeEmoji = '👑';
+
+    if (percentage < 40) {
+      badgeTitle = isHi ? '⭐ नन्हा खोजी (Little Explorer)' : '⭐ Little Explorer Badge';
+      badgeDesc = isHi ? 'अच्छा प्रयास! नीचे दी गई सचित्र व्याख्या पढ़कर फिर से खेलें।' : 'Good try! Read the explanations below and try again!';
+      badgeColor = 'from-blue-400 to-sky-500 text-white border-blue-300';
+      badgeEmoji = '🌱';
+    } else if (percentage < 70) {
+      badgeTitle = isHi ? '⭐⭐⭐ ब्रॉन्ज़ ज्ञानरत्न (Bronze Star)' : '⭐⭐⭐ Bronze Star Badge';
+      badgeDesc = isHi ? 'सराहनीय प्रदर्शन! आप बहुत अच्छा सीख रहे हैं।' : 'Great effort! You are learning very well.';
+      badgeColor = 'from-orange-400 to-amber-500 text-white border-orange-300';
+      badgeEmoji = '🥉';
     } else if (percentage < 100) {
-      badgeTitle = isHi ? '🏆 बाल ज्ञानरत्न' : '🏆 Smart Thinker';
-      badgeDesc = isHi ? 'शानदार स्कोर! आप बहुत होशियार हैं।' : 'Awesome score! You did wonderfully well.';
+      badgeTitle = isHi ? '⭐⭐⭐⭐ सिल्वर स्टार (Silver Star)' : '⭐⭐⭐⭐ Silver Star Badge';
+      badgeDesc = isHi ? 'शानदार स्कोर! आप बाल ज्ञान के सच्चे सितारे हैं।' : 'Awesome score! You are a shining star of knowledge.';
+      badgeColor = 'from-slate-300 via-sky-200 to-slate-400 text-slate-800 border-slate-300';
+      badgeEmoji = '🥈';
     }
+
+    const handlePrintCertificate = () => {
+      window.print();
+    };
 
     return (
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="bg-white rounded-3xl p-8 border-2 border-amber-200 shadow-xl text-center relative overflow-hidden">
-          <div className="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-5xl shadow-lg animate-bounce">
-            🏆
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-amber-200 shadow-xl text-center relative overflow-hidden">
+          {/* Celebratory Icon */}
+          <div className="w-20 h-20 mx-auto mb-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-4xl shadow-lg animate-bounce">
+            {badgeEmoji}
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-800 mb-1 font-display">
-            {isHi ? 'क्विज़ पूरा हुआ!' : 'Quiz Completed!'}
+          
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mb-1 font-display">
+            {isHi ? 'क्विज़ पूरा हुआ! 🎉' : 'Quiz Completed! 🎉'}
           </h2>
-          <p className="text-slate-600 mb-6 text-base font-medium">
+          <p className="text-slate-600 mb-4 text-sm sm:text-base font-medium">
             {isHi ? activeQuiz.titleHi : activeQuiz.titleEn}
           </p>
 
-          <div className="inline-block bg-amber-50 border-2 border-amber-200 rounded-3xl p-6 mb-6">
-            <div className="text-sm font-bold text-amber-800 mb-1">{badgeTitle}</div>
-            <div className="text-5xl font-extrabold text-amber-600 mb-2 font-display">
+          {/* Interactive Animated Stars Display */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            {[1, 2, 3, 4, 5].map((starNum) => (
+              <div
+                key={starNum}
+                className={`transition-all duration-500 transform ${
+                  starNum <= starCount
+                    ? 'scale-110 text-amber-400 drop-shadow-md animate-pulse'
+                    : 'scale-90 text-slate-200'
+                }`}
+              >
+                <Star
+                  className={`w-8 h-8 sm:w-10 sm:h-10 ${
+                    starNum <= starCount ? 'fill-amber-400 stroke-amber-500' : 'fill-slate-100 stroke-slate-300'
+                  }`}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Score & Star Badge Card */}
+          <div className={`inline-block w-full max-w-md bg-gradient-to-r ${badgeColor} rounded-3xl p-5 mb-6 shadow-md border-2`}>
+            <div className="text-xs font-black uppercase tracking-wider mb-1 opacity-90">{badgeTitle}</div>
+            <div className="text-4xl sm:text-5xl font-extrabold mb-1 font-display">
               {score} / {totalQuestions}
             </div>
-            <div className="text-xs text-slate-600 max-w-sm">{badgeDesc}</div>
+            <div className="text-xs font-medium max-w-sm mx-auto leading-relaxed">{badgeDesc}</div>
+          </div>
+
+          {/* Kid Quiz Star Certificate Generator */}
+          <div className="my-6 p-4 sm:p-6 bg-gradient-to-b from-amber-50 to-orange-50/60 rounded-3xl border-2 border-amber-300 text-left space-y-4">
+            <div className="flex items-center justify-between gap-2 border-b border-amber-200 pb-3">
+              <div className="flex items-center gap-2">
+                <Award className="w-6 h-6 text-amber-600 shrink-0" />
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-base">
+                    {isHi ? '🎖️ बाल ज्ञान प्रमाण पत्र (Kids Star Certificate)' : '🎖️ Kids Quiz Champion Certificate'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {isHi ? 'बच्चे का नाम लिखकर अपना डिजिटल प्रमाण पत्र प्राप्त करें' : 'Enter child name to get personalized certificate'}
+                  </p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black shrink-0">
+                100% Free
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={childName}
+                onChange={(e) => setChildName(e.target.value)}
+                placeholder={isHi ? 'बच्चे का नाम दर्ज करें (उदा: आरव शर्मा)...' : 'Enter child name (e.g. Aarav Sharma)...'}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-amber-300 bg-white text-slate-800 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!childName.trim()) {
+                    alert(isHi ? 'कृपया पहले बच्चे का नाम लिखें।' : 'Please enter child name.');
+                    return;
+                  }
+                  if (soundEnabled) playSuccessSound();
+                  setShowCertificate(true);
+                }}
+                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{isHi ? 'प्रमाण पत्र देखें' : 'Generate Certificate'}</span>
+              </button>
+            </div>
+
+            {/* Live Certificate Card Preview */}
+            {showCertificate && (
+              <div id="kids-quiz-certificate-card" className="mt-4 p-6 sm:p-8 bg-white border-4 border-amber-400 rounded-3xl shadow-xl relative overflow-hidden text-center space-y-3">
+                <div className="absolute top-2 left-3 text-[10px] font-bold text-amber-700 uppercase tracking-widest">
+                  बालवार्ता पोर्टल (Baalvarta Portal)
+                </div>
+                <div className="text-xs uppercase font-extrabold tracking-widest text-amber-600">
+                  ★ CERTIFICATE OF MERIT ★
+                </div>
+                <h4 className="text-xl sm:text-2xl font-black text-slate-900 font-display">
+                  बाल ज्ञानरत्न सम्मान पत्र
+                </h4>
+                <p className="text-xs text-slate-500 italic">
+                  यह प्रमाण पत्र अत्यंत गर्व के साथ प्रदान किया जाता है:
+                </p>
+                <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 border-b-2 border-dashed border-amber-300 pb-1 max-w-xs mx-auto">
+                  {childName || 'बाल पाठक'}
+                </div>
+                <p className="text-xs text-slate-600 max-w-md mx-auto">
+                  जिन्होंने बालवार्ता 5-Q क्विज़ <strong>"{activeQuiz.titleHi}"</strong> में <strong>{score} / {totalQuestions} अंक ({percentage}%)</strong> प्राप्त कर <strong>{starCount}-स्टार सम्मान</strong> अर्जित किया।
+                </p>
+                
+                <div className="flex items-center justify-center gap-1 text-amber-400 text-xl py-1">
+                  {Array.from({ length: starCount }).map((_, i) => (
+                    <span key={i}>⭐</span>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span>दिनांक: {new Date().toLocaleDateString('hi-IN')}</span>
+                  <span className="font-bold text-amber-800">निदेशक, बालवार्ता</span>
+                </div>
+
+                <div className="pt-2 flex justify-center gap-2 print:hidden">
+                  <button
+                    onClick={handlePrintCertificate}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>{isHi ? 'प्रमाण पत्र प्रिंट / सेव करें' : 'Print Certificate'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               id="quiz-play-again-btn"
               onClick={() => startQuiz(activeQuiz)}
-              className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold shadow-md transition-all flex items-center gap-2"
+              className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
               <span>{isHi ? 'फिर से खेलें' : 'Play Again'}</span>
@@ -216,13 +353,16 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
             <button
               id="quiz-choose-another-btn"
               onClick={() => setActiveQuiz(null)}
-              className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold transition-all flex items-center gap-2"
+              className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold transition-all flex items-center gap-2 cursor-pointer"
             >
               <BookOpen className="w-4 h-4" />
               <span>{isHi ? 'अन्य क्विज़ चुनें' : 'Choose Another Quiz'}</span>
             </button>
           </div>
         </div>
+
+        {/* Ad Space Banner inside Quiz Results */}
+        <AdBannerSlot format="leaderboard" slotId="quiz-results-banner" />
 
         {/* Detailed Question Review with "Kyo Sahi Hai" Explanations */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6">

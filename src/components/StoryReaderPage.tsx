@@ -41,6 +41,7 @@ import {
   isSpeechPaused
 } from '../utils/soundEffects';
 import { recordStoryRead, getReadingStreak } from '../utils/storage';
+import { AdBannerSlot } from './AdBannerSlot';
 
 interface StoryReaderPageProps {
   story: Story;
@@ -747,7 +748,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
 
             {/* Current Scene Image Card (16:9 with Zoom) */}
             <div className="relative rounded-3xl overflow-hidden shadow-xl border-2 border-black/10 bg-slate-900 group">
-              <div className="aspect-16/9 w-full overflow-hidden flex items-center justify-center bg-black/10">
+              <div className="aspect-video w-full overflow-hidden flex items-center justify-center bg-black/10">
                 <img
                   src={story.scenes[currentSceneIndex].image}
                   alt={story.scenes[currentSceneIndex].captionHi || `दृश्य ${currentSceneIndex + 1}`}
@@ -900,14 +901,14 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
         ) : (
           /* 📜 FULL TEXT / CONTINUOUS STORY READER (FOR STANDARD STORIES OR FULL TEXT MODE) */
           <>
-            {/* Cover Image */}
+            {/* Cover Image (Strict 16:9 Aspect Ratio) */}
             {story.coverImage && (
-              <div className="my-8 rounded-3xl overflow-hidden shadow-lg border border-black/10 relative group">
+              <div className="my-6 sm:my-8 rounded-3xl overflow-hidden shadow-lg border border-black/10 relative group aspect-video w-full bg-slate-100">
                 <img
                   src={story.coverImage}
                   alt={story.titleEn}
                   referrerPolicy="no-referrer"
-                  className="w-full h-64 sm:h-96 object-cover transform transition-transform group-hover:scale-102 duration-300"
+                  className="w-full h-full object-cover transform transition-transform group-hover:scale-102 duration-300"
                 />
                 <div className="absolute bottom-3 right-3 bg-black/60 text-white backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold">
                   चित्र: {language === 'hi' ? story.titleHi : story.titleEn}
@@ -932,12 +933,12 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                       )}
                     </div>
 
-                    <div className="rounded-2xl overflow-hidden shadow-sm border border-black/10 relative group">
+                    <div className="rounded-2xl overflow-hidden shadow-sm border border-black/10 relative group aspect-video w-full bg-slate-100">
                       <img
                         src={scene.image}
                         alt={`दृश्य ${scIdx + 1}`}
                         referrerPolicy="no-referrer"
-                        className="w-full h-56 sm:h-80 object-cover cursor-pointer hover:scale-102 transition-transform duration-300"
+                        className="w-full h-full object-cover cursor-pointer hover:scale-102 transition-transform duration-300"
                         onClick={() => setSelectedZoomImage(scene.image)}
                       />
                       <div
@@ -1058,6 +1059,9 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             "{language === 'hi' ? story.moralHi : story.moralEn}"
           </p>
         </div>
+
+        {/* Ad Space Slot inside Story Reader */}
+        <AdBannerSlot format="banner" slotId="story-reader-moral-banner" />
 
         {/* FAMILY & PARENT DISCUSSION CORNER (माता-पिता व बच्चों के बीच बातचीत) */}
         <div className="mt-8 p-6 rounded-3xl bg-blue-50/80 border-2 border-blue-200 shadow-sm space-y-3">

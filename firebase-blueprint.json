@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "Story": {
+      "title": "Story",
+      "description": "Children's story in Gujarati with translations, audio, quiz, and moral values",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleHi": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "category": { "type": "string" },
+        "ageGroup": { "type": "string" },
+        "synopsisHi": { "type": "string" },
+        "synopsisEn": { "type": "string" },
+        "moralHi": { "type": "string" },
+        "moralEn": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "contentHi": { "type": "string" },
+        "contentEn": { "type": "string" },
+        "_syncedAt": { "type": "number" }
+      },
+      "required": ["id", "titleHi", "category"]
+    },
+    "Worksheet": {
+      "title": "Worksheet",
+      "description": "Educational printable coloring, tracing, and puzzle worksheet for kids",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleHi": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "category": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "printUrl": { "type": "string" },
+        "ageGroup": { "type": "string" },
+        "descriptionHi": { "type": "string" },
+        "descriptionEn": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "_syncedAt": { "type": "number" }
+      },
+      "required": ["id", "titleHi", "category", "thumbnailUrl"]
+    },
+    "ConnectionTest": {
+      "title": "ConnectionTest",
+      "description": "Firebase Firestore health check document",
+      "type": "object",
+      "properties": {
+        "lastPing": { "type": "string" },
+        "client": { "type": "string" }
+      },
+      "required": ["lastPing"]
+    }
+  },
+  "firestore": {
+    "/stories/{storyId}": {
+      "schema": "Story",
+      "description": "Public stories repository synced across all devices"
+    },
+    "/worksheets/{worksheetId}": {
+      "schema": "Worksheet",
+      "description": "Public printable worksheets collection"
+    },
+    "/_connection_test/{testId}": {
+      "schema": "ConnectionTest",
+      "description": "Connection test heartbeat document"
+    }
+  }
+}

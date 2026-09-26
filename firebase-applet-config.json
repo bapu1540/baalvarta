@@ -1,0 +1,13 @@
+{
+  "projectId": "baalvarta-live",
+  "appId": "1:1059726962769:web:6a5356a0821bc4b44b4870",
+  "apiKey": "AIzaSyCZ9jVxIdBYHCvdcqqn7XvWQTrUxh4f2FA",
+  "authDomain": "baalvarta-live.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-baalvartakidssto-e84405f1-d0ba-4a9d-b10f-d57c1a9c8dfe",
+  "storageBucket": "baalvarta-live.firebasestorage.app",
+  "messagingSenderId": "1059726962769",
+  "measurementId": "G-VHLTQGC75H",
+  "databaseURL": "https://baalvarta-live-default-rtdb.firebaseio.com",
+  "oAuthClientId": "1059726962769-n1f86iv5hfi6uepoebl8tfs6al2kat51.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
+}

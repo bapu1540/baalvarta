@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
+import { AdBannerSlot } from './AdBannerSlot';
 import { UserReviewsSection } from './UserReviewsSection';
 
 interface WebsiteHomeProps {
@@ -65,9 +66,19 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [activeInteractiveLetter, setActiveInteractiveLetter] = useState<string>('अ');
 
-  // Highlights
-  const featuredStory = stories.find((s) => s.isFeatured) || stories[0];
-  const newUploads = stories.slice(0, 4);
+  // Featured Storybooks Sorting: Ensure newly uploaded stories appear at the very top (beginning)
+  const getStoryTimestamp = (s: Story): number => {
+    if (s.createdAt) return s.createdAt;
+    if (typeof s.id === 'string') {
+      const match = s.id.match(/\d{10,}/);
+      if (match) return parseInt(match[0], 10);
+    }
+    return (s.number || 0) * 1000;
+  };
+
+  const sortedByNewest = [...stories].sort((a, b) => getStoryTimestamp(b) - getStoryTimestamp(a));
+  const featuredStory = sortedByNewest.find((s) => s.isFeatured) || sortedByNewest[0];
+  const newUploads = sortedByNewest.slice(0, 4);
   const topFacts = facts.slice(0, 3);
   const topAudio = audioStories.slice(0, 3);
 
@@ -157,16 +168,16 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
     },
     {
       id: 'videos',
-      titleHi: '6. वीडियो कहानियाँ (9:16)',
-      titleEn: '6. Video Stories (9:16)',
-      badgeHi: '🎬 Shorts & Videos',
-      badgeEn: '🎬 Shorts & Videos',
-      emoji: '📱',
+      titleHi: '6. वीडियो कहानियाँ (16:9)',
+      titleEn: '6. Video Stories (16:9)',
+      badgeHi: '🎬 YouTube Videos',
+      badgeEn: '🎬 YouTube Videos',
+      emoji: '📺',
       gradient: 'from-red-500 via-rose-500 to-amber-600',
       border: 'border-red-300',
       btnGradient: 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700',
-      subtextHi: 'रोमांचक 9:16 वीडियो व शॉर्ट्स',
-      subtextEn: 'Exciting 9:16 Video Stories & Shorts',
+      subtextHi: 'यूट्यूब वीडियो व मनोरंजक बाल कथाएं',
+      subtextEn: 'YouTube Video Stories & Fables',
       tab: 'videos' as ActiveTab,
     },
     {
@@ -391,6 +402,9 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
         </div>
       </section>
 
+      {/* Ad Space Banner (AdSense & Partner Banner) */}
+      <AdBannerSlot format="leaderboard" slotId="home-banner-top" />
+
       {/* 3. FUN FACTS (DID YOU KNOW / ROCHAK TATHYA) SPOTLIGHT - RIGHT UNDER CATEGORIES */}
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -484,16 +498,21 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
               onClick={() => handleStoryCardClick(story)}
               className="bg-white rounded-xl overflow-hidden border border-amber-200 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col group"
             >
-              <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+              <div className="relative aspect-video overflow-hidden bg-slate-100">
                 <img
                   src={story.coverImage}
                   alt={story.titleHi}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                <div className="absolute top-1.5 left-1.5">
+                <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
                   <span className="px-1.5 py-0.2 rounded bg-black/70 backdrop-blur-xs text-white text-[8px] font-black">
                     #{story.number}
                   </span>
+                  {(story.createdAt || (typeof story.id === 'string' && story.id.includes('story-') && parseInt(story.id.replace(/\D/g, '')) > 1700000000000)) && (
+                    <span className="px-1.5 py-0.2 rounded bg-rose-500 text-white text-[8px] font-black shadow-xs animate-pulse">
+                      🌟 नई
+                    </span>
+                  )}
                 </div>
                 <div className="absolute top-1.5 right-1.5">
                   <span className="px-1.5 py-0.2 rounded bg-amber-500 text-white text-[8px] font-bold">

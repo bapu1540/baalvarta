@@ -87,6 +87,23 @@ import {
 } from '../utils/storage';
 import { sendAdminOtpEmail } from '../utils/emailService';
 import { saveToServerDatabase } from '../utils/dbStorage';
+import {
+  isFirebaseConfigured,
+  getFirebaseConfig,
+  saveFirebaseConfig,
+  clearFirebaseConfig,
+  testFirebaseConnection,
+  syncStoryToFirestore,
+  deleteStoryFromFirestore,
+  syncWorksheetToFirestore,
+  deleteWorksheetFromFirestore,
+  syncAllStoriesToFirestore,
+  syncAllWorksheetsToFirestore,
+  fetchStoriesFromFirestore,
+  fetchWorksheetsFromFirestore,
+  uploadImageToFirebaseStorage,
+} from '../utils/firebase';
+import { FirebaseConfig } from '../types';
 
 interface AdminCMSProps {
   isOpen: boolean;
@@ -192,6 +209,120 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   const [dbSyncMsg, setDbSyncMsg] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+
+  // Firebase Live Sync State
+  const [fbConfig, setFbConfig] = useState<FirebaseConfig>(() => {
+    const existing = getFirebaseConfig();
+    return existing || {
+      apiKey: '',
+      authDomain: '',
+      projectId: '',
+      storageBucket: '',
+      messagingSenderId: '',
+      appId: '',
+    };
+  });
+  const [fbJsonInput, setFbJsonInput] = useState('');
+  const [fbStatusMsg, setFbStatusMsg] = useState<{ text: string; isSuccess: boolean } | null>(null);
+  const [isTestingFb, setIsTestingFb] = useState(false);
+  const [isSyncingFbAll, setIsSyncingFbAll] = useState(false);
+
+  const handleParseAndSetFbJson = (rawText: string) => {
+    setFbJsonInput(rawText);
+    try {
+      const cleaned = rawText.trim();
+      let parsed: any = null;
+      if (cleaned.startsWith('{')) {
+        parsed = JSON.parse(cleaned);
+      } else {
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (match) {
+          const jsonLike = match[0].replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":').replace(/'/g, '"');
+          parsed = JSON.parse(jsonLike);
+        }
+      }
+      if (parsed && (parsed.projectId || parsed.apiKey)) {
+        setFbConfig((prev) => ({
+          ...prev,
+          apiKey: parsed.apiKey || prev.apiKey,
+          authDomain: parsed.authDomain || prev.authDomain,
+          projectId: parsed.projectId || prev.projectId,
+          storageBucket: parsed.storageBucket || prev.storageBucket,
+          messagingSenderId: parsed.messagingSenderId || prev.messagingSenderId,
+          appId: parsed.appId || prev.appId,
+        }));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSaveAndTestFirebase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsTestingFb(true);
+    setFbStatusMsg(null);
+    try {
+      saveFirebaseConfig(fbConfig);
+      const testRes = await testFirebaseConnection();
+      setFbStatusMsg({ text: testRes.message, isSuccess: testRes.success });
+      if (testRes.success && soundEnabled) playSuccessSound();
+    } catch (err: any) {
+      setFbStatusMsg({ text: `त्रुटि: ${err?.message || 'कनेक्शन विफल'}`, isSuccess: false });
+    } finally {
+      setIsTestingFb(false);
+    }
+  };
+
+  const handlePushAllToFirebase = async () => {
+    setIsSyncingFbAll(true);
+    setFbStatusMsg({ text: 'सभी कहानियाँ व वर्कशीट Firebase पर अपलोड हो रही हैं...', isSuccess: true });
+    try {
+      const [storyRes, wsRes] = await Promise.all([
+        syncAllStoriesToFirestore(stories),
+        syncAllWorksheetsToFirestore(worksheets),
+      ]);
+      setFbStatusMsg({
+        text: `✅ सफलता! ${storyRes.count} कहानियाँ और ${wsRes.count} वर्कशीट्स Firebase Firestore पर अपलोड हो गईं। अब यह सभी डिवाइसों पर लाइव दिखाई देंगी!`,
+        isSuccess: true,
+      });
+      if (soundEnabled) playSuccessSound();
+    } catch (err: any) {
+      setFbStatusMsg({ text: `अपलोड त्रुटि: ${err?.message || 'फ़ायरबेस सिंक विफल'}`, isSuccess: false });
+    } finally {
+      setIsSyncingFbAll(false);
+    }
+  };
+
+  const handlePullAllFromFirebase = async () => {
+    setIsSyncingFbAll(true);
+    setFbStatusMsg({ text: 'Firebase Cloud से नवीनतम डेटा डाउनलोड हो रहा है...', isSuccess: true });
+    try {
+      const [cloudStories, cloudWorksheets] = await Promise.all([
+        fetchStoriesFromFirestore(),
+        fetchWorksheetsFromFirestore(),
+      ]);
+      let msg = '';
+      if (cloudStories && cloudStories.length > 0) {
+        onSaveStories(cloudStories);
+        msg += `${cloudStories.length} कहानियाँ `;
+      }
+      if (cloudWorksheets && cloudWorksheets.length > 0) {
+        setWorksheets(cloudWorksheets);
+        saveStoredWorksheets(cloudWorksheets);
+        msg += `${cloudWorksheets.length} वर्कशीट्स `;
+      }
+      if (!msg) {
+        setFbStatusMsg({ text: '⚠️ Firebase Firestore में अभी कोई डेटा नहीं मिला।', isSuccess: false });
+      } else {
+        setFbStatusMsg({ text: `✅ सफलता! ${msg} Firebase से लोड होकर अपडेट हो गईं!`, isSuccess: true });
+        if (soundEnabled) playSuccessSound();
+      }
+    } catch (err: any) {
+      setFbStatusMsg({ text: `डाउनलोड त्रुटि: ${err?.message || 'डाउनलोड विफल'}`, isSuccess: false });
+    } finally {
+      setIsSyncingFbAll(false);
+    }
+  };
 
   const handleForceSyncDb = async () => {
     setIsSyncingDb(true);
@@ -538,11 +669,21 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       readTime: newStory.readTime,
       recommendedAge: newStory.recommendedAge,
       likes: 1,
-      isFeatured: false,
+      isFeatured: true,
+      createdAt: Date.now(),
       illustrations: illustrationList,
     };
 
-    onSaveStories([...stories, created]);
+    const updatedStories = [created, ...stories];
+    onSaveStories(updatedStories);
+    syncStoryToFirestore(created);
+    if (created.coverImage.startsWith('data:')) {
+      uploadImageToFirebaseStorage(created.coverImage, `stories/${created.id}-cover`).then((cloudUrl) => {
+        if (cloudUrl && cloudUrl !== created.coverImage) {
+          syncStoryToFirestore({ ...created, coverImage: cloudUrl });
+        }
+      });
+    }
     setNewStory({
       titleHi: '',
       titleEn: '',
@@ -643,9 +784,19 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       recommendedAge: newPictureBook.recommendedAge,
       likes: 1,
       isFeatured: true,
+      createdAt: Date.now(),
     };
 
-    onSaveStories([...stories, created]);
+    const updatedStories = [created, ...stories];
+    onSaveStories(updatedStories);
+    syncStoryToFirestore(created);
+    if (created.coverImage.startsWith('data:')) {
+      uploadImageToFirebaseStorage(created.coverImage, `stories/${created.id}-cover`).then((cloudUrl) => {
+        if (cloudUrl && cloudUrl !== created.coverImage) {
+          syncStoryToFirestore({ ...created, coverImage: cloudUrl });
+        }
+      });
+    }
 
     // Reset Picture Book state
     setNewPictureBook({
@@ -694,6 +845,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       .map((s, idx) => ({ ...s, number: idx + 1 }));
 
     onSaveStories(updated);
+    deleteStoryFromFirestore(storyToDelete.id);
     setUndoStory({ story: storyToDelete, index: deleteIndex >= 0 ? deleteIndex : 0 });
     setToastMessage({
       text: `कहानी "${storyToDelete.titleHi}" सफलतापूर्वक हटा दी गई।`,
@@ -714,6 +866,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     restored.splice(undoStory.index, 0, undoStory.story);
     const reordered = restored.map((s, idx) => ({ ...s, number: idx + 1 }));
     onSaveStories(reordered);
+    syncStoryToFirestore(undoStory.story);
 
     setToastMessage({
       text: `कहानी "${undoStory.story.titleHi}" को पुनः बहाल (Restore) कर दिया गया।`,
@@ -826,11 +979,22 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     onSaveAudio(audioStories.filter((a) => a.id !== id));
   };
 
+  // Helper to extract YouTube video ID and 16:9 thumbnail
+  const extractYoutubeThumbnail = (url: string): string | null => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
+    }
+    return null;
+  };
+
   // Video Stories & Categories Handlers
   const handleAddOrUpdateVideo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVideo.titleHi.trim() || !newVideo.youtubeUrl.trim() || !newVideo.thumbnail) {
-      alert('कृपया कहानी का नाम, यूट्यूब लिंक और 9:16 थंबनेल अवश्य भरें।');
+      alert('कृपया कहानी का नाम, यूट्यूब लिंक और 16:9 थंबनेल अवश्य भरें।');
       return;
     }
 
@@ -992,11 +1156,20 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       ageGroup: newWs.ageGroup,
       descriptionHi: newWs.descriptionHi || 'बच्चों के लिए मजेदार प्रिंट करने योग्य अभ्यास पत्र',
       descriptionEn: newWs.descriptionEn || 'Fun printable activity sheet for kids',
+      createdAt: Date.now(),
     };
 
     const updated = [created, ...worksheets];
     setWorksheets(updated);
     saveStoredWorksheets(updated);
+    syncWorksheetToFirestore(created);
+    if (created.thumbnailUrl.startsWith('data:')) {
+      uploadImageToFirebaseStorage(created.thumbnailUrl, `worksheets/${created.id}-thumb`).then((cloudUrl) => {
+        if (cloudUrl && cloudUrl !== created.thumbnailUrl) {
+          syncWorksheetToFirestore({ ...created, thumbnailUrl: cloudUrl });
+        }
+      });
+    }
 
     setNewWs({
       titleHi: '',
@@ -1018,6 +1191,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const updated = worksheets.filter((w) => w.id !== id);
     setWorksheets(updated);
     saveStoredWorksheets(updated);
+    deleteWorksheetFromFirestore(id);
   };
 
   // --- Games Handlers ---
@@ -2061,8 +2235,8 @@ service cloud.firestore {
                           {/* Main Row */}
                           <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                             <div className="flex items-center gap-3">
-                              {/* Story Thumbnail */}
-                              <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
+                              {/* Story Thumbnail (16:9 Aspect Ratio) */}
+                              <div className="relative w-20 sm:w-24 aspect-video rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
                                 <img
                                   src={s.coverImage}
                                   alt={s.titleHi}
@@ -2273,7 +2447,7 @@ service cloud.firestore {
                 </div>
               </div>
 
-              {/* SECTION 2: ADD / EDIT 9:16 VIDEO STORY FORM */}
+              {/* SECTION 2: ADD / EDIT 16:9 VIDEO STORY FORM */}
               <div id="video-cms-form" className="bg-red-50/50 rounded-3xl p-5 sm:p-6 border-2 border-red-200 space-y-4">
                 <div className="flex items-center justify-between border-b border-red-200 pb-3">
                   <div className="flex items-center gap-2 text-red-950">
@@ -2281,7 +2455,7 @@ service cloud.firestore {
                     <h4 className="font-black text-sm sm:text-base">
                       {editingVideoId
                         ? '✏️ वीडियो कहानी संपादित करें (Edit Video Story)'
-                        : '2. नई 9:16 वीडियो कहानी जोड़ें (Add 9:16 Video Story)'}
+                        : '2. नई 16:9 वीडियो कहानी जोड़ें (Add 16:9 Video Story)'}
                     </h4>
                   </div>
 
@@ -2317,7 +2491,7 @@ service cloud.firestore {
                     <input
                       type="text"
                       required
-                      placeholder="उदा. शेर और चूहा (Shorts)"
+                      placeholder="उदा. शेर और चूहा"
                       value={newVideo.titleHi}
                       onChange={(e) => setNewVideo({ ...newVideo, titleHi: e.target.value })}
                       className="w-full p-2.5 rounded-xl bg-white border border-red-200 font-semibold focus:outline-none focus:ring-2 focus:ring-red-400"
@@ -2337,18 +2511,26 @@ service cloud.firestore {
 
                   <div className="sm:col-span-2">
                     <label className="font-bold text-slate-700 block mb-1">
-                      वीडियो लिंक (Video URL) *
+                      यूट्यूब वीडियो लिंक (YouTube Video URL) *
                     </label>
                     <input
                       type="url"
                       required
-                      placeholder="उदा. https://... (Video URL / Shorts URL)"
+                      placeholder="उदा. https://www.youtube.com/watch?v=... या https://youtu.be/..."
                       value={newVideo.youtubeUrl}
-                      onChange={(e) => setNewVideo({ ...newVideo, youtubeUrl: e.target.value })}
+                      onChange={(e) => {
+                        const url = e.target.value;
+                        const ytThumb = extractYoutubeThumbnail(url);
+                        setNewVideo((prev) => ({
+                          ...prev,
+                          youtubeUrl: url,
+                          thumbnail: ytThumb && (!prev.thumbnail || prev.thumbnail.includes('unsplash')) ? ytThumb : prev.thumbnail,
+                        }));
+                      }}
                       className="w-full p-2.5 rounded-xl bg-white border border-red-200 font-semibold focus:outline-none focus:ring-2 focus:ring-red-400"
                     />
                     <p className="text-[11px] text-slate-500 mt-1">
-                      क्लिक करने पर बच्चा सीधे इस वीडियो/शॉर्ट्स पर पहुँच जाएगा।
+                      क्लिक करने पर दर्शक सीधे आपके यूट्यूब वीडियो / चैनल पर पहुँच जाएंगे।
                     </p>
                   </div>
 
@@ -2372,7 +2554,7 @@ service cloud.firestore {
                       <label className="font-bold text-slate-700 block mb-1">अवधि (Duration)</label>
                       <input
                         type="text"
-                        placeholder="उदा. 0:58 या Shorts"
+                        placeholder="उदा. 0:58 या 3:45"
                         value={newVideo.duration}
                         onChange={(e) => setNewVideo({ ...newVideo, duration: e.target.value })}
                         className="w-full p-2.5 rounded-xl bg-white border border-red-200 font-semibold focus:outline-none focus:ring-2 focus:ring-red-400"
@@ -2401,15 +2583,15 @@ service cloud.firestore {
                     />
                   </div>
 
-                  {/* 9:16 Aspect Ratio Thumbnail Upload */}
+                  {/* 16:9 Aspect Ratio Thumbnail Upload */}
                   <div className="sm:col-span-2 bg-white p-4 rounded-2xl border border-red-200">
-                    <ImageUpload9x16
-                      label="वीडियो का 9:16 थंबनेल फोटो (9:16 Portrait Thumbnail)"
+                    <ImageUpload16x9
+                      label="वीडियो का 16:9 थंबनेल फोटो (YouTube 16:9 Thumbnail)"
                       value={newVideo.thumbnail}
                       onChange={(img) => setNewVideo({ ...newVideo, thumbnail: img })}
                       required
                       soundEnabled={soundEnabled}
-                      helperText="9:16 अनुपात में वर्टिकल फोटो अपलोड करें या ऑनलाइन इमेज URL पेस्ट करें।"
+                      helperText="16:9 अनुपात में यूट्यूब थंबनेल फोटो अपलोड करें या ऑनलाइन इमेज URL पेस्ट करें (यूट्यूब लिंक डालने पर यह अपने आप भी भर जाता है)।"
                     />
                   </div>
 
@@ -4390,7 +4572,7 @@ service cloud.firestore {
             </div>
           )}
 
-          {/* TAB 11: PERMANENT DATABASE & BACKUP CENTER */}
+          {/* TAB 11: PERMANENT DATABASE & FIREBASE CLOUD SYNC CENTER */}
           {activeTab === 'firebase' && (
             <div className="space-y-6">
               {/* Back to Categories Hub Header */}
@@ -4408,121 +4590,299 @@ service cloud.firestore {
                 </button>
                 <div className="flex items-center gap-2 text-xs font-black text-amber-950">
                   <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200">
-                    श्रेणी 11: डेटाबेस व सुरक्षित बैकअप
+                    श्रेणी 14: Firebase क्लाउड सिंक व डेटाबेस
                   </span>
                   <span className="text-slate-600 font-semibold hidden md:inline">
-                    • 100% स्थायी डेटाबेस (Server + IndexedDB Permanent Save)
+                    • ग्लोबल मल्टी-डिवाइस रियल-टाइम सिंक (Vercel & Mobile Ready)
                   </span>
                 </div>
               </div>
 
-              {/* Live Database Active Status Banner */}
-              <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white shadow-lg space-y-4 relative overflow-hidden border-2 border-emerald-400">
+              {/* 1. Firebase Firestore & Storage Global Cloud Sync Hero */}
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white shadow-xl space-y-4 relative overflow-hidden border-2 border-amber-400">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-xs text-xs font-black text-emerald-100 border border-white/30">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
-                      <span>🟢 डेटाबेस सक्रिय: 100% स्थायी रूप से सुरक्षित (Permanent Save Active)</span>
+                  <div className="space-y-1.5">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-xs text-xs font-black text-amber-100 border border-white/30">
+                      <span className={`w-2.5 h-2.5 rounded-full ${isFirebaseConfigured() ? 'bg-emerald-400 animate-ping' : 'bg-yellow-300'}`} />
+                      <span>
+                        {isFirebaseConfigured()
+                          ? '🟢 Firebase Firestore & Storage सक्रिय (Global Live Sync Active)'
+                          : '🟡 Firebase सेटअप मोड (Configure Firebase Below)'}
+                      </span>
                     </div>
                     <h3 className="text-xl sm:text-2xl font-black text-white">
-                      बालवार्ता लाइव डेटाबेस व क्लाउड सिंक केंद्र
+                      🔥 Firebase Cloud Storage & Firestore लाइव सिंक
                     </h3>
-                    <p className="text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
-                      अब आपके द्वारा जोड़ी गई सभी कहानियाँ, वीडियो और क्विज़ <strong>हमेशा के लिए सुरक्षित</strong> रहेंगी। ऐप में <strong>सर्वर डेटाबेस (Server DB)</strong> और <strong>ब्राउज़र डेटाबेस (IndexedDB)</strong> दोनों सक्रिय हैं, जिससे पेज रीफ़्रेश करने या फ़ोन बंद करने पर भी कुछ भी डिलीट नहीं होगा।
+                    <p className="text-xs sm:text-sm text-amber-100 max-w-2xl leading-relaxed">
+                      जब आप मोबाइल या कंप्यूटर से कहानी या वर्कशीट जोड़ते हैं, तो वह सीधे <strong>Google Firebase Cloud</strong> पर सुरक्षित होती है ताकि <strong>Vercel पर लाइव वेबसाइट</strong> और अन्य सभी डिवाइसों पर तुरंत रियल-टाइम में दिखाई दे!
                     </p>
                   </div>
 
-                  <div className="bg-black/30 p-4 rounded-2xl border border-white/20 backdrop-blur-xs shrink-0 text-left sm:text-right space-y-1">
-                    <p className="text-[10px] text-emerald-200 font-bold uppercase tracking-wider">डेटाबेस स्थिति:</p>
-                    <p className="text-sm font-mono font-black text-emerald-300 flex items-center gap-1.5 justify-start sm:justify-end">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-300" />
-                      <span>डेटा स्वतः सेव (Auto-Saved)</span>
+                  <div className="bg-black/35 p-4 rounded-2xl border border-white/20 backdrop-blur-xs shrink-0 text-left sm:text-right space-y-1">
+                    <p className="text-[10px] text-amber-200 font-bold uppercase tracking-wider">क्लाउड स्थिति (Cloud Status):</p>
+                    <p className="text-sm font-mono font-black text-white flex items-center gap-1.5 justify-start sm:justify-end">
+                      {isFirebaseConfigured() ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span className="text-emerald-300">प्रोजेक्ट: {fbConfig.projectId || 'सक्रिय'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-4 h-4 text-yellow-300" />
+                          <span className="text-yellow-200">कॉन्फ़िगरेशन प्रतीक्षित</span>
+                        </>
+                      )}
                     </p>
-                    <p className="text-[10px] text-white/80">हर बदलाव तुरंत स्थायी रूप से सुरक्षित</p>
+                    <p className="text-[10px] text-white/80">मोबाइल और Vercel पर लाइव सिंक</p>
                   </div>
                 </div>
 
                 {/* Live Count Grid */}
                 <div className="pt-2 border-t border-white/20">
-                  <p className="text-xs font-black text-emerald-200 mb-2">
-                    📊 वर्तमान में डेटाबेस में सुरक्षित सामग्री (Total Saved Content):
+                  <p className="text-xs font-black text-amber-100 mb-2">
+                    📊 वर्तमान में सुरक्षित सामग्री (Total Live Content):
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15">
-                      <span className="text-[10px] text-emerald-200 block font-bold">1. बाल कहानियाँ</span>
+                      <span className="text-[10px] text-amber-200 block font-bold">1. बाल कहानियाँ</span>
                       <span className="text-base font-black text-white">{stories.length} कहानियाँ</span>
                     </div>
                     <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15">
-                      <span className="text-[10px] text-emerald-200 block font-bold">2. वीडियो कहानियाँ</span>
-                      <span className="text-base font-black text-white">{videoStories.length} वीडियो</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15">
-                      <span className="text-[10px] text-emerald-200 block font-bold">3. बाल क्विज़ खेल</span>
-                      <span className="text-base font-black text-white">{quizSets.length} क्विज़ सेट</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15">
-                      <span className="text-[10px] text-emerald-200 block font-bold">4. प्रिंटेबल वर्कशीट्स</span>
+                      <span className="text-[10px] text-amber-200 block font-bold">2. प्रिंटेबल वर्कशीट्स</span>
                       <span className="text-base font-black text-white">{worksheets.length} शीट्स</span>
                     </div>
                     <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15">
-                      <span className="text-[10px] text-emerald-200 block font-bold">5. रोचक तथ्य</span>
-                      <span className="text-base font-black text-white">{facts.length} तथ्य</span>
+                      <span className="text-[10px] text-amber-200 block font-bold">3. वीडियो कहानियाँ</span>
+                      <span className="text-base font-black text-white">{videoStories.length} वीडियो</span>
                     </div>
                     <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15">
-                      <span className="text-[10px] text-emerald-200 block font-bold">6. अक्षर व गिनती</span>
-                      <span className="text-base font-black text-white">{learningItems.length} कार्ड्स</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15">
-                      <span className="text-[10px] text-emerald-200 block font-bold">7. ऑडियो कहानियाँ</span>
-                      <span className="text-base font-black text-white">{audioStories.length} ट्रैक्स</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15">
-                      <span className="text-[10px] text-emerald-200 block font-bold">8. पाठक समीक्षाएँ</span>
-                      <span className="text-base font-black text-white">{reviews.length} समीक्षाएँ</span>
+                      <span className="text-[10px] text-amber-200 block font-bold">4. बाल क्विज़ खेल</span>
+                      <span className="text-base font-black text-white">{quizSets.length} क्विज़ सेट</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Database Actions */}
+                {/* Cloud Sync Actions */}
                 <div className="pt-2 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    disabled={isSyncingDb}
-                    onClick={handleForceSyncDb}
-                    className="px-4 py-2.5 rounded-xl bg-white text-emerald-900 font-black text-xs shadow-md hover:bg-emerald-50 flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
+                    disabled={isSyncingFbAll}
+                    onClick={handlePushAllToFirebase}
+                    className="px-4 py-2.5 rounded-xl bg-white text-amber-950 font-black text-xs shadow-md hover:bg-amber-50 flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
                   >
-                    <RefreshCw className={`w-4 h-4 text-emerald-700 ${isSyncingDb ? 'animate-spin' : ''}`} />
-                    <span>{isSyncingDb ? 'सुरक्षित हो रहा है...' : '💾 अभी पूरा डेटाबेस सुरक्षित व सिंक करें (Force Save Now)'}</span>
+                    <UploadCloud className={`w-4 h-4 text-orange-600 ${isSyncingFbAll ? 'animate-bounce' : ''}`} />
+                    <span>{isSyncingFbAll ? 'अपलोड हो रहा है...' : '🚀 सभी कहानियाँ व वर्कशीट Firebase पर अपलोड करें (Push All to Cloud)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSyncingFbAll}
+                    onClick={handlePullAllFromFirebase}
+                    className="px-4 py-2.5 rounded-xl bg-black/40 hover:bg-black/60 text-white font-black text-xs shadow-xs flex items-center gap-2 active:scale-95 transition-all cursor-pointer border border-white/30"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-emerald-300 ${isSyncingFbAll ? 'animate-spin' : ''}`} />
+                    <span>⬇️ Firebase से नवीनतम डेटा डाउनलोड व सिंक करें (Pull All)</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={downloadJson}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-white font-black text-xs shadow-xs flex items-center gap-2 active:scale-95 transition-all cursor-pointer border border-emerald-400/40"
+                    className="px-3.5 py-2.5 rounded-xl bg-black/20 hover:bg-black/30 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer border border-white/20"
                   >
-                    <Download className="w-4 h-4 text-emerald-300" />
-                    <span>📥 1-क्लिक कम्प्लीट JSON बैकअप डाउनलोड करें</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(exportFullDatabaseJson({ stories, videoStories, videoCategories, facts, learningItems, audioStories, reviews, quizSets, worksheets }), 'json')}
-                    className="px-3.5 py-2.5 rounded-xl bg-black/20 hover:bg-black/30 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    {copiedJson ? <CheckCircle className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-                    <span>{copiedJson ? 'JSON कॉपी हो गया!' : '📋 कॉपी बैकअप JSON'}</span>
+                    <Download className="w-3.5 h-3.5 text-amber-200" />
+                    <span>📥 JSON बैकअप डाउनलोड</span>
                   </button>
                 </div>
 
-                {dbSyncMsg && (
-                  <div className="p-3 rounded-xl bg-slate-900 text-emerald-300 text-xs font-mono font-bold flex items-center gap-2 animate-in fade-in">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{dbSyncMsg}</span>
+                {fbStatusMsg && (
+                  <div className={`p-3.5 rounded-2xl text-xs font-mono font-bold flex items-center gap-2 animate-in fade-in ${
+                    fbStatusMsg.isSuccess ? 'bg-slate-900 text-emerald-300 border border-emerald-500/50' : 'bg-rose-950 text-rose-200 border border-rose-500/50'
+                  }`}>
+                    {fbStatusMsg.isSuccess ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />}
+                    <span>{fbStatusMsg.text}</span>
                   </div>
                 )}
               </div>
 
-              {/* Database Restore from JSON File Card */}
+              {/* 2. Firebase Project Credentials Setup Card */}
+              <div className="p-6 rounded-3xl bg-white border-2 border-amber-300 shadow-sm space-y-5">
+                <div className="flex items-start justify-between gap-4 border-b border-amber-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-black text-xl">
+                      🔥
+                    </div>
+                    <div>
+                      <h4 className="font-black text-base text-slate-900">
+                        Firebase Project Credentials (फ़ायरबेस प्रोजेक्ट सेटिंग)
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Firebase Console (<a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-amber-600 underline font-bold">console.firebase.google.com</a>) से अपनी Web App कॉन्फ़िगरेशन यहाँ पेस्ट करें:
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 shrink-0">
+                    {isFirebaseConfigured() ? '✅ कॉन्फ़िगरेशन सुरक्षित' : '⚙️ सेटअप आवश्यक'}
+                  </span>
+                </div>
+
+                {/* 1-Click JSON Paste Parser */}
+                <div className="space-y-2 p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
+                  <label className="block text-xs font-black text-amber-950">
+                    📋 1-क्लिक ऑटो पेस्ट (Paste Firebase Config JSON from Firebase Console):
+                  </label>
+                  <p className="text-[11px] text-amber-800">
+                    Firebase Console &gt; Project Settings &gt; General &gt; Your apps &gt; SDK setup and configuration (Config) से पूरा कोड यहाँ पेस्ट करें। फ़ील्ड अपने आप भर जाएंगे:
+                  </p>
+                  <textarea
+                    rows={3}
+                    value={fbJsonInput}
+                    onChange={(e) => handleParseAndSetFbJson(e.target.value)}
+                    placeholder={`const firebaseConfig = {\n  apiKey: "AIzaSy...",\n  projectId: "baalvarta-...",\n  storageBucket: "baalvarta-....firebasestorage.app"\n};`}
+                    className="w-full p-3 rounded-xl border border-amber-300 bg-white font-mono text-xs focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                  />
+                </div>
+
+                {/* Manual Fields */}
+                <form onSubmit={handleSaveAndTestFirebase} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        API Key (apiKey) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={fbConfig.apiKey}
+                        onChange={(e) => setFbConfig({ ...fbConfig, apiKey: e.target.value.trim() })}
+                        placeholder="AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        Project ID (projectId) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={fbConfig.projectId}
+                        onChange={(e) => setFbConfig({ ...fbConfig, projectId: e.target.value.trim() })}
+                        placeholder="my-baalvarta-project"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        Auth Domain (authDomain)
+                      </label>
+                      <input
+                        type="text"
+                        value={fbConfig.authDomain}
+                        onChange={(e) => setFbConfig({ ...fbConfig, authDomain: e.target.value.trim() })}
+                        placeholder="my-baalvarta-project.firebaseapp.com"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        Storage Bucket (storageBucket)
+                      </label>
+                      <input
+                        type="text"
+                        value={fbConfig.storageBucket}
+                        onChange={(e) => setFbConfig({ ...fbConfig, storageBucket: e.target.value.trim() })}
+                        placeholder="my-baalvarta-project.firebasestorage.app"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        Messaging Sender ID (messagingSenderId)
+                      </label>
+                      <input
+                        type="text"
+                        value={fbConfig.messagingSenderId}
+                        onChange={(e) => setFbConfig({ ...fbConfig, messagingSenderId: e.target.value.trim() })}
+                        placeholder="123456789012"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        App ID (appId)
+                      </label>
+                      <input
+                        type="text"
+                        value={fbConfig.appId}
+                        onChange={(e) => setFbConfig({ ...fbConfig, appId: e.target.value.trim() })}
+                        placeholder="1:123456789012:web:abcdef123456"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('क्या आप सहेजी गई Firebase कॉन्फ़िगरेशन हटाना चाहते हैं?')) {
+                          clearFirebaseConfig();
+                          setFbConfig({
+                            apiKey: '',
+                            authDomain: '',
+                            projectId: '',
+                            storageBucket: '',
+                            messagingSenderId: '',
+                            appId: '',
+                          });
+                          setFbJsonInput('');
+                          setFbStatusMsg({ text: 'Firebase कॉन्फ़िगरेशन हटा दी गई।', isSuccess: false });
+                        }
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 cursor-pointer"
+                    >
+                      कॉन्फ़िगरेशन हटाएं (Clear)
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isTestingFb}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isTestingFb ? 'animate-spin' : ''}`} />
+                      <span>{isTestingFb ? 'कनेक्ट व टेस्ट हो रहा है...' : '🟢 सहेजें व टेस्ट करें (Save & Test Connection)'}</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Vercel Environment Variables Guide */}
+                <div className="p-4 rounded-2xl bg-slate-900 text-slate-100 text-xs space-y-2">
+                  <p className="font-extrabold text-amber-400 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-yellow-300" />
+                    <span>Vercel पर लाइव रखने के लिए पर्यावरण चर (Vercel Environment Variables):</span>
+                  </p>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    यदि आप Vercel पर वेबसाइट चलाते हैं और चाहते हैं कि बिना दोबारा लॉगिन किए हर मोबाइल व विज़िटर पर कहानियाँ लाइव दिखें, तो Vercel Dashboard &gt; Settings &gt; <strong>Environment Variables</strong> में निम्नलिखित जोड़ें:
+                  </p>
+                  <pre className="p-3 bg-black/60 rounded-xl font-mono text-[10px] text-emerald-300 overflow-x-auto select-all">
+{`VITE_FIREBASE_API_KEY="${fbConfig.apiKey || 'YOUR_API_KEY'}"
+VITE_FIREBASE_PROJECT_ID="${fbConfig.projectId || 'YOUR_PROJECT_ID'}"
+VITE_FIREBASE_AUTH_DOMAIN="${fbConfig.authDomain || (fbConfig.projectId ? `${fbConfig.projectId}.firebaseapp.com` : 'YOUR_PROJECT.firebaseapp.com')}"
+VITE_FIREBASE_STORAGE_BUCKET="${fbConfig.storageBucket || (fbConfig.projectId ? `${fbConfig.projectId}.firebasestorage.app` : 'YOUR_PROJECT.firebasestorage.app')}"`}
+                  </pre>
+                  <p className="text-[10px] text-slate-400">
+                    इसके बाद Vercel पर 'Redeploy' कर दें। आपकी वेबसाइट और मोबाइल हमेशा के लिए 100% लाइव सिंक हो जाएँगे!
+                  </p>
+                </div>
+              </div>
+
+              {/* 3. Database Restore from JSON File Card */}
               <div className="p-6 rounded-3xl bg-white border-2 border-indigo-200 shadow-sm space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
@@ -4644,7 +5004,7 @@ service cloud.firestore {
                 <img
                   src={storyToDelete.coverImage}
                   alt={storyToDelete.titleHi}
-                  className="w-12 h-12 rounded-xl object-cover border border-rose-200 flex-shrink-0"
+                  className="w-20 sm:w-24 aspect-video rounded-xl object-cover border border-rose-200 flex-shrink-0"
                 />
                 <div className="text-xs">
                   <p className="font-extrabold text-slate-800 line-clamp-1">

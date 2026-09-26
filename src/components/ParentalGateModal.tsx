@@ -136,7 +136,7 @@ export const ParentalGateModal: React.FC<ParentalGateModalProps> = ({
       setIsSendingEmail(false);
       setEmailStatus({
         type: 'error',
-        message: 'ईमेल भेजने में विलंब हुआ। यदि OTP न आए तो आप सीधा प्रवेश बटन भी दबा सकते हैं।',
+        message: 'ईमेल भेजने में विलंब हुआ। कृपया कुछ क्षण बाद "दोबारा OTP भेजें" पर क्लिक करें।',
       });
     }
   };
@@ -165,25 +165,8 @@ export const ParentalGateModal: React.FC<ParentalGateModalProps> = ({
       createNewOtpAndDispatch(selectedEmail, 'login');
     } else {
       if (soundEnabled) playPopSound();
-      setError('सुरक्षा त्रुटि: यदि पासवर्ड में समस्या आ रही हो, तो नीचे "स्वामी सीधा प्रवेश" बटन से तुरंत प्रवेश करें।');
+      setError('सुरक्षा त्रुटि: गलत पासवर्ड! कृपया अधिकृत एडमिन पासवर्ड दर्ज करें या "पासवर्ड भूल गए?" पर क्लिक करें।');
     }
-  };
-
-  // Direct login for verified owner
-  const handleDirectOwnerLogin = () => {
-    if (soundEnabled) playSuccessSound();
-    onSuccess(selectedEmail);
-    onClose();
-  };
-
-  // Reset to default passwords
-  const handleResetToDefault = () => {
-    resetAdminPasswordsToDefault();
-    setPassword('');
-    setError('');
-    setFeedbackMsg('पासवर्ड सफलतापूर्वक डिफ़ॉल्ट पर रीसेट कर दिया गया है!');
-    if (soundEnabled) playSuccessSound();
-    setTimeout(() => setFeedbackMsg(''), 4000);
   };
 
   // Step 2: Submit 2FA OTP
@@ -331,27 +314,16 @@ export const ParentalGateModal: React.FC<ParentalGateModalProps> = ({
                   <KeyRound className="w-3.5 h-3.5 text-amber-600" />
                   <span>एडमिन पासवर्ड (Password):</span>
                 </label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleResetToDefault}
-                    className="text-[11px] font-bold text-slate-500 hover:text-amber-800 underline cursor-pointer"
-                    title="डिफ़ॉल्ट पासवर्ड पर रीसेट करें"
-                  >
-                    डिफ़ॉल्ट रीसेट
-                  </button>
-                  <span className="text-slate-300">•</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep('forgot_password');
-                      setError('');
-                    }}
-                    className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline cursor-pointer"
-                  >
-                    पासवर्ड भूल गए?
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('forgot_password');
+                    setError('');
+                  }}
+                  className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline cursor-pointer"
+                >
+                  पासवर्ड भूल गए?
+                </button>
               </div>
 
               <div className="relative">
@@ -388,18 +360,9 @@ export const ParentalGateModal: React.FC<ParentalGateModalProps> = ({
             )}
 
             {error && (
-              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 flex flex-col gap-1.5 text-xs text-rose-700 font-bold">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                  <span>{error}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleDirectOwnerLogin}
-                  className="mt-1 text-left text-[11px] font-black text-amber-900 hover:underline bg-amber-100/80 p-2 rounded-lg border border-amber-300 cursor-pointer"
-                >
-                  👉 यदि आप स्वामी (Owner) हैं, तो यहाँ क्लिक करके सीधा प्रवेश करें →
-                </button>
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2 text-xs text-rose-700 font-bold">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{error}</span>
               </div>
             )}
 
@@ -416,18 +379,6 @@ export const ParentalGateModal: React.FC<ParentalGateModalProps> = ({
                 className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
               >
                 <span>पासवर्ड सत्यापित करें →</span>
-              </button>
-            </div>
-
-            {/* Direct 1-Click Owner Access Button */}
-            <div className="pt-2 border-t border-amber-100">
-              <button
-                type="button"
-                onClick={handleDirectOwnerLogin}
-                className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-black shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>⚡ अधिकृत स्वामी 1-क्लिक सीधा प्रवेश (Direct Owner Access)</span>
               </button>
             </div>
 
@@ -561,19 +512,6 @@ export const ParentalGateModal: React.FC<ParentalGateModalProps> = ({
                   <span>सत्यापित करें व प्रवेश करें (Login)</span>
                 </button>
               </div>
-
-              {/* Verified Owner Direct Access Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (soundEnabled) playSuccessSound();
-                  onSuccess(selectedEmail);
-                  onClose();
-                }}
-                className="w-full py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer border border-amber-300 shadow-xs"
-              >
-                <span>⚡ सत्यापित पासवर्ड द्वारा सीधा प्रवेश करें (Direct Owner Login)</span>
-              </button>
             </div>
           </form>
         )}

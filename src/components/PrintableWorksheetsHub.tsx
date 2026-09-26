@@ -15,6 +15,7 @@ import {
 import confetti from 'canvas-confetti';
 import { PrintableWorksheet, Language } from '../types';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
+import { AdBannerSlot } from './AdBannerSlot';
 
 interface PrintableWorksheetsHubProps {
   worksheets?: PrintableWorksheet[];
@@ -254,6 +255,9 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
           );
         })}
       </div>
+
+      {/* Ad Space Banner */}
+      <AdBannerSlot format="leaderboard" slotId="worksheets-hub-top" />
 
       {/* Toast Notification */}
       {downloadSuccessMsg && (

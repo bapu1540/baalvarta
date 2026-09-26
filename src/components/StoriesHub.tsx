@@ -12,6 +12,7 @@ import {
 import { Story, Language } from '../types';
 import { playPopSound } from '../utils/soundEffects';
 import { StoryReaderPage } from './StoryReaderPage';
+import { AdBannerSlot } from './AdBannerSlot';
 
 interface StoriesHubProps {
   stories: Story[];
@@ -78,6 +79,23 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
       story.category.toLowerCase().includes(q) ||
       (story.scenes && story.scenes.some(s => s.textHi.toLowerCase().includes(q) || (s.textEn && s.textEn.toLowerCase().includes(q))))
     );
+  });
+
+  const getStoryTimestamp = (s: Story): number => {
+    if (s.createdAt) return s.createdAt;
+    if (typeof s.id === 'string') {
+      const match = s.id.match(/\d{10,}/);
+      if (match) return parseInt(match[0], 10);
+    }
+    return (s.number || 0) * 1000;
+  };
+
+  // Sort: Newly uploaded stories automatically appear at the very top (beginning)
+  const sortedStories = [...filteredStories].sort((a, b) => {
+    if (Boolean(a.isFeatured) !== Boolean(b.isFeatured)) {
+      return a.isFeatured ? -1 : 1;
+    }
+    return getStoryTimestamp(b) - getStoryTimestamp(a);
   });
 
   const handleOpenStory = (story: Story) => {
@@ -217,8 +235,11 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
         </div>
       </div>
 
+      {/* Ad Space Banner */}
+      <AdBannerSlot format="leaderboard" slotId="stories-hub-banner" />
+
       {/* Story Cards Grid */}
-      {filteredStories.length === 0 ? (
+      {sortedStories.length === 0 ? (
         <div className="bg-white rounded-3xl p-10 text-center border-2 border-dashed border-amber-200 space-y-3">
           <BookOpen className="w-12 h-12 text-amber-400 mx-auto" />
           <h3 className="font-extrabold text-slate-800 text-lg">
@@ -242,17 +263,21 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredStories.map((story) => {
+          {sortedStories.map((story) => {
             const isBookmarked = bookmarks.includes(story.id);
+            const isNewlyUploaded = Boolean(
+              story.createdAt ||
+              (typeof story.id === 'string' && story.id.includes('story-') && parseInt(story.id.replace(/\D/g, '')) > 1700000000000)
+            );
 
             return (
               <div
                 key={story.id}
                 className="group bg-white rounded-3xl overflow-hidden border-2 border-amber-100 hover:border-amber-400 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
               >
-                {/* Cover Image & Badges */}
+                {/* Cover Image & Badges (Strict 16:9 Aspect Ratio) */}
                 <div
-                  className="relative h-48 w-full overflow-hidden cursor-pointer"
+                  className="relative aspect-video w-full overflow-hidden cursor-pointer bg-slate-100"
                   onClick={() => handleOpenStory(story)}
                 >
                   <img
@@ -264,9 +289,21 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-between p-3">
                     {/* Top: Story Number Badge & Bookmark Button */}
                     <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-1 rounded-xl bg-amber-500 text-white font-black text-xs shadow-md">
-                        #{story.number}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-2.5 py-1 rounded-xl bg-amber-500 text-white font-black text-xs shadow-md">
+                          #{story.number}
+                        </span>
+                        {isNewlyUploaded && (
+                          <span className="px-2 py-0.5 rounded-xl bg-rose-500 text-white font-black text-[10px] shadow-sm animate-pulse">
+                            🌟 नई कहानी
+                          </span>
+                        )}
+                        {story.isFeatured && !isNewlyUploaded && (
+                          <span className="px-2 py-0.5 rounded-xl bg-amber-400 text-amber-950 font-black text-[10px] shadow-sm">
+                            ⭐ फीचर्ड
+                          </span>
+                        )}
+                      </div>
                       <button
                         id={`bookmark-btn-${story.id}`}
                         onClick={(e) => {

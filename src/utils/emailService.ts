@@ -111,7 +111,7 @@ https://baalvarta.com
     // Even if external network is slow, treat as dispatched and allow user to use OTP or Direct Login
     return {
       success: true,
-      message: 'OTP अनुरोध दर्ज हो गया है। यदि Gmail पर आने में समय लगे, तो नीचे दिए गए डायरेक्ट ओनर प्रवेश विकल्प का उपयोग करें।',
+      message: 'OTP अनुरोध दर्ज हो गया है। कृपया अपना Gmail इनबॉक्स या Spam फ़ोल्डर चेक करें।',
     };
   }
 }
