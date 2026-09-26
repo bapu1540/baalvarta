@@ -1,0 +1,327 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Drop Shadow Filters -->
+    <filter id="sq-soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.12" />
+    </filter>
+    <filter id="sq-element-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.1" />
+    </filter>
+    <filter id="sq-cloud-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0284c7" flood-opacity="0.22" />
+    </filter>
+    <filter id="sq-sun-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#fbbf24" flood-opacity="0.4" />
+    </filter>
+
+    <!-- Sun Gradients -->
+    <linearGradient id="sq-sun-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF36D" />
+      <stop offset="60%" stop-color="#FFC000" />
+      <stop offset="100%" stop-color="#FF9500" />
+    </linearGradient>
+    <linearGradient id="sq-ray-grad-1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFB300" />
+      <stop offset="100%" stop-color="#FF7000" />
+    </linearGradient>
+    <linearGradient id="sq-ray-grad-2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD600" />
+      <stop offset="100%" stop-color="#FF9E00" />
+    </linearGradient>
+
+    <!-- Clouds Gradients -->
+    <linearGradient id="sq-cloud-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E0F7FF" />
+      <stop offset="50%" stop-color="#93E0FE" />
+      <stop offset="100%" stop-color="#4BB9F9" />
+    </linearGradient>
+
+    <!-- Rainbow Arch Gradients -->
+    <linearGradient id="sq-rainbow-blue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="50%" stop-color="#00BAF2" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+    <linearGradient id="sq-rainbow-yellow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="50%" stop-color="#FFD000" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+
+    <!-- 3D Letter Gradients -->
+    <!-- B: Red -->
+    <linearGradient id="sq-grad-B" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF5E6C" />
+      <stop offset="40%" stop-color="#FF2442" />
+      <stop offset="100%" stop-color="#C90025" />
+    </linearGradient>
+    <!-- a1: Orange -->
+    <linearGradient id="sq-grad-a1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFA84A" />
+      <stop offset="45%" stop-color="#FF7300" />
+      <stop offset="100%" stop-color="#D94B00" />
+    </linearGradient>
+    <!-- a2: Yellow -->
+    <linearGradient id="sq-grad-a2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF152" />
+      <stop offset="45%" stop-color="#FFC800" />
+      <stop offset="100%" stop-color="#E09200" />
+    </linearGradient>
+    <!-- l: Green -->
+    <linearGradient id="sq-grad-l" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#80EC38" />
+      <stop offset="45%" stop-color="#44C71B" />
+      <stop offset="100%" stop-color="#1E8E07" />
+    </linearGradient>
+    <!-- v: Sky Blue -->
+    <linearGradient id="sq-grad-v" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#55D1FF" />
+      <stop offset="45%" stop-color="#00A2F8" />
+      <stop offset="100%" stop-color="#0069C7" />
+    </linearGradient>
+    <!-- a3: Teal / Aqua -->
+    <linearGradient id="sq-grad-a3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34E8C2" />
+      <stop offset="45%" stop-color="#00C09B" />
+      <stop offset="100%" stop-color="#008066" />
+    </linearGradient>
+    <!-- r: Purple -->
+    <linearGradient id="sq-grad-r" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#AC63FF" />
+      <stop offset="45%" stop-color="#7928E6" />
+      <stop offset="100%" stop-color="#4E0FB0" />
+    </linearGradient>
+    <!-- t: Violet Magenta -->
+    <linearGradient id="sq-grad-t" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D95CFF" />
+      <stop offset="45%" stop-color="#9C27B0" />
+      <stop offset="100%" stop-color="#6A0080" />
+    </linearGradient>
+    <!-- a4: Lavender Purple -->
+    <linearGradient id="sq-grad-a4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#CA7FFF" />
+      <stop offset="45%" stop-color="#9B51E0" />
+      <stop offset="100%" stop-color="#641FB5" />
+    </linearGradient>
+
+    <!-- Star Gradients -->
+    <linearGradient id="sq-star-yellow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF066" />
+      <stop offset="100%" stop-color="#FFB300" />
+    </linearGradient>
+    <linearGradient id="sq-star-pink" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFA8DB" />
+      <stop offset="100%" stop-color="#FF388C" />
+    </linearGradient>
+    <linearGradient id="sq-star-green" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#98FF78" />
+      <stop offset="100%" stop-color="#3DC916" />
+    </linearGradient>
+  </defs>
+
+  <!-- ================= 1:1 CONTAINER GROUP (CENTERED) ================= -->
+  <g transform="translate(12, 112) scale(0.53)">
+
+    <!-- ================= BACKGROUND SUN RAYS ================= -->
+    <g id="sq-sun-rays" filter="url(#sq-sun-glow)">
+      <rect x="490" y="80" width="22" height="46" rx="11" fill="url(#sq-ray-grad-1)" transform="rotate(0 500 240)" />
+      <rect x="490" y="80" width="22" height="42" rx="11" fill="url(#sq-ray-grad-2)" transform="rotate(28 500 240)" />
+      <rect x="490" y="80" width="22" height="48" rx="11" fill="url(#sq-ray-grad-1)" transform="rotate(56 500 240)" />
+      <rect x="490" y="80" width="22" height="42" rx="11" fill="url(#sq-ray-grad-2)" transform="rotate(84 500 240)" />
+      <rect x="490" y="80" width="22" height="46" rx="11" fill="url(#sq-ray-grad-1)" transform="rotate(-28 500 240)" />
+      <rect x="490" y="80" width="22" height="48" rx="11" fill="url(#sq-ray-grad-2)" transform="rotate(-56 500 240)" />
+      <rect x="490" y="80" width="22" height="42" rx="11" fill="url(#sq-ray-grad-1)" transform="rotate(-84 500 240)" />
+    </g>
+
+    <!-- ================= THE SUN BODY & FACE ================= -->
+    <g id="sq-sun-character" filter="url(#sq-soft-shadow)">
+      <circle cx="500" cy="240" r="96" fill="url(#sq-sun-grad)" stroke="#FFFFFF" stroke-width="6" />
+      <ellipse cx="465" cy="190" rx="35" ry="20" fill="#FFFFFF" opacity="0.45" transform="rotate(-20 465 190)" />
+      
+      <!-- Smiling Eyes -->
+      <ellipse cx="468" cy="230" rx="7" ry="10" fill="#2D2115" />
+      <circle cx="466" cy="226" r="3" fill="#FFFFFF" />
+      <circle cx="470" cy="233" r="1.5" fill="#FFFFFF" />
+      
+      <ellipse cx="532" cy="230" rx="7" ry="10" fill="#2D2115" />
+      <circle cx="530" cy="226" r="3" fill="#FFFFFF" />
+      <circle cx="534" cy="233" r="1.5" fill="#FFFFFF" />
+
+      <!-- Cheeks -->
+      <ellipse cx="445" cy="245" rx="14" ry="8" fill="#FF5E85" opacity="0.65" />
+      <ellipse cx="555" cy="245" rx="14" ry="8" fill="#FF5E85" opacity="0.65" />
+
+      <!-- Smile -->
+      <path d="M 482 245 Q 500 273 518 245 Z" fill="#751A25" stroke="#2D2115" stroke-width="2" />
+      <path d="M 488 257 Q 500 269 512 257 Z" fill="#FF6B8B" />
+    </g>
+
+    <!-- ================= LEFT CLOUD ================= -->
+    <g id="sq-left-cloud" filter="url(#sq-cloud-shadow)">
+      <g transform="translate(145, 145) scale(0.95)">
+        <path d="M 35 70 C 15 70 0 55 0 35 C 0 16 15 2 34 2 C 42 -10 65 -12 78 2 C 90 -8 115 -2 122 15 C 138 15 150 28 150 45 C 150 62 136 70 120 70 Z" 
+              fill="url(#sq-cloud-grad)" stroke="#FFFFFF" stroke-width="5" />
+        <ellipse cx="55" cy="25" rx="24" ry="10" fill="#FFFFFF" opacity="0.6" transform="rotate(-15 55 25)" />
+        <circle cx="60" cy="45" r="4.5" fill="#1E293B" />
+        <circle cx="61" cy="43" r="1.5" fill="#FFFFFF" />
+        <circle cx="95" cy="45" r="4.5" fill="#1E293B" />
+        <circle cx="96" cy="43" r="1.5" fill="#FFFFFF" />
+        <ellipse cx="46" cy="52" rx="7" ry="4" fill="#FF6B9B" opacity="0.65" />
+        <ellipse cx="108" cy="52" rx="7" ry="4" fill="#FF6B9B" opacity="0.65" />
+        <path d="M 72 49 Q 77 56 83 49" fill="none" stroke="#1E293B" stroke-width="3" stroke-linecap="round" />
+      </g>
+    </g>
+
+    <!-- ================= RIGHT CLOUD ================= -->
+    <g id="sq-right-cloud" filter="url(#sq-cloud-shadow)">
+      <g transform="translate(730, 215) scale(0.85)">
+        <path d="M 30 60 C 12 60 0 46 0 28 C 0 12 14 0 30 0 C 38 -9 60 -10 70 2 C 80 -6 102 -2 108 12 C 122 12 134 24 134 38 C 134 52 122 60 108 60 Z" 
+              fill="url(#sq-cloud-grad)" stroke="#FFFFFF" stroke-width="4.5" />
+        <ellipse cx="48" cy="18" rx="20" ry="8" fill="#FFFFFF" opacity="0.55" transform="rotate(-10 48 18)" />
+        <circle cx="50" cy="38" r="4" fill="#1E293B" />
+        <circle cx="51" cy="36" r="1.5" fill="#FFFFFF" />
+        <circle cx="82" cy="38" r="4" fill="#1E293B" />
+        <circle cx="83" cy="36" r="1.5" fill="#FFFFFF" />
+        <ellipse cx="38" cy="44" rx="6" ry="3.5" fill="#FF6B9B" opacity="0.65" />
+        <ellipse cx="94" cy="44" rx="6" ry="3.5" fill="#FF6B9B" opacity="0.65" />
+        <path d="M 61 41 Q 66 47 71 41" fill="none" stroke="#1E293B" stroke-width="2.8" stroke-linecap="round" />
+      </g>
+    </g>
+
+    <!-- ================= RAINBOW BASELINE ARCH ================= -->
+    <g id="sq-rainbow-arches" filter="url(#sq-element-shadow)">
+      <path d="M 175 425 Q 460 365 745 425" fill="none" stroke="url(#sq-rainbow-blue)" stroke-width="19" stroke-linecap="round" />
+      <path d="M 180 448 Q 460 388 740 448" fill="none" stroke="url(#sq-rainbow-yellow)" stroke-width="19" stroke-linecap="round" />
+    </g>
+
+    <!-- ================= 3D BOUNCY BALLOON LETTERS "Baalvarta" ================= -->
+    <g id="sq-baalvarta-letters" filter="url(#sq-soft-shadow)">
+
+      <!-- LETTER 1: 'B' (Red) -->
+      <g id="sq-letter-B" transform="translate(70, 240)">
+        <path d="M 35 15 C 20 15 10 25 10 42 L 10 178 C 10 195 22 205 38 205 L 75 205 C 105 205 130 188 130 156 C 130 138 118 122 98 116 C 114 110 124 96 124 76 C 124 45 102 15 68 15 Z" 
+              fill="url(#sq-grad-B)" stroke="#FFFFFF" stroke-width="10" stroke-linejoin="round" />
+        <path d="M 46 48 L 65 48 C 76 48 84 56 84 68 C 84 80 76 88 65 88 L 46 88 Z" fill="#FFFFFF" />
+        <path d="M 46 125 L 72 125 C 84 125 94 135 94 148 C 94 162 84 172 72 172 L 46 172 Z" fill="#FFFFFF" />
+        <path d="M 28 32 C 28 25 35 25 45 25 C 60 25 78 28 85 36 C 88 39 82 46 72 44 C 60 41 45 38 32 40 C 28 40 28 36 28 32 Z" fill="#FFFFFF" opacity="0.8" />
+        <path d="M 24 55 L 24 165" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity="0.75" />
+      </g>
+
+      <!-- LETTER 2: 'a' (Orange) -->
+      <g id="sq-letter-a1" transform="translate(195, 275)">
+        <path d="M 50 15 C 25 15 8 35 8 68 C 8 100 24 122 52 122 C 68 122 80 114 88 102 L 88 115 C 88 120 94 125 100 125 C 106 125 112 120 112 115 L 112 28 C 112 20 106 15 98 15 Z" 
+              fill="url(#sq-grad-a1)" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round" />
+        <ellipse cx="58" cy="68" rx="22" ry="26" fill="#FFFFFF" />
+        <path d="M 30 35 C 40 25 65 24 78 30 C 82 32 78 38 72 38 C 60 36 42 38 34 44 C 30 46 28 42 30 35 Z" fill="#FFFFFF" opacity="0.85" />
+        <ellipse cx="32" cy="70" rx="4" ry="16" fill="#FFFFFF" opacity="0.7" />
+      </g>
+
+      <!-- LETTER 3: 'a' (Yellow) -->
+      <g id="sq-letter-a2" transform="translate(290, 272)">
+        <path d="M 50 15 C 25 15 8 35 8 68 C 8 100 24 122 52 122 C 68 122 80 114 88 102 L 88 115 C 88 120 94 125 100 125 C 106 125 112 120 112 115 L 112 28 C 112 20 106 15 98 15 Z" 
+              fill="url(#sq-grad-a2)" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round" />
+        <ellipse cx="58" cy="68" rx="22" ry="26" fill="#FFFFFF" />
+        <path d="M 30 35 C 40 25 65 24 78 30 C 82 32 78 38 72 38 C 60 36 42 38 34 44 C 30 46 28 42 30 35 Z" fill="#FFFFFF" opacity="0.9" />
+        <ellipse cx="32" cy="70" rx="4" ry="16" fill="#FFFFFF" opacity="0.7" />
+      </g>
+
+      <!-- LETTER 4: 'l' (Lime Green) -->
+      <g id="sq-letter-l" transform="translate(390, 220)">
+        <rect x="12" y="10" width="46" height="175" rx="23" 
+              fill="url(#sq-grad-l)" stroke="#FFFFFF" stroke-width="9" />
+        <rect x="20" y="22" width="14" height="145" rx="7" fill="#FFFFFF" opacity="0.7" />
+        <ellipse cx="35" cy="24" rx="12" ry="6" fill="#FFFFFF" opacity="0.9" />
+      </g>
+
+      <!-- LETTER 5: 'v' (Sky Blue) -->
+      <g id="sq-letter-v" transform="translate(450, 260)">
+        <path d="M 12 20 C 12 10 24 5 32 15 L 56 70 L 80 15 C 88 5 100 10 100 20 L 76 95 C 70 115 44 115 38 95 Z" 
+              fill="url(#sq-grad-v)" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round" />
+        <path d="M 24 25 L 42 70" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.75" />
+        <circle cx="28" cy="22" r="5" fill="#FFFFFF" opacity="0.9" />
+      </g>
+
+      <!-- LETTER 6: 'a' (Teal) -->
+      <g id="sq-letter-a3" transform="translate(540, 275)">
+        <path d="M 50 15 C 25 15 8 35 8 68 C 8 100 24 122 52 122 C 68 122 80 114 88 102 L 88 115 C 88 120 94 125 100 125 C 106 125 112 120 112 115 L 112 28 C 112 20 106 15 98 15 Z" 
+              fill="url(#sq-grad-a3)" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round" />
+        <ellipse cx="58" cy="68" rx="22" ry="26" fill="#FFFFFF" />
+        <path d="M 30 35 C 40 25 65 24 78 30 C 82 32 78 38 72 38 C 60 36 42 38 34 44 C 30 46 28 42 30 35 Z" fill="#FFFFFF" opacity="0.85" />
+      </g>
+
+      <!-- LETTER 7: 'r' (Purple) -->
+      <g id="sq-letter-r" transform="translate(640, 270)">
+        <path d="M 22 18 C 22 10 32 5 40 12 L 40 38 C 48 22 66 14 84 18 C 92 20 94 30 86 34 C 70 40 56 50 48 70 L 48 118 C 48 126 38 130 30 126 C 24 122 22 116 22 110 Z" 
+              fill="url(#sq-grad-r)" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round" />
+        <path d="M 32 28 L 32 105" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.75" />
+        <path d="M 50 26 Q 66 22 75 28" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.75" />
+      </g>
+
+      <!-- LETTER 8: 't' (Magenta) -->
+      <g id="sq-letter-t" transform="translate(715, 252)">
+        <path d="M 36 12 C 36 5 45 0 52 0 C 60 0 68 5 68 12 L 68 35 L 88 35 C 96 35 100 42 100 50 C 100 58 96 64 88 64 L 68 64 L 68 115 C 68 125 74 130 84 130 C 90 130 96 135 96 142 C 96 150 88 156 75 156 C 50 156 36 140 36 115 L 36 64 L 20 64 C 12 64 8 58 8 50 C 8 42 12 35 20 35 L 36 35 Z" 
+              fill="url(#sq-grad-t)" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round" />
+        <ellipse cx="52" cy="18" rx="8" ry="4" fill="#FFFFFF" opacity="0.8" />
+        <path d="M 48 75 L 48 120" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.7" />
+      </g>
+
+      <!-- LETTER 9: 'a' (Lavender) -->
+      <g id="sq-letter-a4" transform="translate(795, 280)">
+        <path d="M 45 15 C 22 15 6 35 6 68 C 6 100 22 122 48 122 C 64 122 76 114 84 102 L 84 115 C 84 120 90 125 96 125 C 102 125 108 120 108 115 L 108 28 C 108 20 102 15 94 15 Z" 
+              fill="url(#sq-grad-a4)" stroke="#FFFFFF" stroke-width="9" stroke-linejoin="round" />
+        <ellipse cx="52" cy="68" rx="20" ry="26" fill="#FFFFFF" />
+        <path d="M 28 35 C 38 25 60 24 72 30 C 76 32 72 38 66 38 C 55 36 38 38 32 44 C 28 46 26 42 28 35 Z" fill="#FFFFFF" opacity="0.85" />
+      </g>
+    </g>
+
+    <!-- ================= PLAYFUL STARS & CONFETTI ================= -->
+    <g id="sq-decorative-elements" filter="url(#sq-element-shadow)">
+      <!-- Big Yellow Star near 'B' -->
+      <g transform="translate(45, 230) scale(1.15)">
+        <path d="M 25 0 L 32 15 L 49 18 L 36 31 L 39 48 L 25 40 L 10 48 L 13 31 L 1 18 L 17 15 Z" 
+              fill="url(#sq-star-yellow)" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round" />
+      </g>
+
+      <!-- Little Yellow Star bottom left -->
+      <g transform="translate(48, 365) scale(0.75)">
+        <path d="M 25 0 L 32 15 L 49 18 L 36 31 L 39 48 L 25 40 L 10 48 L 13 31 L 1 18 L 17 15 Z" 
+              fill="url(#sq-star-yellow)" stroke="#FFFFFF" stroke-width="3.5" stroke-linejoin="round" />
+      </g>
+
+      <!-- Pink Star above 'a1' -->
+      <g transform="translate(365, 175) scale(0.8)">
+        <path d="M 25 0 L 32 15 L 49 18 L 36 31 L 39 48 L 25 40 L 10 48 L 13 31 L 1 18 L 17 15 Z" 
+              fill="url(#sq-star-pink)" stroke="#FFFFFF" stroke-width="3.5" stroke-linejoin="round" />
+      </g>
+
+      <!-- Green Star near Sun Top Right -->
+      <g transform="translate(680, 155) scale(0.9)">
+        <path d="M 25 0 L 32 15 L 49 18 L 36 31 L 39 48 L 25 40 L 10 48 L 13 31 L 1 18 L 17 15 Z" 
+              fill="url(#sq-star-green)" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round" />
+      </g>
+
+      <!-- Yellow Star near Right Cloud -->
+      <g transform="translate(725, 215) scale(0.7)">
+        <path d="M 25 0 L 32 15 L 49 18 L 36 31 L 39 48 L 25 40 L 10 48 L 13 31 L 1 18 L 17 15 Z" 
+              fill="url(#sq-star-yellow)" stroke="#FFFFFF" stroke-width="3.5" stroke-linejoin="round" />
+      </g>
+
+      <!-- Tiny Star Far Right -->
+      <g transform="translate(860, 315) scale(0.55)">
+        <path d="M 25 0 L 32 15 L 49 18 L 36 31 L 39 48 L 25 40 L 10 48 L 13 31 L 1 18 L 17 15 Z" 
+              fill="url(#sq-star-yellow)" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round" />
+      </g>
+
+      <!-- Confetti Drops -->
+      <ellipse cx="135" cy="210" rx="8" ry="14" fill="#FF2442" transform="rotate(-35 135 210)" />
+      <ellipse cx="62" cy="340" rx="6" ry="11" fill="#00A2F8" transform="rotate(45 62 340)" />
+      <ellipse cx="130" cy="420" rx="9" ry="15" fill="#FF388C" transform="rotate(-55 130 420)" />
+      <ellipse cx="165" cy="435" rx="8" ry="13" fill="#44C71B" transform="rotate(25 165 435)" />
+      <ellipse cx="682" cy="265" rx="7" ry="12" fill="#FF388C" transform="rotate(35 682 265)" />
+      <ellipse cx="805" cy="225" rx="8" ry="14" fill="#FF2442" transform="rotate(40 805 225)" />
+      <ellipse cx="828" cy="245" rx="7" ry="13" fill="#44C71B" transform="rotate(60 828 245)" />
+      <ellipse cx="760" cy="430" rx="9" ry="15" fill="#44C71B" transform="rotate(-25 760 430)" />
+      <ellipse cx="795" cy="415" rx="8" ry="14" fill="#FF388C" transform="rotate(50 795 415)" />
+    </g>
+  </g>
+</svg>

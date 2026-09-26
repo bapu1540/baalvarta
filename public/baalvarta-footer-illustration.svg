@@ -1,0 +1,378 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E88E5" />
+      <stop offset="35%" stop-color="#42A5F5" />
+      <stop offset="70%" stop-color="#90CAF9" />
+      <stop offset="100%" stop-color="#E3F2FD" />
+    </linearGradient>
+
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF9C4" />
+      <stop offset="50%" stop-color="#FFEE58" />
+      <stop offset="85%" stop-color="#FFA726" />
+      <stop offset="100%" stop-color="#FB8C00" />
+    </radialGradient>
+
+    <linearGradient id="hillBack" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#66BB6A" />
+      <stop offset="100%" stop-color="#2E7D32" />
+    </linearGradient>
+
+    <linearGradient id="hillMid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#81C784" />
+      <stop offset="100%" stop-color="#388E3C" />
+    </linearGradient>
+
+    <linearGradient id="hillFront" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A5D6A7" />
+      <stop offset="40%" stop-color="#66BB6A" />
+      <stop offset="100%" stop-color="#1B5E20" />
+    </linearGradient>
+
+    <linearGradient id="woodSign" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8D6E63" />
+      <stop offset="50%" stop-color="#6D4C41" />
+      <stop offset="100%" stop-color="#4E342E" />
+    </linearGradient>
+
+    <!-- Rainbow Gradients -->
+    <linearGradient id="rbRed" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FF1744"/><stop offset="100%" stop-color="#D50000"/></linearGradient>
+    <linearGradient id="rbOrange" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FF9100"/><stop offset="100%" stop-color="#FF6D00"/></linearGradient>
+    <linearGradient id="rbYellow" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFEA00"/><stop offset="100%" stop-color="#FFD600"/></linearGradient>
+    <linearGradient id="rbGreen" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00E676"/><stop offset="100%" stop-color="#00C853"/></linearGradient>
+    <linearGradient id="rbBlue" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00E5FF"/><stop offset="100%" stop-color="#00B0FF"/></linearGradient>
+    <linearGradient id="rbPurple" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#D500F9"/><stop offset="100%" stop-color="#AA00FF"/></linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Sky Background -->
+  <rect width="1600" height="900" fill="url(#skyGrad)" />
+
+  <!-- Rainbow -->
+  <g transform="translate(100, -80)" opacity="0.85">
+    <path d="M 50 450 A 350 350 0 0 1 750 450" fill="none" stroke="url(#rbRed)" stroke-width="22" />
+    <path d="M 68 450 A 332 332 0 0 1 732 450" fill="none" stroke="url(#rbOrange)" stroke-width="20" />
+    <path d="M 85 450 A 315 315 0 0 1 715 450" fill="none" stroke="url(#rbYellow)" stroke-width="20" />
+    <path d="M 102 450 A 298 298 0 0 1 698 450" fill="none" stroke="url(#rbGreen)" stroke-width="20" />
+    <path d="M 119 450 A 281 281 0 0 1 681 450" fill="none" stroke="url(#rbBlue)" stroke-width="20" />
+    <path d="M 136 450 A 264 264 0 0 1 664 450" fill="none" stroke="url(#rbPurple)" stroke-width="20" />
+  </g>
+
+  <!-- Cartoon Sun in Center Top -->
+  <g transform="translate(800, 160)" filter="url(#softShadow)">
+    <!-- Sun Rays -->
+    <g fill="#FFA726">
+      <path d="M 0 -130 L -18 -85 L 18 -85 Z" />
+      <path d="M 92 -92 L 50 -70 L 72 -45 Z" />
+      <path d="M 130 0 L 85 -18 L 85 18 Z" />
+      <path d="M 92 92 L 72 45 L 50 70 Z" />
+      <path d="M 0 130 L -18 85 L 18 85 Z" />
+      <path d="M -92 92 L -50 70 L -72 45 Z" />
+      <path d="M -130 0 L -85 -18 L -85 18 Z" />
+      <path d="M -92 -92 L -72 -45 L -50 -70 Z" />
+      
+      <path d="M 50 -120 L 25 -80 L 55 -65 Z" fill="#FFCA28" />
+      <path d="M 120 -50 L 80 -25 L 65 -55 Z" fill="#FFCA28" />
+      <path d="M 120 50 L 80 25 L 65 55 Z" fill="#FFCA28" />
+      <path d="M 50 120 L 25 80 L 55 65 Z" fill="#FFCA28" />
+      <path d="M -50 120 L -25 80 L -55 65 Z" fill="#FFCA28" />
+      <path d="M -120 50 L -80 25 L -65 55 Z" fill="#FFCA28" />
+      <path d="M -120 -50 L -80 -25 L -65 -55 Z" fill="#FFCA28" />
+      <path d="M -50 -120 L -25 -80 L -55 -65 Z" fill="#FFCA28" />
+    </g>
+    <!-- Sun Face Body -->
+    <circle cx="0" cy="0" r="75" fill="url(#sunGlow)" stroke="#FFF59D" stroke-width="6" />
+    <!-- Cheeks -->
+    <circle cx="-38" cy="18" r="12" fill="#FF7043" opacity="0.6" />
+    <circle cx="38" cy="18" r="12" fill="#FF7043" opacity="0.6" />
+    <!-- Eyes -->
+    <ellipse cx="-25" cy="-8" rx="8" ry="12" fill="#3E2723" />
+    <circle cx="-28" cy="-12" r="3" fill="#FFFFFF" />
+    <ellipse cx="25" cy="-8" rx="8" ry="12" fill="#3E2723" />
+    <circle cx="22" cy="-12" r="3" fill="#FFFFFF" />
+    <!-- Big Happy Smile -->
+    <path d="M -26 12 Q 0 42 26 12 Z" fill="#D81B60" />
+    <path d="M -26 12 Q 0 42 26 12" stroke="#3E2723" stroke-width="4" fill="none" />
+    <path d="M -10 24 Q 0 16 10 24 Q 0 34 -10 24" fill="#FF8A80" />
+  </g>
+
+  <!-- Left & Right Fluffy Clouds with Faces -->
+  <g fill="#FFFFFF" filter="url(#softShadow)" opacity="0.95">
+    <!-- Left Cloud -->
+    <g transform="translate(180, 110)">
+      <path d="M 40 80 Q 20 50 50 30 Q 80 10 110 30 Q 140 10 170 30 Q 200 50 180 80 Q 210 100 180 120 Q 150 140 110 120 Q 70 140 40 120 Q 10 100 40 80 Z" />
+      <circle cx="95" cy="72" r="4" fill="#37474F" />
+      <circle cx="125" cy="72" r="4" fill="#37474F" />
+      <path d="M 103 82 Q 110 90 117 82" stroke="#37474F" stroke-width="2.5" fill="none" />
+    </g>
+    <!-- Right Cloud -->
+    <g transform="translate(1220, 100)">
+      <path d="M 40 80 Q 20 50 50 30 Q 80 10 110 30 Q 140 10 170 30 Q 200 50 180 80 Q 210 100 180 120 Q 150 140 110 120 Q 70 140 40 120 Q 10 100 40 80 Z" />
+      <circle cx="95" cy="72" r="4" fill="#37474F" />
+      <circle cx="125" cy="72" r="4" fill="#37474F" />
+      <path d="M 103 82 Q 110 90 117 82" stroke="#37474F" stroke-width="2.5" fill="none" />
+    </g>
+  </g>
+
+  <!-- Background Trees & Rolling Hills -->
+  <path d="M -100 520 Q 400 380 900 500 T 1700 480 L 1700 900 L -100 900 Z" fill="url(#hillBack)" />
+  
+  <!-- Lush Trees along horizon -->
+  <g fill="#2E7D32">
+    <circle cx="120" cy="460" r="90" />
+    <circle cx="220" cy="440" r="110" />
+    <circle cx="60" cy="500" r="80" />
+    <circle cx="1450" cy="450" r="100" />
+    <circle cx="1540" cy="480" r="120" />
+  </g>
+  <g fill="#43A047">
+    <circle cx="150" cy="470" r="70" />
+    <circle cx="230" cy="450" r="85" />
+    <circle cx="1470" cy="460" r="80" />
+  </g>
+
+  <!-- Midground Hills -->
+  <path d="M -50 620 Q 450 500 1050 600 T 1650 580 L 1650 900 L -50 900 Z" fill="url(#hillMid)" />
+
+  <!-- Foreground Green Grassy Meadow -->
+  <path d="M -50 710 Q 500 580 1100 680 T 1650 650 L 1650 900 L -50 900 Z" fill="url(#hillFront)" />
+
+  <!-- BAALVARTA Main Header Emblem on Wooden Board -->
+  <g transform="translate(800, 310)" filter="url(#softShadow)">
+    <!-- Wooden Plaque -->
+    <path d="M -420 50 C -430 40 -430 80 -420 70 L -400 80 L 400 80 L 420 70 C 430 80 430 40 420 50 L 400 40 L -400 40 Z" fill="url(#woodSign)" stroke="#3E2723" stroke-width="5" />
+    <rect x="-380" y="30" width="760" height="55" rx="14" fill="url(#woodSign)" stroke="#5D4037" stroke-width="4" />
+    <!-- Leaves on Plaque -->
+    <circle cx="-380" cy="55" r="14" fill="#4CAF50" />
+    <circle cx="-395" cy="55" r="10" fill="#81C784" />
+    <circle cx="380" cy="55" r="14" fill="#4CAF50" />
+    <circle cx="395" cy="55" r="10" fill="#81C784" />
+
+    <!-- Subtitle on wooden plank -->
+    <text x="0" y="68" font-family="'Nunito', 'Arial Black', sans-serif" font-weight="900" font-size="28" fill="#FFFFFF" text-anchor="middle" stroke="#3E2723" stroke-width="2" letter-spacing="1">
+      Fun - Learning - Stories
+    </text>
+
+    <!-- 3D Colorful BAALVARTA Big Letters -->
+    <!-- B (Red) -->
+    <text x="-370" y="10" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#FF1744" stroke="#B71C1C" stroke-width="8">B</text>
+    <!-- A (Orange) -->
+    <text x="-275" y="5" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#FF9100" stroke="#E65100" stroke-width="8">A</text>
+    <!-- A (Yellow) -->
+    <text x="-180" y="0" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#FFEA00" stroke="#F57F17" stroke-width="8">A</text>
+    <!-- L (Green) -->
+    <text x="-85" y="-5" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#00E676" stroke="#1B5E20" stroke-width="8">L</text>
+    <!-- V (Cyan/Blue) -->
+    <text x="0" y="-5" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#00E5FF" stroke="#006064" stroke-width="8">V</text>
+    <!-- A (Purple) -->
+    <text x="100" y="0" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#7C4DFF" stroke="#311B92" stroke-width="8">A</text>
+    <!-- R (Magenta/Pink) -->
+    <text x="195" y="5" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#FF4081" stroke="#880E4F" stroke-width="8">R</text>
+    <!-- T (Orange-Red) -->
+    <text x="290" y="10" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#FF6E40" stroke="#BF360C" stroke-width="8">T</text>
+    <!-- A (Amber) -->
+    <text x="375" y="15" font-family="'Arial Black', sans-serif" font-weight="900" font-size="110" fill="#FFD700" stroke="#FF6F00" stroke-width="8">A</text>
+  </g>
+
+  <!-- Friendly Animals & Boy Reading Center Illustration -->
+  <g id="characters-group" filter="url(#softShadow)">
+
+    <!-- 1. Little Bunny (Left) -->
+    <g transform="translate(260, 680)">
+      <!-- Bunny Body -->
+      <ellipse cx="0" cy="20" rx="35" ry="30" fill="#FFFFFF" stroke="#ECEFF1" stroke-width="3" />
+      <circle cx="-15" cy="-25" r="28" fill="#FFFFFF" stroke="#ECEFF1" stroke-width="3" />
+      <!-- Ears -->
+      <ellipse cx="-28" cy="-75" rx="10" ry="32" fill="#FFFFFF" transform="rotate(-15 -28 -75)" stroke="#ECEFF1" stroke-width="2" />
+      <ellipse cx="-28" cy="-75" rx="5" ry="22" fill="#FF80AB" transform="rotate(-15 -28 -75)" />
+      <ellipse cx="-5" cy="-75" rx="10" ry="32" fill="#FFFFFF" transform="rotate(10 -5 -75)" stroke="#ECEFF1" stroke-width="2" />
+      <ellipse cx="-5" cy="-75" rx="5" ry="22" fill="#FF80AB" transform="rotate(10 -5 -75)" />
+      <!-- Eyes & Cheeks -->
+      <circle cx="-24" cy="-28" r="4.5" fill="#37474F" />
+      <circle cx="-8" cy="-28" r="4.5" fill="#37474F" />
+      <circle cx="-30" cy="-20" r="5" fill="#FF80AB" opacity="0.6" />
+      <circle cx="-2" cy="-20" r="5" fill="#FF80AB" opacity="0.6" />
+      <ellipse cx="-16" cy="-20" rx="3" ry="2" fill="#FF4081" />
+    </g>
+
+    <!-- 2. Happy Lion Cub (Left-Center) -->
+    <g transform="translate(450, 640)">
+      <!-- Mane -->
+      <circle cx="0" cy="-20" r="65" fill="#FF8F00" stroke="#E65100" stroke-width="4" />
+      <!-- Lion Head -->
+      <circle cx="0" cy="-20" r="48" fill="#FFB300" />
+      <!-- Ears -->
+      <circle cx="-38" cy="-60" r="16" fill="#FF8F00" />
+      <circle cx="-38" cy="-60" r="9" fill="#FFE082" />
+      <circle cx="38" cy="-60" r="16" fill="#FF8F00" />
+      <circle cx="38" cy="-60" r="9" fill="#FFE082" />
+      <!-- Face Muzzle -->
+      <ellipse cx="0" cy="-10" rx="22" ry="16" fill="#FFF8E1" />
+      <!-- Eyes -->
+      <ellipse cx="-18" cy="-30" rx="6" ry="9" fill="#3E2723" />
+      <circle cx="-20" cy="-33" r="2.5" fill="#FFFFFF" />
+      <ellipse cx="18" cy="-30" rx="6" ry="9" fill="#3E2723" />
+      <circle cx="16" cy="-33" r="2.5" fill="#FFFFFF" />
+      <!-- Nose & Smile -->
+      <polygon points="0,-16 -6,-22 6,-22" fill="#8D6E63" />
+      <path d="M -10 -8 Q 0 4 10 -8" stroke="#3E2723" stroke-width="3" fill="none" />
+      <!-- Lion Body -->
+      <ellipse cx="0" cy="45" rx="42" ry="38" fill="#FFB300" stroke="#E65100" stroke-width="3" />
+      <ellipse cx="0" cy="45" rx="26" ry="26" fill="#FFF8E1" />
+      <!-- Paws -->
+      <circle cx="-24" cy="72" r="14" fill="#FFB300" stroke="#E65100" stroke-width="2" />
+      <circle cx="24" cy="72" r="14" fill="#FFB300" stroke="#E65100" stroke-width="2" />
+    </g>
+
+    <!-- 3. Cheerful Child (Center) Reading Storybook -->
+    <g transform="translate(760, 630)">
+      <!-- Boy Body / Orange T-Shirt -->
+      <ellipse cx="0" cy="40" rx="48" ry="42" fill="#FF6D00" stroke="#E65100" stroke-width="3" />
+      <!-- Blue Jeans / Crossed Legs -->
+      <ellipse cx="-35" cy="82" rx="30" ry="18" fill="#1565C0" />
+      <ellipse cx="35" cy="82" rx="30" ry="18" fill="#1565C0" />
+      <!-- Shoes -->
+      <ellipse cx="-55" cy="90" rx="16" ry="10" fill="#4E342E" />
+      <ellipse cx="55" cy="90" rx="16" ry="10" fill="#4E342E" />
+
+      <!-- Head -->
+      <circle cx="0" cy="-45" r="48" fill="#FFCC80" stroke="#FFA726" stroke-width="3" />
+      <!-- Dark Shiny Hair -->
+      <path d="M -50 -55 Q -40 -98 0 -95 Q 40 -98 50 -55 Q 35 -70 0 -70 Q -35 -70 -50 -55 Z" fill="#212121" />
+      <circle cx="-42" cy="-45" r="12" fill="#FFCC80" />
+      <circle cx="42" cy="-45" r="12" fill="#FFCC80" />
+      <!-- Big Sparkling Eyes -->
+      <ellipse cx="-18" cy="-45" rx="8" ry="12" fill="#212121" />
+      <circle cx="-21" cy="-50" r="4" fill="#FFFFFF" />
+      <ellipse cx="18" cy="-45" rx="8" ry="12" fill="#212121" />
+      <circle cx="15" cy="-50" r="4" fill="#FFFFFF" />
+      <!-- Cheeks & Happy Smile -->
+      <circle cx="-28" cy="-35" r="8" fill="#FF8A80" opacity="0.6" />
+      <circle cx="28" cy="-35" r="8" fill="#FF8A80" opacity="0.6" />
+      <path d="M -15 -25 Q 0 -10 15 -25 Z" fill="#C2185B" />
+
+      <!-- Open Storybook in Hands -->
+      <g transform="translate(0, 30)">
+        <path d="M 0 0 L -60 -25 L -55 35 L 0 55 Z" fill="#FFFDE7" stroke="#8D6E63" stroke-width="3" />
+        <path d="M 0 0 L 60 -25 L 55 35 L 0 55 Z" fill="#FFFDE7" stroke="#8D6E63" stroke-width="3" />
+        <!-- Spine & Cover Gold Embellishment -->
+        <line x1="0" y1="0" x2="0" y2="55" stroke="#FFB300" stroke-width="5" />
+        <!-- Book illustrations (Sun & Stars inside book) -->
+        <circle cx="-28" cy="15" r="8" fill="#FFA726" />
+        <circle cx="28" cy="15" r="8" fill="#42A5F5" />
+      </g>
+    </g>
+
+    <!-- 4. Cute Giraffe (Behind Elephant & Boy) -->
+    <g transform="translate(1000, 560)">
+      <!-- Long Neck -->
+      <path d="M -15 60 L -10 -40 L 10 -40 L 15 60 Z" fill="#FFB74D" stroke="#FB8C00" stroke-width="3" />
+      <!-- Giraffe Head -->
+      <ellipse cx="0" cy="-60" rx="28" ry="24" fill="#FFB74D" stroke="#FB8C00" stroke-width="3" />
+      <!-- Muzzle -->
+      <ellipse cx="0" cy="-48" rx="18" ry="14" fill="#FFE0B2" />
+      <!-- Horns (Ossicones) -->
+      <line x1="-12" y1="-75" x2="-12" y2="-95" stroke="#FB8C00" stroke-width="5" stroke-linecap="round" />
+      <circle cx="-12" cy="-95" r="6" fill="#8D6E63" />
+      <line x1="12" y1="-75" x2="12" y2="-95" stroke="#FB8C00" stroke-width="5" stroke-linecap="round" />
+      <circle cx="12" cy="-95" r="6" fill="#8D6E63" />
+      <!-- Ears -->
+      <ellipse cx="-32" cy="-65" rx="12" ry="6" fill="#FFB74D" transform="rotate(-20 -32 -65)" />
+      <ellipse cx="32" cy="-65" rx="12" ry="6" fill="#FFB74D" transform="rotate(20 32 -65)" />
+      <!-- Eyes & Spots -->
+      <circle cx="-12" cy="-62" r="5" fill="#3E2723" />
+      <circle cx="12" cy="-62" r="5" fill="#3E2723" />
+      <circle cx="-6" cy="0" r="8" fill="#8D6E63" opacity="0.8" />
+      <circle cx="6" cy="30" r="10" fill="#8D6E63" opacity="0.8" />
+    </g>
+
+    <!-- 5. Cute Baby Blue Elephant (Right) -->
+    <g transform="translate(1220, 660)">
+      <!-- Body -->
+      <ellipse cx="0" cy="35" rx="65" ry="55" fill="#64B5F6" stroke="#1E88E5" stroke-width="4" />
+      <!-- Elephant Head -->
+      <circle cx="-25" cy="-20" r="50" fill="#64B5F6" stroke="#1E88E5" stroke-width="4" />
+      <!-- Big Flapping Ears -->
+      <ellipse cx="25" cy="-25" rx="35" ry="45" fill="#90CAF9" stroke="#1E88E5" stroke-width="3" />
+      <ellipse cx="25" cy="-25" rx="20" ry="30" fill="#F48FB1" opacity="0.6" />
+      <!-- Raised Cheerful Trunk -->
+      <path d="M -45 -10 Q -85 -5 -80 -45 Q -75 -65 -60 -55 Q -65 -45 -65 -25 Q -55 -5 -35 0 Z" fill="#64B5F6" stroke="#1E88E5" stroke-width="3" />
+      <!-- Big Eyes & Rosy Cheeks -->
+      <ellipse cx="-35" cy="-30" rx="7" ry="10" fill="#1A237E" />
+      <circle cx="-38" cy="-34" r="3" fill="#FFFFFF" />
+      <circle cx="-20" cy="-15" r="10" fill="#FF8A80" opacity="0.6" />
+      <!-- Sturdy Feet -->
+      <ellipse cx="-35" cy="80" rx="18" ry="12" fill="#42A5F5" />
+      <ellipse cx="10" cy="80" rx="18" ry="12" fill="#42A5F5" />
+    </g>
+
+    <!-- 6. Cute Turtle (Front Center-Right) -->
+    <g transform="translate(980, 750)">
+      <!-- Shell -->
+      <ellipse cx="0" cy="0" rx="42" ry="32" fill="#43A047" stroke="#1B5E20" stroke-width="3" />
+      <!-- Shell Hexagon Pattern -->
+      <circle cx="0" cy="0" r="16" fill="#66BB6A" stroke="#2E7D32" stroke-width="2" />
+      <!-- Turtle Head -->
+      <circle cx="-38" cy="-12" r="16" fill="#81C784" stroke="#2E7D32" stroke-width="2" />
+      <circle cx="-44" cy="-16" r="3" fill="#1B5E20" />
+      <circle cx="-32" cy="-10" r="3" fill="#FF8A80" opacity="0.7" />
+      <!-- Flippers -->
+      <ellipse cx="-25" cy="20" rx="12" ry="8" fill="#81C784" />
+      <ellipse cx="25" cy="20" rx="12" ry="8" fill="#81C784" />
+    </g>
+  </g>
+
+  <!-- Wildflowers, Daisies & Butterflies in Foreground -->
+  <g id="foreground-decor">
+    <circle cx="80" cy="790" r="8" fill="#FF1744" />
+    <circle cx="80" cy="790" r="3" fill="#FFEB3B" />
+    <circle cx="150" cy="820" r="10" fill="#FFD600" />
+    <circle cx="150" cy="820" r="4" fill="#FF6D00" />
+    <circle cx="360" cy="810" r="8" fill="#E040FB" />
+    <circle cx="1380" cy="790" r="9" fill="#00E5FF" />
+    <circle cx="1480" cy="830" r="12" fill="#FF5252" />
+    <circle cx="1550" cy="800" r="8" fill="#76FF03" />
+
+    <!-- Twinkling Golden Stars -->
+    <g fill="#FFD54F" filter="url(#softShadow)">
+      <!-- Star top left -->
+      <polygon points="55,230 62,246 79,248 66,260 70,277 55,268 40,277 44,260 31,248 48,246" />
+      <polygon points="150,380 155,392 168,393 158,402 161,415 150,408 139,415 142,402 132,393 145,392" transform="scale(0.8) translate(40,40)" />
+      <!-- Star top right -->
+      <polygon points="1440,310 1447,326 1464,328 1451,340 1455,357 1440,348 1425,357 1429,340 1416,328 1433,326" />
+      <polygon points="980,85 985,97 998,98 988,107 991,120 980,113 969,120 972,107 962,98 975,97" fill="#FF80AB" />
+    </g>
+
+    <!-- Floating Magical Blue Book with Star (Top Right of Sun) -->
+    <g transform="translate(1050, 170) rotate(15)" filter="url(#softShadow)">
+      <!-- Book Pages -->
+      <path d="M 0 0 C 15 -10 35 -10 50 -2 L 48 55 C 33 48 15 48 0 58 Z" fill="#E1F5FE" />
+      <path d="M 0 0 C -15 -10 -35 -10 -50 -2 L -48 55 C -33 48 -15 48 0 58 Z" fill="#E1F5FE" />
+      <!-- Blue Cover -->
+      <path d="M 50 -2 L 53 57 C 35 48 15 48 0 58 L -53 57 L -50 -2 C -35 -10 -15 -10 0 0 C 15 -10 35 -10 50 -2 Z" fill="#1E88E5" stroke="#1565C0" stroke-width="3" />
+      <!-- Inner Pages Gold Edge -->
+      <path d="M -44 4 C -30 -4 -15 -4 0 4 C 15 -4 30 -4 44 4 L 42 50 C 30 43 15 43 0 50 C -15 43 -30 43 -42 50 Z" fill="#FFFDE7" />
+      <!-- Golden Star on Book -->
+      <polygon points="0,22 4,32 15,33 7,40 10,50 0,44 -10,50 -7,40 -15,33 -4,32" fill="#FFCA28" stroke="#FFA000" stroke-width="1.5" />
+    </g>
+
+    <!-- Butterfly Top Left -->
+    <g transform="translate(380, 160)">
+      <ellipse cx="-10" cy="-10" rx="14" ry="9" fill="#00E5FF" transform="rotate(-30 -10 -10)" />
+      <ellipse cx="10" cy="-10" rx="14" ry="9" fill="#00E5FF" transform="rotate(30 10 -10)" />
+      <ellipse cx="0" cy="0" rx="3" ry="12" fill="#37474F" />
+    </g>
+    <!-- Butterfly Top Right -->
+    <g transform="translate(1320, 220)">
+      <ellipse cx="-10" cy="-10" rx="14" ry="9" fill="#FF9100" transform="rotate(-30 -10 -10)" />
+      <ellipse cx="10" cy="-10" rx="14" ry="9" fill="#FF9100" transform="rotate(30 10 -10)" />
+      <ellipse cx="0" cy="0" rx="3" ry="12" fill="#37474F" />
+    </g>
+  </g>
+</svg>

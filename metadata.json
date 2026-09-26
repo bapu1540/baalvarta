@@ -1,0 +1,7 @@
+{
+  "name": "Baalvarta - Stories, Culture & Learning",
+  "description": "बालवार्ता (Baalvarta) पर पढ़ें 500+ सचित्र नैतिक व पंचतंत्र कहानियाँ, अकबर-बीरबल, 9:16 वीडियो शॉर्ट्स, ऑडियो कहानियाँ, बाल क्विज़ और हिंदी वर्णमाला। बच्चों के लिए 100% सुरक्षित और निःशुल्क पोर्टल।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
