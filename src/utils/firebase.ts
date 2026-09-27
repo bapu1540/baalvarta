@@ -599,14 +599,18 @@ export async function seedInitialFirestoreDataIfNeeded(
   const db = getFirestoreDb();
   if (!db) return;
 
-  const isSeeded = localStorage.getItem('baalvarta_firestore_seeded_v1');
+  const SEED_VERSION_KEY = 'baalvarta_firestore_seeded_v26_stories';
+  const isSeeded = localStorage.getItem(SEED_VERSION_KEY);
   if (isSeeded) return;
 
   try {
     const storySnap = await getDocs(collection(db, 'stories'));
-    if (storySnap.empty && stories.length > 0) {
-      console.log('Populating newly linked Firebase Firestore with stories...');
-      await syncAllStoriesToFirestore(stories);
+    const existingDocIds = new Set(storySnap.docs.map((d) => d.id));
+    const missingStories = stories.filter((s) => !existingDocIds.has(s.id));
+
+    if (missingStories.length > 0) {
+      console.log(`Syncing ${missingStories.length} missing stories to Firebase Firestore...`);
+      await syncAllStoriesToFirestore(missingStories);
     }
 
     const wsSnap = await getDocs(collection(db, 'worksheets'));
@@ -615,7 +619,7 @@ export async function seedInitialFirestoreDataIfNeeded(
       await syncAllWorksheetsToFirestore(worksheets);
     }
 
-    localStorage.setItem('baalvarta_firestore_seeded_v1', 'true');
+    localStorage.setItem(SEED_VERSION_KEY, 'true');
   } catch (err: any) {
     checkAndSetQuotaExhausted(err);
     console.warn('Firestore auto-seed check skipped or quota limited:', err?.message || err);

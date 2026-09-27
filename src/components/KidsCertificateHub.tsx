@@ -11,7 +11,11 @@ import {
   Heart,
   Trophy,
   ShieldCheck,
-  Check
+  Check,
+  Camera,
+  Trash2,
+  Image as ImageIcon,
+  Crown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Language } from '../types';
@@ -29,11 +33,13 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
   soundEnabled,
 }) => {
   const isHi = language === 'hi';
-  const certRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [childName, setChildName] = useState<string>('आरव चौहान');
+  const [childPhoto, setChildPhoto] = useState<string | null>(null);
   const [achievementType, setAchievementType] = useState<string>('super_reader');
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   const achievementOptions = [
     {
@@ -42,7 +48,8 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
       titleEn: 'Super Story Reader Certificate',
       descHi: '50+ सचित्र हिंदी नैतिक कहानियाँ ध्यानपूर्वक पढ़ने, समझने व शिक्षा ग्रहण करने के उपलक्ष्य में।',
       descEn: 'For reading & understanding 50+ illustrated moral stories with excellence.',
-      color: 'from-amber-500 to-orange-600',
+      gradient: 'from-amber-500 via-orange-500 to-rose-500',
+      badgeColor: '#EA580C',
       badgeEmoji: '🌟',
       stars: '⭐⭐⭐⭐⭐'
     },
@@ -52,7 +59,8 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
       titleEn: 'Panchatantra Wisdom Master',
       descHi: 'पंचतंत्र व हितोपदेश की कहानियों से नीति, सूझबूझ व जीवनोपयोगी संस्कार सीखने के लिए।',
       descEn: 'For mastering moral wisdom & life values from Panchatantra stories.',
-      color: 'from-purple-500 to-indigo-600',
+      gradient: 'from-purple-600 via-indigo-600 to-blue-600',
+      badgeColor: '#7C3AED',
       badgeEmoji: '🏆',
       stars: '⭐⭐⭐⭐⭐'
     },
@@ -62,7 +70,8 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
       titleEn: 'Kids Quiz All-Rounder Champion',
       descHi: 'विज्ञान, प्रकृति, पशु-पक्षी, सामान्य ज्ञान व बाल साहित्य क्विज़ में शत-प्रतिशत प्रदर्शन हेतु।',
       descEn: 'For outstanding 100% scores in Science, Nature, Animals & Literature quizzes.',
-      color: 'from-rose-500 to-pink-600',
+      gradient: 'from-rose-500 via-pink-500 to-purple-600',
+      badgeColor: '#E11D48',
       badgeEmoji: '🎯',
       stars: '⭐⭐⭐⭐⭐'
     },
@@ -72,7 +81,8 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
       titleEn: 'Baal Ratna National Scholar',
       descHi: 'दैनिक ज्ञान अर्जन, नैतिक आचरण, सचित्र वर्कशीट अभ्यास व अच्छी आदतों के सर्वोत्तम प्रदर्शन हेतु।',
       descEn: 'For daily excellence in reading, moral values, worksheets and good habits.',
-      color: 'from-emerald-500 to-teal-600',
+      gradient: 'from-emerald-500 via-teal-500 to-cyan-600',
+      badgeColor: '#059669',
       badgeEmoji: '👑',
       stars: '⭐⭐⭐⭐⭐'
     },
@@ -85,161 +95,343 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     year: 'numeric',
   });
 
-  const handleDownloadCertificate = () => {
-    if (soundEnabled) playSuccessSound();
+  // Handle Child Photo File Upload
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    // High-Resolution 1400x950 Canvas Generation
+    if (soundEnabled) playPopSound();
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setChildPhoto(event.target.result as string);
+        if (soundEnabled) playSuccessSound();
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    if (soundEnabled) playPopSound();
+    setChildPhoto(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (soundEnabled) playSuccessSound();
+    setIsGenerating(true);
+
+    // High-Resolution 1400x980 Canvas Generation
     const canvas = document.createElement('canvas');
     canvas.width = 1400;
-    canvas.height = 950;
+    canvas.height = 980;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      setIsGenerating(false);
+      return;
+    }
 
-    // 1. Rich Parchment Background Gradient with Warm Tones
-    const bgGrad = ctx.createLinearGradient(0, 0, 1400, 950);
-    bgGrad.addColorStop(0, '#FFFDF0');
-    bgGrad.addColorStop(0.3, '#FFF7D6');
-    bgGrad.addColorStop(0.7, '#FFF3C2');
-    bgGrad.addColorStop(1, '#FFFDF0');
+    // 1. Vibrant Multi-Color Parchment Background Gradient (Rose -> Amber -> Mint -> Sky Blue)
+    const bgGrad = ctx.createLinearGradient(0, 0, 1400, 980);
+    bgGrad.addColorStop(0, '#FFF5F5');    // Soft Rose
+    bgGrad.addColorStop(0.3, '#FFFBEB');  // Warm Cream Gold
+    bgGrad.addColorStop(0.7, '#F0FDF4');  // Fresh Mint
+    bgGrad.addColorStop(1, '#EFF6FF');    // Sky Tint
     ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, 1400, 950);
+    ctx.fillRect(0, 0, 1400, 980);
 
-    // Subtle celebration confetti sprinkles on canvas
-    const confettiColors = ['#FF4D6D', '#FFB703', '#06D6A0', '#118AB2', '#8338EC', '#FB5607'];
-    for (let i = 0; i < 60; i++) {
-      const x = (i * 23.5) % 1400;
-      const y = (i * 37.3) % 950;
+    // Festive Confetti Particles Sprinkles
+    const confettiColors = ['#FF007F', '#FFB703', '#06D6A0', '#118AB2', '#8338EC', '#FB5607', '#E63946', '#3A86FF'];
+    for (let i = 0; i < 90; i++) {
+      const x = (i * 15.5) % 1400;
+      const y = (i * 24.3) % 980;
       ctx.fillStyle = confettiColors[i % confettiColors.length];
-      ctx.globalAlpha = 0.18;
+      ctx.globalAlpha = 0.22;
       ctx.beginPath();
-      ctx.arc(x, y, (i % 4) + 2, 0, Math.PI * 2);
+      ctx.arc(x, y, (i % 4) + 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1.0;
 
-    // 2. Multi-Color Royal Border
-    // Outer Rainbow/Gold Border
-    ctx.strokeStyle = '#D97706';
+    // 2. Rich Multi-Tier Royal Borders
+    // Outer Royal Sapphire Border
+    ctx.strokeStyle = '#1E3A8A';
     ctx.lineWidth = 14;
-    ctx.strokeRect(35, 35, 1330, 880);
+    ctx.strokeRect(30, 30, 1340, 920);
 
-    // Inner Crimson Border
-    ctx.strokeStyle = '#DC2626';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(52, 52, 1296, 846);
-
-    // Fine Gold Border
+    // Middle Radiant Golden Border
     ctx.strokeStyle = '#F59E0B';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(60, 60, 1280, 830);
+    ctx.lineWidth = 6;
+    ctx.strokeRect(48, 48, 1304, 884);
 
-    // Corner Festive Stars
+    // Inner Ruby Crimson Border
+    ctx.strokeStyle = '#E11D48';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(58, 58, 1284, 864);
+
+    // Fine Emerald Accent Border
+    ctx.strokeStyle = '#10B981';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(64, 64, 1272, 852);
+
+    // Corner Festive Golden Stars
     ctx.fillStyle = '#D97706';
-    ctx.font = '40px system-ui';
-    ctx.fillText('🌟', 75, 110);
-    ctx.fillText('🌟', 1280, 110);
-    ctx.fillText('🌟', 75, 870);
-    ctx.fillText('🌟', 1280, 870);
+    ctx.font = '42px system-ui';
+    ctx.fillText('🌟', 80, 115);
+    ctx.fillText('🌟', 1280, 115);
+    ctx.fillText('🌟', 80, 900);
+    ctx.fillText('🌟', 1280, 900);
 
     // 3. Header Title & Branding
     ctx.textAlign = 'center';
     
     // Top Organization Banner
-    ctx.fillStyle = '#B45309';
+    ctx.fillStyle = '#9A3412';
     ctx.font = 'bold 30px "Baloo 2", sans-serif';
-    ctx.fillText('✨ बालवार्ता (BAALVARTA) बाल साहित्य व ज्ञान मंच ✨', 700, 125);
+    ctx.fillText('✨ बालवार्ता (BAALVARTA) बाल साहित्य व ज्ञान मंच ✨', 700, 115);
 
-    ctx.fillStyle = '#475569';
+    ctx.fillStyle = '#1E293B';
     ctx.font = 'bold 18px "Baloo 2", sans-serif';
-    ctx.fillText('राष्ट्रीय बाल प्रतिभा एवं ज्ञान संवर्धन सम्मान • NATIONAL CHILD EXCELLENCE AWARDS', 700, 155);
+    ctx.fillText('राष्ट्रीय बाल प्रतिभा एवं ज्ञान संवर्धन सम्मान • NATIONAL CHILD EXCELLENCE AWARDS', 700, 145);
 
-    // Large Certificate Title
-    const titleGrad = ctx.createLinearGradient(400, 0, 1000, 0);
-    titleGrad.addColorStop(0, '#B45309');
-    titleGrad.addColorStop(0.5, '#EA580C');
-    titleGrad.addColorStop(1, '#B45309');
+    // Large Certificate Title with Vibrant Gradient
+    const titleGrad = ctx.createLinearGradient(350, 0, 1050, 0);
+    titleGrad.addColorStop(0, '#B91C1C');  // Deep Red
+    titleGrad.addColorStop(0.5, '#D97706'); // Gold
+    titleGrad.addColorStop(1, '#4338CA');  // Indigo
     ctx.fillStyle = titleGrad;
-    ctx.font = 'bold 54px "Baloo 2", serif';
-    ctx.fillText('प्रमाण पत्र • CERTIFICATE OF ACHIEVEMENT', 700, 225);
+    ctx.font = 'bold 50px "Baloo 2", serif';
+    ctx.fillText('प्रमाण पत्र • CERTIFICATE OF ACHIEVEMENT', 700, 205);
 
-    // Decorative Line
+    // Decorative Ribbon Line
     ctx.strokeStyle = '#F59E0B';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(350, 245);
-    ctx.lineTo(1050, 245);
+    ctx.moveTo(300, 222);
+    ctx.lineTo(1100, 222);
     ctx.stroke();
 
-    // Subtitle
+    // =========================================================================
+    // 4. MAIN BODY (LEFT: TEXT & DETAILS, RIGHT: LARGE SQUARE PHOTO CARD)
+    // =========================================================================
+
+    // LEFT SECTION: Text & Recipient Details
+    ctx.textAlign = 'left';
     ctx.fillStyle = '#334155';
     ctx.font = '22px "Baloo 2", sans-serif';
-    ctx.fillText('यह गौरवशाली सम्मान पत्र अत्यंत हर्ष, गर्व व स्नेह के साथ प्रदान किया जाता है:', 700, 290);
+    ctx.fillText('यह गौरवशाली सम्मान पत्र अत्यंत हर्ष, गर्व व स्नेह के साथ प्रदान किया जाता है:', 100, 275);
 
-    // 4. Recipient Child Name
+    // Recipient Child Name in Grand Font
     ctx.fillStyle = '#0F172A';
-    ctx.font = 'bold 66px "Baloo 2", sans-serif';
-    ctx.fillText(childName || 'नन्हा पाठक', 700, 380);
+    ctx.font = 'bold 62px "Baloo 2", sans-serif';
+    ctx.fillText(childName || 'नन्हा पाठक', 100, 360);
 
-    // Name Underline with Golden Diamond
+    // Multi-color Name Underline
     ctx.strokeStyle = '#EA580C';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(380, 405);
-    ctx.lineTo(1020, 405);
+    ctx.moveTo(100, 385);
+    ctx.lineTo(920, 385);
     ctx.stroke();
 
-    // 5. Achievement Badge & Award Details
-    ctx.fillStyle = '#C2410C';
-    ctx.font = 'bold 34px "Baloo 2", sans-serif';
-    ctx.fillText(currentAch.titleHi, 700, 470);
+    // Award Category Badge Title
+    ctx.fillStyle = currentAch.badgeColor;
+    ctx.font = 'bold 32px "Baloo 2", sans-serif';
+    ctx.fillText(currentAch.titleHi, 100, 440);
 
+    // Award Description
     ctx.fillStyle = '#475569';
-    ctx.font = '22px "Baloo 2", sans-serif';
-    ctx.fillText(currentAch.descHi, 700, 520);
+    ctx.font = '20px "Baloo 2", sans-serif';
+    // Wrap text if needed
+    const descText = currentAch.descHi;
+    if (descText.length > 55) {
+      ctx.fillText(descText.slice(0, 52) + '...', 100, 480);
+      ctx.fillText(descText.slice(52), 100, 510);
+    } else {
+      ctx.fillText(descText, 100, 480);
+    }
 
     // 5 Gold Stars
     ctx.fillStyle = '#F59E0B';
-    ctx.font = '38px system-ui';
-    ctx.fillText('⭐⭐⭐⭐⭐', 700, 580);
+    ctx.font = '36px system-ui';
+    ctx.fillText('⭐⭐⭐⭐⭐', 100, 560);
 
-    // 6. Left: Issue Date & Verification Info
+    ctx.fillStyle = '#059669';
+    ctx.font = 'bold 19px "Baloo 2", sans-serif';
+    ctx.fillText('🎖️ पठन तपस्या, नैतिक आचरण व ज्ञान संवर्धन में सर्वोच्च प्रदर्शन', 100, 605);
+
+    // =========================================================================
+    // RIGHT SECTION: LARGE SQUARE / PORTRAIT PHOTO CARD (Width: 290, Height: 330)
+    // =========================================================================
+    const photoBoxX = 980;
+    const photoBoxY = 265;
+    const photoBoxW = 280;
+    const photoBoxH = 320;
+    const cornerRadius = 18;
+
+    // Helper: Rounded Rect
+    const roundRect = (x: number, y: number, w: number, h: number, r: number) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    };
+
+    // Golden Outer Drop-Shadow & Frame
+    ctx.save();
+    roundRect(photoBoxX - 6, photoBoxY - 6, photoBoxW + 12, photoBoxH + 12, cornerRadius + 4);
+    const photoFrameGrad = ctx.createLinearGradient(photoBoxX, photoBoxY, photoBoxX + photoBoxW, photoBoxY + photoBoxH);
+    photoFrameGrad.addColorStop(0, '#F59E0B');
+    photoFrameGrad.addColorStop(0.5, '#FDE68A');
+    photoFrameGrad.addColorStop(1, '#D97706');
+    ctx.fillStyle = photoFrameGrad;
+    ctx.fill();
+    ctx.strokeStyle = '#B45309';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Inner White Card
+    roundRect(photoBoxX, photoBoxY, photoBoxW, photoBoxH, cornerRadius);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+
+    if (childPhoto) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = childPhoto;
+        });
+
+        // Clip child photo inside the rounded card (leave 40px at bottom for name tag)
+        const innerImgH = photoBoxH - 46;
+        ctx.save();
+        roundRect(photoBoxX + 6, photoBoxY + 6, photoBoxW - 12, innerImgH, cornerRadius - 4);
+        ctx.clip();
+
+        // Object cover logic
+        const targetRatio = (photoBoxW - 12) / innerImgH;
+        const imgRatio = img.width / img.height;
+        let sx, sy, sw, sh;
+        if (imgRatio > targetRatio) {
+          sh = img.height;
+          sw = img.height * targetRatio;
+          sx = (img.width - sw) / 2;
+          sy = 0;
+        } else {
+          sw = img.width;
+          sh = img.width / targetRatio;
+          sx = 0;
+          sy = (img.height - sh) / 2;
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, photoBoxX + 6, photoBoxY + 6, photoBoxW - 12, innerImgH);
+        ctx.restore();
+
+        // Bottom Child Star Badge inside Photo Frame
+        roundRect(photoBoxX + 8, photoBoxY + photoBoxH - 40, photoBoxW - 16, 32, 10);
+        ctx.fillStyle = '#0F172A';
+        ctx.fill();
+        ctx.strokeStyle = '#F59E0B';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FDE68A';
+        ctx.font = 'bold 15px "Baloo 2", sans-serif';
+        ctx.fillText('🌟 ' + (childName || 'बाल प्रतिभा') + ' 🌟', photoBoxX + (photoBoxW / 2), photoBoxY + photoBoxH - 18);
+
+        // Crown on Top of Frame
+        ctx.font = '36px system-ui';
+        ctx.fillText('👑', photoBoxX + (photoBoxW / 2), photoBoxY - 12);
+      } catch {
+        // fallback to placeholder
+      }
+    } else {
+      // Elegant Placeholder Frame if No Photo is uploaded
+      ctx.textAlign = 'center';
+      
+      // Decorative Circle
+      ctx.beginPath();
+      ctx.arc(photoBoxX + (photoBoxW / 2), photoBoxY + 110, 55, 0, Math.PI * 2);
+      ctx.fillStyle = '#FEF3C7';
+      ctx.fill();
+      ctx.strokeStyle = '#F59E0B';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.font = '48px system-ui';
+      ctx.fillText(currentAch.badgeEmoji, photoBoxX + (photoBoxW / 2), photoBoxY + 128);
+
+      ctx.fillStyle = '#92400E';
+      ctx.font = 'bold 18px "Baloo 2", sans-serif';
+      ctx.fillText('आधिकारिक बाल फ़ोटो', photoBoxX + (photoBoxW / 2), photoBoxY + 205);
+
+      ctx.fillStyle = '#64748B';
+      ctx.font = '13px "Baloo 2", sans-serif';
+      ctx.fillText('PORTRAIT PHOTOGRAPH', photoBoxX + (photoBoxW / 2), photoBoxY + 230);
+
+      // Bottom Badge
+      roundRect(photoBoxX + 10, photoBoxY + photoBoxH - 42, photoBoxW - 20, 32, 10);
+      ctx.fillStyle = '#EA580C';
+      ctx.fill();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 14px "Baloo 2", sans-serif';
+      ctx.fillText('★ EXCELLENCE AWARD ★', photoBoxX + (photoBoxW / 2), photoBoxY + photoBoxH - 21);
+    }
+    ctx.restore();
+
+    // =========================================================================
+    // 5. FOOTER: DATE & SERIAL (LEFT), EMBOSSED SEAL (CENTER), LOGO & SIGN (RIGHT)
+    // =========================================================================
+
+    // Left: Date & Serial ID
     ctx.textAlign = 'left';
     ctx.fillStyle = '#1E293B';
-    ctx.font = 'bold 20px "Baloo 2", sans-serif';
-    ctx.fillText('जारी करने का दिनांक (Date):', 120, 710);
+    ctx.font = 'bold 19px "Baloo 2", sans-serif';
+    ctx.fillText('जारी करने का दिनांक (Date):', 100, 770);
     ctx.fillStyle = '#B45309';
-    ctx.font = 'bold 24px "Baloo 2", sans-serif';
-    ctx.fillText(currentDate, 120, 745);
+    ctx.font = 'bold 23px "Baloo 2", sans-serif';
+    ctx.fillText(currentDate, 100, 802);
 
     ctx.fillStyle = '#64748B';
-    ctx.font = '16px "Baloo 2", sans-serif';
-    ctx.fillText('प्रमाण पत्र क्रमांक: BV-2026-' + Math.floor(100000 + Math.random() * 900000), 120, 780);
-    ctx.fillText('आधिकारिक वेबसाइट: www.baalvarta.com', 120, 805);
+    ctx.font = '15px "Baloo 2", sans-serif';
+    ctx.fillText('प्रमाण पत्र क्रमांक: BV-2026-' + Math.floor(100000 + Math.random() * 900000), 100, 835);
+    ctx.fillText('आधिकारिक वेबसाइट: www.baalvarta.com', 100, 860);
 
-    // 7. Center: PERMANENT OFFICIAL CIRCULAR EMBOSSED SEAL
+    // Center: PERMANENT OFFICIAL CIRCULAR EMBOSSED SEAL
     const sealX = 700;
-    const sealY = 735;
-    const sealRadius = 72;
+    const sealY = 785;
+    const sealRadius = 70;
 
-    // Seal Ribbon Tails (Crimson & Gold at bottom of seal)
+    // Seal Ribbon Tails
     ctx.fillStyle = '#DC2626';
     ctx.beginPath();
-    ctx.moveTo(sealX - 45, sealY + 40);
-    ctx.lineTo(sealX - 60, sealY + 130);
-    ctx.lineTo(sealX - 35, sealY + 115);
-    ctx.lineTo(sealX - 10, sealY + 130);
+    ctx.moveTo(sealX - 42, sealY + 40);
+    ctx.lineTo(sealX - 58, sealY + 125);
+    ctx.lineTo(sealX - 32, sealY + 110);
+    ctx.lineTo(sealX - 10, sealY + 125);
     ctx.lineTo(sealX - 15, sealY + 40);
     ctx.fill();
 
     ctx.beginPath();
     ctx.moveTo(sealX + 15, sealY + 40);
-    ctx.lineTo(sealX + 10, sealY + 130);
-    ctx.lineTo(sealX + 35, sealY + 115);
-    ctx.lineTo(sealX + 60, sealY + 130);
-    ctx.lineTo(sealX + 45, sealY + 40);
+    ctx.lineTo(sealX + 10, sealY + 125);
+    ctx.lineTo(sealX + 32, sealY + 110);
+    ctx.lineTo(sealX + 58, sealY + 125);
+    ctx.lineTo(sealX + 42, sealY + 40);
     ctx.fill();
 
-    // Outer Seal Jagged / Golden Sun Rays
+    // Outer Seal Golden Sun Rays
     ctx.fillStyle = '#F59E0B';
     for (let a = 0; a < 36; a++) {
       const angle = (a * Math.PI * 2) / 36;
@@ -272,56 +464,53 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     ctx.arc(sealX, sealY, sealRadius - 10, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Seal Circular & Center Text
+    // Seal Text
     ctx.textAlign = 'center';
     ctx.fillStyle = '#78350F';
-    ctx.font = 'bold 13px "Baloo 2", sans-serif';
-    ctx.fillText('★ BAALVARTA OFFICIAL ★', sealX, sealY - 40);
-    ctx.fillText('★ बालवार्ता प्रमाणित मुहर ★', sealX, sealY + 46);
+    ctx.font = 'bold 12px "Baloo 2", sans-serif';
+    ctx.fillText('★ BAALVARTA OFFICIAL ★', sealX, sealY - 38);
+    ctx.fillText('★ बालवार्ता प्रमाणित मुहर ★', sealX, sealY + 44);
 
-    ctx.font = '28px system-ui';
+    ctx.font = '26px system-ui';
     ctx.fillText('📖', sealX, sealY - 8);
 
     ctx.fillStyle = '#92400E';
-    ctx.font = 'bold 15px "Baloo 2", sans-serif';
-    ctx.fillText('SEAL OF EXCELLENCE', sealX, sealY + 18);
+    ctx.font = 'bold 14px "Baloo 2", sans-serif';
+    ctx.fillText('SEAL OF EXCELLENCE', sealX, sealY + 16);
 
-    // 8. Right: CHANNEL LOGO & AUTHORISED SIGNATORY
-    const sigX = 1260;
-    
-    // Draw Channel Logo in Badge Box
+    // Right: CHANNEL LOGO & AUTHORISED SIGNATORY
+    const sigX = 1270;
     ctx.textAlign = 'right';
 
-    // Channel Logo Text Callout (Rainbow Colors)
     ctx.fillStyle = '#EA580C';
-    ctx.font = 'bold 32px "Baloo 2", sans-serif';
-    ctx.fillText('बालवार्ता (Baalvarta)', sigX, 690);
+    ctx.font = 'bold 30px "Baloo 2", sans-serif';
+    ctx.fillText('बालवार्ता (Baalvarta)', sigX, 735);
 
     // Digital Signature Script
     ctx.strokeStyle = '#1E3A8A';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(sigX - 220, 730);
-    ctx.bezierCurveTo(sigX - 180, 700, sigX - 140, 760, sigX - 80, 720);
-    ctx.bezierCurveTo(sigX - 50, 690, sigX - 30, 740, sigX - 10, 725);
+    ctx.moveTo(sigX - 220, 775);
+    ctx.bezierCurveTo(sigX - 180, 745, sigX - 140, 805, sigX - 80, 765);
+    ctx.bezierCurveTo(sigX - 50, 735, sigX - 30, 785, sigX - 10, 770);
     ctx.stroke();
 
     // Signatory Underline
     ctx.strokeStyle = '#CBD5E1';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(sigX - 240, 745);
-    ctx.lineTo(sigX, 745);
+    ctx.moveTo(sigX - 240, 790);
+    ctx.lineTo(sigX, 790);
     ctx.stroke();
 
     // Authorised Signatory Titles
     ctx.fillStyle = '#0F172A';
-    ctx.font = 'bold 20px "Baloo 2", sans-serif';
-    ctx.fillText('अधिकृत हस्ताक्षर (Authorised Signatory)', sigX, 775);
+    ctx.font = 'bold 19px "Baloo 2", sans-serif';
+    ctx.fillText('अधिकृत हस्ताक्षर (Authorised Signatory)', sigX, 818);
 
     ctx.fillStyle = '#475569';
-    ctx.font = '16px "Baloo 2", sans-serif';
-    ctx.fillText('संपादक व संस्थापक • बालवार्ता डिजिटल मंच', sigX, 802);
+    ctx.font = '15px "Baloo 2", sans-serif';
+    ctx.fillText('संपादक व संस्थापक • बालवार्ता डिजिटल मंच', sigX, 845);
 
     // Trigger PNG download
     const dataUrl = canvas.toDataURL('image/png');
@@ -330,8 +519,9 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     a.href = dataUrl;
     a.click();
 
+    setIsGenerating(false);
     setDownloadSuccess(true);
-    confetti({ particleCount: 80, spread: 90 });
+    confetti({ particleCount: 90, spread: 100 });
     setTimeout(() => setDownloadSuccess(false), 4000);
   };
 
@@ -342,7 +532,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
 
   const handleShareWhatsApp = () => {
     if (soundEnabled) playPopSound();
-    const shareText = `🎉 *बालवार्ता बाल पाठक प्रमाण पत्र!*\n\nहमारे प्यारे बच्चे *${childName}* को बालवार्ता पोर्टल पर *${currentAch.titleHi}* का गौरवशाली रंग-बिरंगा प्रमाण पत्र मिला है! ⭐⭐⭐⭐⭐\n\n📖 आप भी अपने बच्चों के लिए सुंदर हिंदी कहानियाँ पढ़ें व उनका प्रमाण पत्र बनाएँ:\n${window.location.origin}`;
+    const shareText = `🎉 *बालवार्ता बाल पाठक प्रमाण पत्र!*\n\nहमारे प्यारे बच्चे *${childName}* को बालवार्ता पोर्टल पर *${currentAch.titleHi}* का गौरवशाली रंग-बिरंगा प्रमाण पत्र मिला है! ⭐⭐⭐⭐⭐\n\n📖 आप भी अपने बच्चों के लिए सुंदर हिंदी कहानियाँ पढ़ें व बड़े फोटो के साथ प्रमाण पत्र बनाएँ:\n${window.location.origin}`;
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -351,19 +541,19 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     <div className="space-y-6 pb-12 font-kids">
       
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden border-2 border-amber-300">
+      <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden border-2 border-amber-300">
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black mb-2 border border-white/30">
             <Award className="w-4 h-4 text-amber-200" />
-            <span>{isHi ? 'रंग-बिरंगा बाल पुरस्कार व सम्मान केंद्र' : 'Kids Honors & Awards'}</span>
+            <span>{isHi ? 'रंग-बिरंगा बाल सम्मान व पुरस्कार केंद्र' : 'Kids Honors & Awards Hub'}</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-2">
             <span>🏆 आधिकारिक बाल पाठक प्रमाण पत्र</span>
           </h1>
           <p className="text-white/95 text-xs sm:text-sm font-bold mt-1">
             {isHi
-              ? 'बच्चे का नाम भरें और बालवार्ता की स्थायी मुहर व आधिकारिक हस्ताक्षर के साथ रंग-बिरंगा सम्मान पत्र डाउनलोड करें।'
-              : 'Enter child’s name and download vibrant certificate with official round seal & channel logo!'}
+              ? 'बच्चे का नाम और बड़ा फोटो जोड़ें, और बालवार्ता की स्थायी मुहर व आधिकारिक हस्ताक्षर के साथ बहु-रंगीन सम्मान पत्र डाउनलोड करें।'
+              : 'Add child’s name & large square photo, then download vibrant certificate with official round seal & signature!'}
           </p>
         </div>
       </div>
@@ -372,7 +562,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
         {/* Left Form: Customization */}
-        <div className="lg:col-span-1 bg-white rounded-3xl p-5 border-2 border-amber-300 shadow-md space-y-5">
+        <div className="lg:col-span-1 bg-white rounded-3xl p-5 border-2 border-amber-300 shadow-md space-y-4">
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
             <User className="w-4 h-4 text-amber-600" />
             <span>{isHi ? 'प्रमाण पत्र विवरण भरें' : 'Certificate Details'}</span>
@@ -392,6 +582,63 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
             />
           </div>
 
+          {/* 📸 CHILD PHOTO UPLOAD SECTION */}
+          <div className="space-y-2 p-3.5 rounded-2xl bg-gradient-to-br from-amber-50 via-rose-50 to-indigo-50 border-2 border-amber-200">
+            <label className="text-xs font-black text-slate-800 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Camera className="w-4 h-4 text-rose-500" />
+                <span>{isHi ? 'बच्चे का बड़ा फोटो जोड़ें (Square Photo):' : 'Upload Child Square Photo:'}</span>
+              </span>
+              <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">
+                {isHi ? 'दाईं ओर दिखेगा' : 'Shows on Right'}
+              </span>
+            </label>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+              id="child-photo-input"
+            />
+
+            {childPhoto ? (
+              <div className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-amber-300">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-amber-500 shadow-xs relative shrink-0">
+                    <img src={childPhoto} alt="Child Preview" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> बड़ा फोटो जोड़ा गया ✓
+                    </span>
+                    <span className="text-[10px] text-slate-500">सर्टिफिकेट में दाईं ओर दिखेगा</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
+                  title="फोटो हटाएं"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label
+                htmlFor="child-photo-input"
+                className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-amber-400 hover:border-amber-600 bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98 shadow-2xs"
+              >
+                <ImageIcon className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-black text-amber-900">
+                  {isHi ? '📁 गैलरी / कैमरे से बच्चे का फोटो चुनें' : 'Choose Child Photo'}
+                </span>
+              </label>
+            )}
+          </div>
+
           {/* Achievement Type Selection */}
           <div className="space-y-2">
             <label className="text-xs font-black text-slate-700 block">
@@ -407,7 +654,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
                       if (soundEnabled) playPopSound();
                       setAchievementType(opt.id);
                     }}
-                    className={`w-full p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                    className={`w-full p-2.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       isSelected
                         ? 'border-amber-500 bg-amber-50/90 ring-2 ring-amber-400/40 shadow-xs'
                         : 'border-slate-200 hover:border-slate-300 bg-white'
@@ -429,10 +676,11 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
           <div className="pt-2 space-y-2">
             <button
               onClick={handleDownloadCertificate}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+              disabled={isGenerating}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-black text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
             >
               <Download className="w-4 h-4 text-amber-100" />
-              <span>{isHi ? '📥 रंगीन प्रमाण पत्र डाउनलोड करें (PNG)' : 'Download Color Certificate'}</span>
+              <span>{isGenerating ? (isHi ? 'तैयार हो रहा है...' : 'Generating...') : (isHi ? '📥 रंगीन प्रमाण पत्र डाउनलोड करें (PNG)' : 'Download Color Certificate')}</span>
             </button>
 
             <button
@@ -461,68 +709,113 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
 
         </div>
 
-        {/* Right Live Preview: Color-Rich Certificate */}
+        {/* Right Live Preview: Super Vibrant Multi-Color Certificate with Large Right Square Photo */}
         <div className="lg:col-span-2">
           <div
-            ref={certRef}
-            className="bg-gradient-to-br from-amber-50 via-yellow-50/70 to-orange-50/60 rounded-3xl p-6 sm:p-10 border-8 border-double border-amber-500 shadow-2xl relative overflow-hidden text-center space-y-4"
+            className="bg-gradient-to-br from-rose-50/90 via-amber-50/80 to-indigo-50/90 rounded-3xl p-5 sm:p-8 lg:p-9 border-8 border-double border-indigo-700 shadow-2xl relative overflow-hidden space-y-4"
           >
-            {/* Multi-color festive corner flourishes */}
-            <div className="absolute inset-2 border-2 border-dashed border-amber-300/80 rounded-2xl pointer-events-none" />
+            {/* Multi-color inner decorative borders */}
+            <div className="absolute inset-2 border-2 border-dashed border-amber-400/90 rounded-2xl pointer-events-none" />
+            <div className="absolute inset-3 border border-rose-400/40 rounded-xl pointer-events-none" />
 
-            {/* Corner Decorative Stars */}
+            {/* Corner Decorative Festive Stars */}
             <span className="absolute top-4 left-5 text-2xl animate-pulse">🌟</span>
             <span className="absolute top-4 right-5 text-2xl animate-pulse">🌟</span>
             <span className="absolute bottom-4 left-5 text-2xl animate-pulse">🌟</span>
             <span className="absolute bottom-4 right-5 text-2xl animate-pulse">🌟</span>
 
             {/* Header Badge */}
-            <div className="space-y-1 relative z-10">
-              <span className="text-xs sm:text-sm font-black text-amber-900 tracking-wider uppercase block bg-amber-100/80 inline-block px-3 py-0.5 rounded-full border border-amber-300">
+            <div className="space-y-1 relative z-10 text-center">
+              <span className="text-xs sm:text-sm font-black text-amber-950 tracking-wider uppercase block bg-gradient-to-r from-amber-200 via-rose-200 to-indigo-200 inline-block px-4 py-1 rounded-full border border-amber-400 shadow-2xs">
                 ✨ बालवार्ता (BAALVARTA) बाल साहित्य व ज्ञान मंच ✨
               </span>
-              <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-amber-950 font-serif tracking-tight mt-1">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black bg-gradient-to-r from-rose-700 via-amber-700 to-indigo-800 bg-clip-text text-transparent font-serif tracking-tight mt-1">
                 प्रमाण पत्र (CERTIFICATE OF ACHIEVEMENT)
               </h2>
-              <p className="text-[11px] sm:text-xs text-slate-500 font-bold">
+              <p className="text-[11px] sm:text-xs text-slate-600 font-bold">
                 राष्ट्रीय बाल प्रतिभा एवं ज्ञान संवर्धन सम्मान
               </p>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-700 font-bold max-w-lg mx-auto leading-relaxed">
-              यह सम्मान पत्र अत्यंत हर्ष, गर्व व स्नेह के साथ हमारे प्रिय नन्हे पाठक को प्रदान किया जाता है:
-            </p>
+            {/* ========================================================================= */}
+            {/* MAIN CERTIFICATE BODY: LEFT DETAILS + RIGHT LARGE SQUARE PHOTO CARD */}
+            {/* ========================================================================= */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center relative z-10 pt-1">
+              
+              {/* Left Details (8 cols) */}
+              <div className="md:col-span-8 text-center md:text-left space-y-3">
+                <p className="text-xs sm:text-sm text-slate-700 font-bold leading-relaxed">
+                  यह गौरवशाली सम्मान पत्र अत्यंत हर्ष, गर्व व स्नेह के साथ हमारे प्रिय नन्हे पाठक को प्रदान किया जाता है:
+                </p>
 
-            {/* Child's Name */}
-            <div className="py-2">
-              <span className="text-3xl sm:text-5xl font-black text-slate-900 font-kids tracking-tight border-b-4 border-amber-500 pb-1 inline-block px-6 drop-shadow-xs">
-                {childName || 'नन्हा पाठक'}
-              </span>
-            </div>
+                {/* Child's Name */}
+                <div>
+                  <span className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 font-kids tracking-tight border-b-4 border-rose-500 pb-1 inline-block drop-shadow-xs">
+                    {childName || 'नन्हा पाठक'}
+                  </span>
+                </div>
 
-            {/* Award Title & Description */}
-            <div className="space-y-1.5 max-w-xl mx-auto">
-              <span className="text-base sm:text-xl font-black text-orange-950 bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-500/15 py-1 px-4 rounded-xl border border-amber-300 inline-block">
-                {currentAch.titleHi}
-              </span>
-              <p className="text-xs sm:text-sm text-slate-700 font-semibold px-2">
-                {currentAch.descHi}
-              </p>
-            </div>
+                {/* Award Title & Description */}
+                <div className="space-y-1.5">
+                  <span className="text-sm sm:text-base lg:text-lg font-black text-white bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 py-1.5 px-4 rounded-xl shadow-sm inline-block">
+                    {currentAch.titleHi}
+                  </span>
+                  <p className="text-xs sm:text-sm text-slate-700 font-semibold max-w-md">
+                    {currentAch.descHi}
+                  </p>
+                </div>
 
-            {/* 5 Golden Stars */}
-            <div className="flex items-center justify-center gap-1.5 text-2xl sm:text-3xl text-amber-500">
-              <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+                {/* 5 Golden Stars */}
+                <div className="flex items-center justify-center md:justify-start gap-1.5 text-xl sm:text-2xl text-amber-500">
+                  <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+                </div>
+              </div>
+
+              {/* Right Large Square Photo Card (4 cols) */}
+              <div className="md:col-span-4 flex justify-center">
+                <div className="relative group w-44 sm:w-48 aspect-[1/1.15] rounded-2xl p-1.5 bg-gradient-to-br from-amber-400 via-rose-500 to-indigo-600 shadow-xl border-2 border-amber-300 flex flex-col items-center justify-between">
+                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-2xl z-20">👑</span>
+                  
+                  {/* Photo Container */}
+                  <div className="w-full flex-1 rounded-xl overflow-hidden bg-white/90 border border-amber-200 flex items-center justify-center relative">
+                    {childPhoto ? (
+                      <img
+                        src={childPhoto}
+                        alt={childName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center p-3 space-y-1">
+                        <span className="text-3xl block">{currentAch.badgeEmoji}</span>
+                        <span className="text-[11px] font-black text-amber-900 block leading-tight">
+                          बच्चे का फोटो
+                        </span>
+                        <span className="text-[9px] text-slate-500 font-semibold block">
+                          Square Portrait
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ribbon Label */}
+                  <div className="w-full mt-1 py-1 rounded-lg bg-slate-950 text-amber-300 text-center border border-amber-400/50 shadow-xs">
+                    <span className="text-[10px] font-black truncate block px-1">
+                      🌟 {childName || 'बाल प्रतिभा'} 🌟
+                    </span>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {/* Footer Signatures, Permanent Official Round Seal & Channel Logo */}
-            <div className="pt-6 border-t-2 border-amber-300/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm text-slate-700 font-bold relative z-10">
+            <div className="pt-5 border-t-2 border-indigo-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm text-slate-700 font-bold relative z-10">
               
               {/* Left Side: Date & Serial ID */}
               <div className="text-center sm:text-left space-y-0.5">
                 <span className="block text-[11px] text-slate-500 font-bold">जारी करने का दिनांक</span>
                 <span className="text-sm font-black text-slate-900">{currentDate}</span>
-                <span className="block text-[10px] text-slate-400 font-mono">BV-CERT-2026-VERIFIED ✓</span>
+                <span className="block text-[10px] text-indigo-800 font-mono font-bold">BV-CERT-2026-VERIFIED ✓</span>
               </div>
 
               {/* Center: PERMANENT OFFICIAL CIRCULAR ROUND SEAL */}

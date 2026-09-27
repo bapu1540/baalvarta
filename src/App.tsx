@@ -28,6 +28,7 @@ import {
   getStoredReviews,
   deleteStoredReview,
   loadPersistentData,
+  mergeWithInitialStories,
 } from './utils/storage';
 import { saveToServerDatabase } from './utils/dbStorage';
 import { WebsiteHeader } from './components/WebsiteHeader';
@@ -142,7 +143,8 @@ export default function App() {
     loadPersistentData().then((persistent) => {
       if (!persistent) return;
       if (persistent.stories && persistent.stories.length > 0) {
-        setStories(persistent.stories);
+        const merged = mergeWithInitialStories(persistent.stories);
+        setStories(merged);
       }
       if (persistent.video_stories && persistent.video_stories.length > 0) {
         setVideoStories(persistent.video_stories);
@@ -177,9 +179,9 @@ export default function App() {
         // Directly fetch once to ensure immediate multi-device fresh state
         fetchStoriesFromFirestore().then((cloudStories) => {
           if (cloudStories && cloudStories.length > 0) {
-            const sorted = [...cloudStories].sort((a, b) => (a.number || 0) - (b.number || 0));
-            setStories(sorted);
-            saveStoredStories(sorted);
+            const merged = mergeWithInitialStories(cloudStories);
+            setStories(merged);
+            saveStoredStories(merged);
           }
         });
         fetchWorksheetsFromFirestore().then((cloudWorksheets) => {
@@ -194,10 +196,10 @@ export default function App() {
     // Real-time synchronization with Firebase Firestore across all devices
     const unsubStories = subscribeToFirestoreStories((cloudStories) => {
       if (cloudStories && cloudStories.length > 0) {
-        const sorted = [...cloudStories].sort((a, b) => (a.number || 0) - (b.number || 0));
-        setStories(sorted);
-        saveStoredStories(sorted);
-        saveToServerDatabase({ stories: sorted });
+        const merged = mergeWithInitialStories(cloudStories);
+        setStories(merged);
+        saveStoredStories(merged);
+        saveToServerDatabase({ stories: merged });
       }
     });
 

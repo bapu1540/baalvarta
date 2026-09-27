@@ -190,6 +190,27 @@ export const INITIAL_USER_REVIEWS: UserReview[] = [
 
 // --- Synchronous Getters (Fast Initial Render from LocalStorage / Defaults) ---
 
+export function mergeWithInitialStories(stories?: Story[]): Story[] {
+  const storyMap = new Map<string, Story>();
+  INITIAL_STORIES.forEach((s) => storyMap.set(s.id, s));
+  if (Array.isArray(stories)) {
+    stories.forEach((s) => {
+      if (!storyMap.has(s.id)) {
+        storyMap.set(s.id, s);
+      } else {
+        const def = storyMap.get(s.id)!;
+        storyMap.set(s.id, {
+          ...def,
+          ...s,
+          scenes: s.scenes && s.scenes.length > 0 ? s.scenes : def.scenes,
+          coverImage: s.coverImage || def.coverImage,
+        });
+      }
+    });
+  }
+  return Array.from(storyMap.values()).sort((a, b) => (a.number || 0) - (b.number || 0));
+}
+
 export function getStoredStories(): Story[] {
   try {
     const data = localStorage.getItem(KEYS.STORIES);
@@ -198,7 +219,19 @@ export function getStoredStories(): Story[] {
       idbSet(KEYS.STORIES, INITIAL_STORIES);
       return INITIAL_STORIES;
     }
-    return JSON.parse(data);
+    const parsed: Story[] = JSON.parse(data);
+    const existingIds = new Set(parsed.map((s) => s.id));
+    const missingAnyInitial = INITIAL_STORIES.some((s) => !existingIds.has(s.id));
+    const hasOldDuplicate = parsed?.some((s) => s.id === 'story-20' && s.titleHi.includes('ईमानदार लकड़हारा'));
+    const isOldStory1Cover = parsed?.some((s) => s.id === 'story-1' && s.coverImage.includes('1579783902614'));
+
+    if (!parsed || parsed.length < INITIAL_STORIES.length || missingAnyInitial || hasOldDuplicate || isOldStory1Cover) {
+      const merged = mergeWithInitialStories(parsed);
+      safeLocalStorageSet(KEYS.STORIES, JSON.stringify(merged));
+      idbSet(KEYS.STORIES, merged);
+      return merged;
+    }
+    return parsed;
   } catch {
     return INITIAL_STORIES;
   }
@@ -258,7 +291,16 @@ export function getStoredQuizSets(): QuizSet[] {
       idbSet(KEYS.QUIZZES, INITIAL_QUIZ_SETS);
       return INITIAL_QUIZ_SETS;
     }
-    return JSON.parse(data);
+    const parsed: QuizSet[] = JSON.parse(data);
+    // If cached quiz data is old or contains outdated question images (like the old sun image), refresh
+    const scienceQuiz = parsed?.find((q) => q.id === 'quiz-science');
+    const isOldScienceImage = scienceQuiz?.questions?.some((q) => q.id === 'q2-1' && q.image.includes('1532693322450'));
+    if (!parsed || parsed.length < INITIAL_QUIZ_SETS.length || !parsed.some((q) => q.id === 'quiz-fruits') || isOldScienceImage) {
+      safeLocalStorageSet(KEYS.QUIZZES, JSON.stringify(INITIAL_QUIZ_SETS));
+      idbSet(KEYS.QUIZZES, INITIAL_QUIZ_SETS);
+      return INITIAL_QUIZ_SETS;
+    }
+    return parsed;
   } catch {
     return INITIAL_QUIZ_SETS;
   }
@@ -658,7 +700,15 @@ export function getStoredGames(): KidsGameItem[] {
       idbSet(KEYS.GAMES, INITIAL_KIDS_GAMES);
       return INITIAL_KIDS_GAMES;
     }
-    return JSON.parse(data);
+    const parsed: KidsGameItem[] = JSON.parse(data);
+    // If stored games are old obsolete games (memory, puzzle, etc.) or don't include new piano, reset to INITIAL_KIDS_GAMES
+    const hasNewGames = parsed.some((g) => g.id === 'game-piano');
+    if (!hasNewGames) {
+      safeLocalStorageSet(KEYS.GAMES, JSON.stringify(INITIAL_KIDS_GAMES));
+      idbSet(KEYS.GAMES, INITIAL_KIDS_GAMES);
+      return INITIAL_KIDS_GAMES;
+    }
+    return parsed.length > 0 ? parsed : INITIAL_KIDS_GAMES;
   } catch {
     return INITIAL_KIDS_GAMES;
   }
@@ -991,9 +1041,10 @@ export async function loadPersistentData(): Promise<FullDatabaseState | null> {
         if ((cloudStories && cloudStories.length > 0) || (cloudWorksheets && cloudWorksheets.length > 0)) {
           const cloudResult: FullDatabaseState = {};
           if (cloudStories && cloudStories.length > 0) {
-            cloudResult.stories = cloudStories;
-            safeLocalStorageSet(KEYS.STORIES, JSON.stringify(cloudStories));
-            idbSet(KEYS.STORIES, cloudStories);
+            const mergedCloud = mergeWithInitialStories(cloudStories);
+            cloudResult.stories = mergedCloud;
+            safeLocalStorageSet(KEYS.STORIES, JSON.stringify(mergedCloud));
+            idbSet(KEYS.STORIES, mergedCloud);
           }
           if (cloudWorksheets && cloudWorksheets.length > 0) {
             cloudResult.worksheets = cloudWorksheets;
@@ -1011,7 +1062,7 @@ export async function loadPersistentData(): Promise<FullDatabaseState | null> {
     const serverDb = await fetchServerDatabase();
     if (serverDb && typeof serverDb === 'object') {
       const result: FullDatabaseState = {};
-      if (Array.isArray(serverDb.stories)) result.stories = serverDb.stories;
+      if (Array.isArray(serverDb.stories)) result.stories = mergeWithInitialStories(serverDb.stories);
       if (Array.isArray(serverDb.fun_facts)) result.fun_facts = serverDb.fun_facts;
       if (Array.isArray(serverDb.early_learning)) result.early_learning = serverDb.early_learning;
       if (Array.isArray(serverDb.audio_stories)) result.audio_stories = serverDb.audio_stories;
@@ -1051,8 +1102,9 @@ export async function loadPersistentData(): Promise<FullDatabaseState | null> {
     const idbWorksheets = await idbGet<PrintableWorksheet[]>(KEYS.WORKSHEETS);
 
     if (idbStories && idbStories.length > 0) {
+      const mergedIdb = mergeWithInitialStories(idbStories);
       return {
-        stories: idbStories,
+        stories: mergedIdb,
         video_stories: idbVideos || undefined,
         quizzes: idbQuizzes || undefined,
         worksheets: idbWorksheets || undefined,

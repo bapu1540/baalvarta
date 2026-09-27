@@ -84,7 +84,7 @@ export interface QuizSet {
   titleEn: string;
   descriptionHi: string;
   descriptionEn: string;
-  category: 'animals' | 'science' | 'moral' | 'nature' | 'stories' | 'gk';
+  category: 'animals' | 'science' | 'moral' | 'nature' | 'stories' | 'gk' | 'fruits' | 'vehicles' | 'india';
   icon: string;
   color: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -171,7 +171,7 @@ export interface KidsGameItem {
   id: string;
   titleHi: string;
   titleEn: string;
-  category: 'memory' | 'puzzle' | 'balloon' | 'word' | 'animal_quiz' | 'whack' | 'tictactoe' | 'color_sort' | 'custom';
+  category: 'piano' | 'bubble' | 'glow_draw' | 'counting' | 'shadow_match' | 'snake' | 'rocket' | 'tractor' | 'custom';
   descriptionHi: string;
   descriptionEn: string;
   emoji: string;

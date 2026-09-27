@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Trophy,
   Sparkles,
@@ -46,7 +46,24 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
   const [childName, setChildName] = useState('');
   const [showCertificate, setShowCertificate] = useState(false);
 
+  const quizTopRef = useRef<HTMLDivElement>(null);
   const isHi = language === 'hi';
+
+  const scrollToQuizTop = () => {
+    // Smoothly scroll to the top of the quiz question card with header offset, never jumping to footer
+    try {
+      if (quizTopRef.current) {
+        const rect = quizTopRef.current.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const targetY = rect.top + scrollTop - 90;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 120, behavior: 'smooth' });
+      }
+    } catch {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const startQuiz = (set: QuizSet) => {
     if (soundEnabled) playPopSound();
@@ -57,6 +74,8 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
     setScore(0);
     setUserAnswers([]);
     setQuizFinished(false);
+    scrollToQuizTop();
+    setTimeout(scrollToQuizTop, 60);
   };
 
   const handleSelectOption = (optionIndex: number) => {
@@ -86,7 +105,11 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
     ]);
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!activeQuiz) return;
     if (soundEnabled) playPopSound();
 
@@ -94,9 +117,15 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
       setIsAnswered(false);
+      // Immediately scroll to quiz top so user is never displaced to bottom of page
+      scrollToQuizTop();
+      setTimeout(scrollToQuizTop, 50);
+      setTimeout(scrollToQuizTop, 180);
     } else {
       setQuizFinished(true);
-      if (score + (selectedOption === activeQuiz.questions[currentQIndex].correctIndex ? 0 : 0) >= 3) {
+      scrollToQuizTop();
+      setTimeout(scrollToQuizTop, 50);
+      if (score >= 3) {
         confetti({
           particleCount: 120,
           spread: 80,
@@ -105,6 +134,12 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
       }
     }
   };
+
+  useEffect(() => {
+    if (activeQuiz && !quizFinished) {
+      scrollToQuizTop();
+    }
+  }, [currentQIndex]);
 
   const currentQ: QuizQuestion | undefined = activeQuiz?.questions[currentQIndex];
 
@@ -215,7 +250,7 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
     };
 
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div ref={quizTopRef} className="max-w-3xl mx-auto space-y-6 scroll-mt-6">
         <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-amber-200 shadow-xl text-center relative overflow-hidden">
           {/* Celebratory Icon */}
           <div className="w-20 h-20 mx-auto mb-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-4xl shadow-lg animate-bounce">
@@ -452,6 +487,7 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
                         src={q.explanationImage || q.image}
                         alt="Explanation"
                         referrerPolicy="no-referrer"
+                        onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                         className="w-full sm:w-28 h-24 object-cover rounded-xl border border-amber-200 shrink-0 shadow-sm"
                       />
                     )}
@@ -476,7 +512,7 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
 
   // Active Question Playing View
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div ref={quizTopRef} className="max-w-3xl mx-auto space-y-6 scroll-mt-6">
       {/* Quiz Top Bar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
         <button
@@ -514,6 +550,7 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
                   src={currentQ.image}
                   alt="Question Visual"
                   referrerPolicy="no-referrer"
+                  onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -608,9 +645,10 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
 
               <div className="pt-3 border-t border-amber-200/60 flex justify-end">
                 <button
+                  type="button"
                   id="quiz-next-q-btn"
                   onClick={handleNextQuestion}
-                  className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+                  className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <span>
                     {currentQIndex + 1 < activeQuiz.questions.length

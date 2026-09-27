@@ -3312,14 +3312,14 @@ service cloud.firestore {
                       onChange={(e) => setNewGame({ ...newGame, category: e.target.value as KidsGameItem['category'] })}
                       className="w-full p-2 rounded-xl bg-white border border-purple-200 font-semibold"
                     >
-                      <option value="memory">🦁 मेमोरी कार्ड मैच (Memory Match)</option>
-                      <option value="puzzle">🧩 जिगसॉ पहेली (Jigsaw Puzzle)</option>
-                      <option value="balloon">🎈 गुब्बारा फोड़ो (Balloon Pop)</option>
-                      <option value="animal_quiz">🐱 पशु आवाज क्विज़ (Animal Sounds)</option>
-                      <option value="word">🔤 हिंदी शब्द बनाओ (Word Builder)</option>
-                      <option value="whack">🐵 चंचल बंदर पकड़ो (Whack-a-Mole)</option>
-                      <option value="tictactoe">❌⭕ टिक-टैक-टो (Tic-Tac-Toe)</option>
-                      <option value="color_sort">🧺 रंग टोकरी छाँटो (Color Sort)</option>
+                      <option value="piano">🎹 बच्चों का पियानो (Magic Piano)</option>
+                      <option value="bubble">🫧 साबुन के बुलबुले (Magic Soap Bubbles)</option>
+                      <option value="glow_draw">✨ जादुई नियॉन ड्रॉ (Neon Glow Pad)</option>
+                      <option value="counting">🔢 गिनती गिनो और बताओ (Count Candies/Stars)</option>
+                      <option value="shadow_match">🔍 छाया पहचानो (Shadow Match)</option>
+                      <option value="snake">🐍 नन्हा साँप और फल (Friendly Snake)</option>
+                      <option value="rocket">🚀 अंतरिक्ष रॉकेट और सितारे (Space Rocket)</option>
+                      <option value="tractor">🚜 छोटा ट्रैक्टर खेत की सैर (Little Tractor)</option>
                     </select>
                   </div>
 
