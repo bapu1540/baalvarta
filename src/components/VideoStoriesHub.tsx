@@ -63,25 +63,18 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
   return (
     <div className="space-y-4 animate-in fade-in duration-300 pb-12">
       {/* Sleek Category Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-rose-200/80 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+      <div className="flex items-center justify-between gap-3 bg-white rounded-2xl p-2.5 sm:p-3 border border-rose-200/80 shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0">
             🎬
           </div>
-          <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
-              {language === 'hi' ? '6. वीडियो कहानियाँ (Video Stories)' : '6. Animated Video Stories'}
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              {language === 'hi'
-                ? 'मनोरंजक व नैतिक बाल कथाएं सीधे यूट्यूब पर देखें'
-                : 'Engaging moral stories & fables on YouTube'}
-            </p>
-          </div>
+          <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
+            {language === 'hi' ? '6. वीडियो कहानियाँ (Video Stories)' : '6. Animated Video Stories'}
+          </h1>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="px-3 py-1 rounded-xl bg-red-50 text-red-900 border border-red-200 text-xs font-black">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl bg-red-50 text-red-900 border border-red-200 text-xs font-black whitespace-nowrap">
             {language === 'hi' ? `${filteredVideos.length} वीडियो उपलब्ध` : `${filteredVideos.length} Videos`}
           </span>
         </div>

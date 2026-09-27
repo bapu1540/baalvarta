@@ -239,25 +239,18 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
     <div className="space-y-4 pb-12 font-kids">
       
       {/* Sleek Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-teal-200/80 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+      <div className="flex items-center justify-between gap-3 bg-white rounded-2xl p-2.5 sm:p-3 border border-teal-200/80 shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0">
             📄
           </div>
-          <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
-              {isHi ? '10. फ्री डाउनलोड PDF (Free Download & Certificates)' : '10. Free Download PDFs & Certificates'}
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              {isHi
-                ? 'वर्णमाला ट्रेसिंग, कलरिंग शीट्स, स्टार प्रमाण पत्र व पहेलियों की उच्च-गुणवत्ता वाली PDF'
-                : 'Free handwriting tracing sheets, coloring sheets, Star Certificates & habit charts'}
-            </p>
-          </div>
+          <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
+            {isHi ? '10. फ्री डाउनलोड PDF (Free Download & Certificates)' : '10. Free Download PDFs & Certificates'}
+          </h1>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="px-3 py-1 rounded-xl bg-teal-50 text-teal-900 border border-teal-200 text-xs font-black">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl bg-teal-50 text-teal-900 border border-teal-200 text-xs font-black whitespace-nowrap">
             {selectedCategory === 'certificates' 
               ? (isHi ? '4 प्रमाण पत्र टेम्पलेट' : '4 Certificate Types')
               : (isHi ? `${filtered.length} शीट्स उपलब्ध` : `${filtered.length} Worksheets`)}

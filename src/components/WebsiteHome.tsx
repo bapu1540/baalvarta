@@ -33,7 +33,7 @@ import { AdBannerSlot } from './AdBannerSlot';
 import { UserReviewsSection } from './UserReviewsSection';
 
 interface WebsiteHomeProps {
-  onNavigate: (tab: ActiveTab) => void;
+  onNavigate: (tab: ActiveTab, format?: 'all' | 'picture_book' | 'single_image') => void;
   stories: Story[];
   facts: FunFact[];
   learningItems: LearningItem[];
@@ -357,28 +357,97 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
         </section>
       )}
 
-      {/* 4. FEATURED STORYBOOK SPOTLIGHT - SINGLE NEWEST STORY */}
+      {/* 4. FEATURED STORYBOOK SPOTLIGHT - SINGLE NEWEST STORY & 2 STORY CATEGORIES */}
       {stories.length > 0 && (
-        <section className="space-y-2.5">
-          <div className="flex items-center justify-between gap-2">
+        <section className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm shadow-xs">
                 <BookOpen className="w-4 h-4" />
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-black text-slate-900">
-                  {language === 'hi' ? 'आज की मुख्य बाल कहानी' : 'Featured Storybook'}
+                  {language === 'hi' ? 'आज की मुख्य बाल कहानी व श्रेणियाँ' : 'Featured Storybook & Categories'}
                 </h2>
               </div>
             </div>
 
-            <button
-              onClick={() => onNavigate('stories')}
-              className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-xs transition-colors flex items-center gap-1 shrink-0 border border-amber-200 shadow-2xs active:scale-95 cursor-pointer"
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => onNavigate('stories', 'picture_book')}
+                className="px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-extrabold text-[11px] transition-colors flex items-center gap-1 border border-purple-200 shadow-2xs active:scale-95 cursor-pointer"
+              >
+                <span>🎨 सचित्र कहानियाँ</span>
+              </button>
+              <button
+                onClick={() => onNavigate('stories', 'single_image')}
+                className="px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-extrabold text-[11px] transition-colors flex items-center gap-1 border border-emerald-200 shadow-2xs active:scale-95 cursor-pointer"
+              >
+                <span>🖼️ 1 इमेज कहानी</span>
+              </button>
+              <button
+                onClick={() => onNavigate('stories', 'all')}
+                className="px-3 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-xs transition-colors flex items-center gap-1 shrink-0 border border-amber-200 shadow-2xs active:scale-95 cursor-pointer"
+              >
+                <span>{language === 'hi' ? 'सभी 500+ कहानियाँ' : 'Browse All'}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-amber-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Quick 2 Story Category Launchers on Homepage */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('stories', 'picture_book');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white cursor-pointer hover:shadow-md transition-all flex items-center justify-between group"
             >
-              <span>{language === 'hi' ? 'सभी 500+ कहानियाँ' : 'Browse All Stories'}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-amber-600" />
-            </button>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
+                  🎨
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-black truncate">
+                    {language === 'hi' ? 'सचित्र कहानियाँ (Picture Stories)' : 'Picture Book Stories'}
+                  </div>
+                  <div className="text-[11px] text-purple-100 font-medium truncate">
+                    {language === 'hi' ? 'हर दृश्य के चित्र, टेक्स्ट व स्लाइडर कथाएँ' : 'Scene-by-scene picture book stories'}
+                  </div>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-xl bg-white/20 text-white font-black text-xs shrink-0 ml-2">
+                {stories.filter(s => s.format === 'picture_book' || (s.scenes && s.scenes.length > 1)).length} कथाएँ ➔
+              </span>
+            </div>
+
+            <div
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('stories', 'single_image');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white cursor-pointer hover:shadow-md transition-all flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
+                  🖼️
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-black truncate">
+                    {language === 'hi' ? 'एक इमेज वाली कहानियाँ (Single Image)' : 'Single Image Classic Stories'}
+                  </div>
+                  <div className="text-[11px] text-emerald-100 font-medium truncate">
+                    {language === 'hi' ? '1 मुख्य चित्र के साथ पूरी कहानी पढ़ने का अनुभव' : '1 Cover photo with full story text'}
+                  </div>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-xl bg-white/20 text-white font-black text-xs shrink-0 ml-2">
+                {stories.filter(s => !(s.format === 'picture_book' || (s.scenes && s.scenes.length > 1))).length} कथाएँ ➔
+              </span>
+            </div>
           </div>
 
           {/* Single Newest Featured Story Card */}

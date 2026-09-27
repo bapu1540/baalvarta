@@ -525,7 +525,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
   // Story Management & Safe Deletion State
   const [storySearchTerm, setStorySearchTerm] = useState('');
-  const [storyFilter, setStoryFilter] = useState<'all' | 'custom' | 'default'>('all');
+  const [storyFilter, setStoryFilter] = useState<'all' | 'custom' | 'default' | 'picture_book' | 'single_image'>('all');
   const [storyToDelete, setStoryToDelete] = useState<Story | null>(null);
   const [expandedStoryId, setExpandedStoryId] = useState<string | null>(null);
   const [undoStory, setUndoStory] = useState<{ story: Story; index: number } | null>(null);
@@ -944,6 +944,12 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     }
     if (storyFilter === 'default') {
       return !s.id.startsWith('story-') && s.number <= 6;
+    }
+    if (storyFilter === 'picture_book') {
+      return s.format === 'picture_book' || (Boolean(s.scenes) && (s.scenes?.length || 0) > 1);
+    }
+    if (storyFilter === 'single_image') {
+      return !(s.format === 'picture_book' || (Boolean(s.scenes) && (s.scenes?.length || 0) > 1));
     }
     return true;
   });
@@ -2289,6 +2295,26 @@ service cloud.firestore {
                       सभी ({stories.length})
                     </button>
                     <button
+                      onClick={() => setStoryFilter('picture_book')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                        storyFilter === 'picture_book'
+                          ? 'bg-purple-700 text-white shadow-2xs'
+                          : 'bg-white border border-purple-200 text-purple-700 hover:bg-purple-50'
+                      }`}
+                    >
+                      🎨 सचित्र ({stories.filter((s) => s.format === 'picture_book' || (s.scenes && s.scenes.length > 1)).length})
+                    </button>
+                    <button
+                      onClick={() => setStoryFilter('single_image')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                        storyFilter === 'single_image'
+                          ? 'bg-emerald-700 text-white shadow-2xs'
+                          : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                      }`}
+                    >
+                      🖼️ 1 इमेज ({stories.filter((s) => !(s.format === 'picture_book' || (s.scenes && s.scenes.length > 1))).length})
+                    </button>
+                    <button
                       onClick={() => setStoryFilter('custom')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                         storyFilter === 'custom'
@@ -2297,16 +2323,6 @@ service cloud.firestore {
                       }`}
                     >
                       नई अपलोड ({stories.filter((s) => s.id.startsWith('story-') || s.number > 6).length})
-                    </button>
-                    <button
-                      onClick={() => setStoryFilter('default')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                        storyFilter === 'default'
-                          ? 'bg-amber-900 text-white shadow-2xs'
-                          : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      मूल 1-6 ({stories.filter((s) => !s.id.startsWith('story-') && s.number <= 6).length})
                     </button>
                   </div>
                 </div>
@@ -2358,6 +2374,17 @@ service cloud.firestore {
                                   <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">
                                     {s.category}
                                   </span>
+                                  {s.format === 'picture_book' || (s.scenes && s.scenes.length > 1) ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-extrabold flex items-center gap-0.5">
+                                      <span>🎨</span>
+                                      <span>सचित्र ({s.scenes?.length || 3} दृश्य)</span>
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-extrabold flex items-center gap-0.5">
+                                      <span>🖼️</span>
+                                      <span>1 इमेज</span>
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-slate-500 text-[11px] line-clamp-1 mt-0.5">
                                   {s.titleEn} • {s.readTime} • सीख: {s.moralHi}

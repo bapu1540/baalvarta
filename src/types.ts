@@ -48,7 +48,7 @@ export interface FunFact {
 
 export interface LearningItem {
   id: string;
-  module: 'alphabet' | 'numbers' | 'colors_shapes' | 'animals' | 'gk' | 'vocabulary' | 'custom';
+  module: 'alphabet' | 'numbers' | 'colors_shapes' | 'animals' | 'birds' | 'gk' | 'vocabulary' | 'custom';
   symbol: string;
   name: string; // En only
   pronunciation: string;

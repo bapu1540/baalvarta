@@ -84,6 +84,7 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [showBookmarksOnly, setShowBookmarksOnly] = useState<boolean>(false);
   const [selectedStoryForReader, setSelectedStoryForReader] = useState<Story | null>(null);
+  const [storiesInitialFormat, setStoriesInitialFormat] = useState<'all' | 'picture_book' | 'single_image'>('all');
 
   // Global Search State
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
@@ -384,8 +385,11 @@ export default function App() {
     }
   };
 
-  const handleNavigateTab = (tab: ActiveTab) => {
+  const handleNavigateTab = (tab: ActiveTab, format?: 'all' | 'picture_book' | 'single_image') => {
     stopSpeech();
+    if (format) {
+      setStoriesInitialFormat(format);
+    }
     if (tab !== activeTab) {
       setTabHistory((prev) => [...prev, tab]);
       setIsTabTransitioning(true);
@@ -550,6 +554,7 @@ export default function App() {
         videoStories={videoStories}
         worksheets={worksheets}
         onSelectStory={handleSelectStoryFromHome}
+        onSelectStoryFormat={(fmt) => setStoriesInitialFormat(fmt)}
       />
 
       {/* Main Portal View Area */}
@@ -579,6 +584,7 @@ export default function App() {
           <StoriesHub
             stories={stories}
             language={language}
+            setLanguage={setLanguage}
             soundEnabled={soundEnabled}
             bookmarks={bookmarks}
             onToggleBookmark={handleToggleBookmark}
@@ -588,6 +594,7 @@ export default function App() {
             initialStory={selectedStoryForReader}
             onClearInitialStory={() => setSelectedStoryForReader(null)}
             onWatchVideo={handleWatchVideoFromStory}
+            initialFormat={storiesInitialFormat}
           />
         )}
 
@@ -605,6 +612,7 @@ export default function App() {
             items={learningItems}
             language={language}
             soundEnabled={soundEnabled}
+            onNavigateTab={(tab) => setActiveTab(tab)}
           />
         )}
 

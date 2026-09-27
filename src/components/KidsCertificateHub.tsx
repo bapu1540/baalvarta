@@ -541,20 +541,17 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     <div className="space-y-6 pb-12 font-kids">
       
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden border-2 border-amber-300">
-        <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black mb-2 border border-white/30">
-            <Award className="w-4 h-4 text-amber-200" />
-            <span>{isHi ? 'रंग-बिरंगा बाल सम्मान व पुरस्कार केंद्र' : 'Kids Honors & Awards Hub'}</span>
+      <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 rounded-2xl p-3 sm:p-4 text-white shadow-md relative overflow-hidden border-2 border-amber-300">
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Award className="w-6 h-6 text-amber-200 shrink-0" />
+            <h1 className="text-base sm:text-xl font-black text-white tracking-tight truncate">
+              🏆 {isHi ? 'आधिकारिक बाल पाठक प्रमाण पत्र' : 'Official Kids Star Certificate'}
+            </h1>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-2">
-            <span>🏆 आधिकारिक बाल पाठक प्रमाण पत्र</span>
-          </h1>
-          <p className="text-white/95 text-xs sm:text-sm font-bold mt-1">
-            {isHi
-              ? 'बच्चे का नाम और बड़ा फोटो जोड़ें, और बालवार्ता की स्थायी मुहर व आधिकारिक हस्ताक्षर के साथ बहु-रंगीन सम्मान पत्र डाउनलोड करें।'
-              : 'Add child’s name & large square photo, then download vibrant certificate with official round seal & signature!'}
-          </p>
+          <span className="bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-xl text-xs font-black border border-white/30 shrink-0">
+            {isHi ? 'मुफ़्त जनरेट करें' : 'Free Download'}
+          </span>
         </div>
       </div>
 

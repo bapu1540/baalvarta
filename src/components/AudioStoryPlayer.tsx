@@ -127,45 +127,42 @@ export const AudioStoryPlayer: React.FC<AudioStoryPlayerProps> = ({
         preload="metadata"
       />
 
-      {/* Main Hero Header */}
-      <div className="rounded-3xl bg-gradient-to-r from-purple-500 via-indigo-600 to-violet-600 p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
-        <div className="absolute -right-4 -bottom-4 text-9xl opacity-20 pointer-events-none select-none">
-          🎧
-        </div>
-        <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-xs font-black uppercase tracking-wider text-purple-100">
-            <Radio className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-            <span>{language === 'hi' ? '5. ऑडियो कहानियाँ (Audio Stories)' : '5. Streaming Audio Stories'}</span>
+      {/* Sleek Category Top Header */}
+      <div className="flex items-center justify-between gap-2.5 bg-white rounded-2xl p-2.5 sm:p-3 border border-purple-200/80 shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0">
+            🎧
           </div>
-          <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-            {language === 'hi' ? 'मनपसंद ऑडियो कहानियाँ व प्रेरक किस्से' : 'Audio Stories & Inspiring Tales to Listen Anytime'}
-          </h2>
-          <p className="text-purple-100 text-xs sm:text-sm font-medium">
-            {language === 'hi'
-              ? 'जब चाहें सीधे क्लाउड से सुनें! मनमोहक संगीत और शांत आवाज़ में बच्चों व परिवार के लिए कहानियाँ।'
-              : 'Enjoy listening to audio stories anytime from the cloud with calming background music.'}
-          </p>
+          <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
+            {language === 'hi' ? '5. ऑडियो कहानियाँ (Audio Stories)' : '5. Streaming Audio Stories'}
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="px-2.5 py-1 rounded-xl bg-purple-50 text-purple-900 border border-purple-200 text-xs font-black whitespace-nowrap">
+            {language === 'hi' ? `${audioStories.length} ऑडियो कहानियाँ` : `${audioStories.length} Audio Tracks`}
+          </span>
         </div>
       </div>
 
       {/* Player & Playlist Split Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left: Active Player Deck */}
-        <div className="lg:col-span-7 bg-white rounded-3xl border-2 border-purple-200 p-6 sm:p-8 shadow-sm flex flex-col justify-between space-y-6">
-          {/* Top Banner Artwork */}
-          <div className="relative rounded-2xl overflow-hidden h-48 sm:h-64 shadow-md bg-purple-900 group">
+        <div className="lg:col-span-7 bg-white rounded-2xl sm:rounded-3xl border border-purple-200 p-3.5 sm:p-5 shadow-xs flex flex-col justify-between space-y-3.5">
+          {/* Top Banner Artwork - Compact Height */}
+          <div className="relative rounded-xl sm:rounded-2xl overflow-hidden h-36 sm:h-44 shadow-xs bg-purple-900 group">
             <img
               src={selectedStory.coverImage}
               alt={selectedStory.titleEn}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-5">
-              <div className="space-y-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-purple-400 text-purple-950 text-[10px] font-black uppercase tracking-wider">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-end p-3.5 sm:p-4">
+              <div className="space-y-0.5">
+                <span className="px-2 py-0.5 rounded-full bg-purple-400 text-purple-950 text-[9px] sm:text-[10px] font-black uppercase tracking-wider">
                   {selectedStory.narrator}
                 </span>
-                <h3 className="text-xl sm:text-2xl font-black text-white filter drop-shadow">
+                <h3 className="text-base sm:text-xl font-black text-white filter drop-shadow">
                   {language === 'hi' ? selectedStory.titleHi : selectedStory.titleEn}
                 </h3>
               </div>
@@ -173,11 +170,11 @@ export const AudioStoryPlayer: React.FC<AudioStoryPlayerProps> = ({
 
             {/* Sound Wave Animation when Playing */}
             {isPlaying && (
-              <div className="absolute top-4 right-4 flex items-end gap-1 bg-black/40 backdrop-blur-xs px-2.5 py-1.5 rounded-xl border border-white/20">
-                <span className="w-1 h-3 bg-yellow-400 rounded-full animate-pulse" />
-                <span className="w-1 h-5 bg-rose-400 rounded-full animate-pulse delay-75" />
-                <span className="w-1 h-4 bg-emerald-400 rounded-full animate-pulse delay-150" />
-                <span className="w-1 h-6 bg-sky-400 rounded-full animate-pulse delay-200" />
+              <div className="absolute top-2.5 right-2.5 flex items-end gap-1 bg-black/50 backdrop-blur-xs px-2 py-1 rounded-lg border border-white/20">
+                <span className="w-1 h-2.5 bg-yellow-400 rounded-full animate-pulse" />
+                <span className="w-1 h-4 bg-rose-400 rounded-full animate-pulse delay-75" />
+                <span className="w-1 h-3 bg-emerald-400 rounded-full animate-pulse delay-150" />
+                <span className="w-1 h-5 bg-sky-400 rounded-full animate-pulse delay-200" />
               </div>
             )}
           </div>

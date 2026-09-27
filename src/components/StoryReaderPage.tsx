@@ -56,6 +56,7 @@ interface StoryReaderPageProps {
   onBack: () => void;
   onSelectStory: (story: Story) => void;
   onWatchVideo?: (category?: string, title?: string) => void;
+  onLanguageChange?: (lang: Language) => void;
 }
 
 export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
@@ -69,6 +70,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
   onBack,
   onSelectStory,
   onWatchVideo,
+  onLanguageChange,
 }) => {
   // Reading preferences
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'huge'>('large');
@@ -505,6 +507,21 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                 बाल-फ़ॉन्ट
               </button>
             </div>
+
+            {/* Language Toggle in Reader */}
+            {onLanguageChange && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (soundEnabled) playPopSound();
+                  onLanguageChange(language === 'hi' ? 'en' : 'hi');
+                }}
+                title={language === 'hi' ? 'Switch story text to English' : 'कहानी हिंदी में पढ़ें'}
+                className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-[10px] sm:text-xs shadow-2xs flex items-center gap-1 active:scale-95 transition-all cursor-pointer shrink-0"
+              >
+                <span>{language === 'hi' ? 'ENG' : 'हिंदी'}</span>
+              </button>
+            )}
 
             {/* Font Size Button */}
             <button

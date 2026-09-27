@@ -62,6 +62,7 @@ interface WebsiteHeaderProps {
   worksheets?: PrintableWorksheet[];
   games?: KidsGameItem[];
   onSelectStory?: (story: Story) => void;
+  onSelectStoryFormat?: (format: 'all' | 'picture_book' | 'single_image') => void;
 }
 
 export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
@@ -83,6 +84,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
   worksheets: propWorksheets,
   games = INITIAL_KIDS_GAMES,
   onSelectStory,
+  onSelectStoryFormat,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [headerQuery, setHeaderQuery] = useState('');
@@ -699,7 +701,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
               </button>
             )}
 
-            {/* Language Switcher - ENG / हिंदी */}
+            {/* Language Switcher - Clear 2-State Pill (ENG / हिंदी) */}
             <button
               id="header-language-toggle-btn"
               onClick={() => {
@@ -707,10 +709,19 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                 setLanguage(language === 'hi' ? 'en' : 'hi');
               }}
               title={language === 'hi' ? 'Switch website to English' : 'वेबसाइट हिंदी में करें'}
-              className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border border-indigo-400 text-[11px] sm:text-xs font-black shadow-2xs transition-all active:scale-95 cursor-pointer shrink-0"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white border-2 border-indigo-300 text-[11px] sm:text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
+              aria-label="Toggle language between Hindi and English"
             >
-              <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-300 animate-spin-slow shrink-0" />
-              <span>{language === 'hi' ? 'ENG' : 'हिंदी'}</span>
+              <Globe className="w-3.5 h-3.5 text-yellow-300 animate-spin-slow shrink-0" />
+              <div className="flex items-center gap-1 text-[11px] sm:text-xs font-black">
+                <span className={language === 'hi' ? 'text-amber-300 font-extrabold underline decoration-amber-300 decoration-2' : 'text-indigo-200'}>
+                  हिंदी
+                </span>
+                <span className="text-white/40">|</span>
+                <span className={language === 'en' ? 'text-amber-300 font-extrabold underline decoration-amber-300 decoration-2' : 'text-indigo-200'}>
+                  ENG
+                </span>
+              </div>
             </button>
 
             {/* 3-Dot (तीन डॉट) Menu Button - ALWAYS FIXED ON RIGHT, NEVER HIDDEN */}
@@ -758,8 +769,48 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                       </span>
                     </div>
 
+                    {/* Language Switcher Bar inside 3-Dot Drawer */}
+                    <div className="mt-2.5 pt-2 border-t border-white/20">
+                      <div className="flex items-center justify-between gap-1.5 bg-black/25 p-1 rounded-xl">
+                        <span className="text-[11px] font-black pl-1 text-amber-200 flex items-center gap-1">
+                          <Globe className="w-3 h-3" />
+                          <span>{language === 'hi' ? 'भाषा:' : 'Lang:'}</span>
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (soundEnabled) playPopSound();
+                              setLanguage('hi');
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                              language === 'hi'
+                                ? 'bg-amber-400 text-slate-950 shadow-xs scale-102 ring-1 ring-white'
+                                : 'text-white/80 hover:bg-white/15'
+                            }`}
+                          >
+                            🇮🇳 हिंदी
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (soundEnabled) playPopSound();
+                              setLanguage('en');
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                              language === 'en'
+                                ? 'bg-amber-400 text-slate-950 shadow-xs scale-102 ring-1 ring-white'
+                                : 'text-white/80 hover:bg-white/15'
+                            }`}
+                          >
+                            🇬🇧 English
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Mobile Quick Utility Controls inside 3-Dot Drawer */}
-                    <div className="mt-2.5 pt-2 border-t border-white/20 flex items-center justify-between gap-2 sm:hidden">
+                    <div className="mt-2 pt-2 border-t border-white/20 flex items-center justify-between gap-2 sm:hidden">
                       <button
                         onClick={() => {
                           setSoundEnabled(!soundEnabled);
@@ -824,33 +875,66 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                       const Icon = link.icon;
                       const isActive = activeTab === link.id && !showBookmarksOnly;
                       return (
-                        <button
-                          key={link.id}
-                          onClick={() => handleNavClick(link.id, link.isAdmin)}
-                          className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
-                            isActive
-                              ? 'bg-amber-100 text-amber-950 font-black border border-amber-300 shadow-2xs'
-                              : 'hover:bg-amber-50 text-slate-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              className={`w-8 h-8 rounded-xl bg-gradient-to-br ${link.color} text-white flex items-center justify-center shrink-0 shadow-2xs`}
-                            >
-                              <Icon className="w-4 h-4" />
+                        <React.Fragment key={link.id}>
+                          <button
+                            onClick={() => handleNavClick(link.id, link.isAdmin)}
+                            className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
+                              isActive
+                                ? 'bg-amber-100 text-amber-950 font-black border border-amber-300 shadow-2xs'
+                                : 'hover:bg-amber-50 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className={`w-8 h-8 rounded-xl bg-gradient-to-br ${link.color} text-white flex items-center justify-center shrink-0 shadow-2xs`}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="text-xs sm:text-sm font-black truncate block text-slate-800">
+                                  {language === 'hi' ? link.labelHi : link.labelEn}
+                                </span>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <span className="text-xs sm:text-sm font-black truncate block text-slate-800">
-                                {language === 'hi' ? link.labelHi : link.labelEn}
+                            {link.badge && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-extrabold bg-amber-100 text-amber-950 shrink-0">
+                                {link.badge}
                               </span>
+                            )}
+                          </button>
+
+                          {/* 2 Sub-Categories under Stories in Drawer */}
+                          {link.id === 'stories' && (
+                            <div className="grid grid-cols-2 gap-1.5 pl-10 pr-1 py-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (soundEnabled) playPopSound();
+                                  setIsMenuOpen(false);
+                                  if (onSelectStoryFormat) onSelectStoryFormat('picture_book');
+                                  setActiveTab('stories');
+                                }}
+                                className="px-2 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-black text-left flex items-center gap-1 transition-colors"
+                              >
+                                <span>🎨</span>
+                                <span className="truncate">{language === 'hi' ? 'सचित्र कथाएँ' : 'Picture Stories'}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (soundEnabled) playPopSound();
+                                  setIsMenuOpen(false);
+                                  if (onSelectStoryFormat) onSelectStoryFormat('single_image');
+                                  setActiveTab('stories');
+                                }}
+                                className="px-2 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 text-[10px] font-black text-left flex items-center gap-1 transition-colors"
+                              >
+                                <span>🖼️</span>
+                                <span className="truncate">{language === 'hi' ? '1 इमेज कथाएँ' : 'Single Image'}</span>
+                              </button>
                             </div>
-                          </div>
-                          {link.badge && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-extrabold bg-amber-100 text-amber-950 shrink-0">
-                              {link.badge}
-                            </span>
                           )}
-                        </button>
+                        </React.Fragment>
                       );
                     })}
                   </div>

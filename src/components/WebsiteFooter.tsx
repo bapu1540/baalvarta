@@ -73,29 +73,26 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
         </div>
       </div>
 
-      {/* Main Multi-Column Footer Content with Left-Side Text & Right-Side Image */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-12">
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 xl:gap-12 items-start">
+      {/* Main Multi-Column Footer Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <div className="w-full flex flex-col space-y-8">
           
-          {/* LEFT SIDE (Desktop Left, Mobile Top): All Text, Links & Copyright */}
-          <div className="w-full lg:w-7/12 xl:w-2/3 flex flex-col space-y-8 order-1">
-            
-            {/* 1. Brand & Mission */}
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <button
-                  onClick={() => {
-                    onNavigate('home');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="cursor-pointer transition-transform hover:scale-105 text-left inline-flex"
-                  title="Baalvarta Home"
-                >
-                  <div className="p-2 sm:p-2.5 rounded-3xl bg-slate-900/80 border-2 border-amber-400/40 inline-flex items-center shadow-xl backdrop-blur-xs">
-                    <BaalvartaLogo variant="footer" />
-                  </div>
-                </button>
-              </div>
+          {/* 1. Brand & Mission */}
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <button
+                onClick={() => {
+                  onNavigate('home');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="cursor-pointer transition-transform hover:scale-105 text-left inline-flex"
+                title="Baalvarta Home"
+              >
+                <div className="p-2 sm:p-2.5 rounded-3xl bg-slate-900/80 border-2 border-amber-400/40 inline-flex items-center shadow-xl backdrop-blur-xs">
+                  <BaalvartaLogo variant="footer" />
+                </div>
+              </button>
+            </div>
 
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal max-w-2xl">
                 {language === 'hi'
@@ -483,51 +480,8 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
                 </button>
               </div>
             </div>
-
           </div>
-
-          {/* RIGHT SIDE (Desktop Right, Mobile Bottom/Last): Baalvarta Artwork Illustration Card */}
-          <div className="w-full lg:w-5/12 xl:w-1/3 order-2 lg:order-none flex flex-col items-center">
-            <div className="w-full bg-gradient-to-b from-slate-900 via-slate-900/90 to-amber-950/30 rounded-3xl p-3 sm:p-4 border-2 border-amber-500/40 shadow-2xl hover:border-amber-400/80 transition-all duration-300 group">
-              
-              {/* Illustration Container with 3:2 Aspect Ratio */}
-              <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden shadow-lg border border-amber-400/30 bg-slate-950 group/img">
-                <img
-                  src={currentFooterImage || "file_000000002e5c821198d9573a33263d1e.jpg"}
-                  onError={(e) => {
-                    if (!currentFooterImage) {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = "/baalvarta-footer-illustration.svg";
-                    }
-                  }}
-                  alt="बालवार्ता - Fun-Learning-Stories"
-                  className="w-full h-full object-cover object-center group-hover:scale-103 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-
-              {/* Text Caption below illustration */}
-              <div className="mt-3 text-center px-2">
-                <h5 className="text-sm font-black text-amber-400 tracking-wide flex items-center justify-center gap-1.5">
-                  <span>✨ बालवार्ता (Baalvarta)</span>
-                </h5>
-                <p className="text-[11px] text-slate-300 font-medium mt-0.5">
-                  {language === 'hi'
-                    ? 'Fun • Learning • Moral Stories for Kids'
-                    : 'Fun • Learning • Moral Stories for Kids'}
-                </p>
-                <p className="text-[10px] text-amber-200/80 font-normal mt-0.5">
-                  {language === 'hi'
-                    ? 'प्रेरणादायक कहानियाँ, संस्कृति, ज्ञान व संस्कार का संगम'
-                    : 'Inspiring Tales, Culture & Early Learning'}
-                </p>
-              </div>
-
-            </div>
-          </div>
-
         </div>
-      </div>
-    </footer>
-  );
-};
+      </footer>
+    );
+  };

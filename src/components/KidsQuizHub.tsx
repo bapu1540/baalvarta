@@ -29,12 +29,14 @@ interface KidsQuizHubProps {
   language: Language;
   soundEnabled: boolean;
   onSelectQuiz?: (quiz: QuizSet) => void;
+  onNavigateTab?: (tab: any) => void;
 }
 
 export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
   quizSets,
   language,
   soundEnabled,
+  onNavigateTab,
 }) => {
   const [activeQuiz, setActiveQuiz] = useState<QuizSet | null>(null);
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -148,25 +150,18 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
     return (
       <div className="space-y-4">
         {/* Sleek Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-rose-200/80 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+        <div className="flex items-center justify-between gap-3 bg-white rounded-2xl p-2.5 sm:p-3 border border-rose-200/80 shadow-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0">
               🏆
             </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
-                {isHi ? '8. बाल क्विज़ (5-Q Kids Quiz)' : '8. Kids Quiz Games'}
-              </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                {isHi
-                  ? 'ज्ञानवर्धक प्रश्नोत्तरी, 4 विकल्प और सचित्र व्याख्या'
-                  : 'Interactive 5-question quizzes with instant picture explanation'}
-              </p>
-            </div>
+            <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
+              {isHi ? '8. बाल क्विज़ (5-Q Kids Quiz)' : '8. Kids Quiz Games'}
+            </h1>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="px-3 py-1 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-xs font-black">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="px-2.5 py-1 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-xs font-black whitespace-nowrap">
               {isHi ? `${quizSets.length} क्विज़ सेट्स` : `${quizSets.length} Quiz Sets`}
             </span>
           </div>
@@ -293,94 +288,35 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
             <div className="text-xs font-medium max-w-sm mx-auto leading-relaxed">{badgeDesc}</div>
           </div>
 
-          {/* Kid Quiz Star Certificate Generator */}
-          <div className="my-6 p-4 sm:p-6 bg-gradient-to-b from-amber-50 to-orange-50/60 rounded-3xl border-2 border-amber-300 text-left space-y-4">
-            <div className="flex items-center justify-between gap-2 border-b border-amber-200 pb-3">
-              <div className="flex items-center gap-2">
-                <Award className="w-6 h-6 text-amber-600 shrink-0" />
-                <div>
-                  <h3 className="font-extrabold text-slate-800 text-base">
-                    {isHi ? '🎖️ बाल ज्ञान प्रमाण पत्र (Kids Star Certificate)' : '🎖️ Kids Quiz Champion Certificate'}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    {isHi ? 'बच्चे का नाम लिखकर अपना डिजिटल प्रमाण पत्र प्राप्त करें' : 'Enter child name to get personalized certificate'}
-                  </p>
-                </div>
+          {/* Single Patti Certificate Banner (Download your certificate -> Main Certificate Hub) */}
+          <div
+            onClick={() => {
+              if (soundEnabled) playPopSound();
+              if (onNavigateTab) {
+                onNavigateTab('certificates');
+              } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="my-6 p-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white rounded-2xl sm:rounded-3xl shadow-lg border-2 border-amber-300 cursor-pointer transition-all hover:scale-[1.01] flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl shrink-0 shadow-xs group-hover:scale-110 transition-transform">
+                🎖️
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black shrink-0">
-                100% Free
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={childName}
-                onChange={(e) => setChildName(e.target.value)}
-                placeholder={isHi ? 'बच्चे का नाम दर्ज करें (उदा: आरव शर्मा)...' : 'Enter child name (e.g. Aarav Sharma)...'}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-amber-300 bg-white text-slate-800 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (!childName.trim()) {
-                    alert(isHi ? 'कृपया पहले बच्चे का नाम लिखें।' : 'Please enter child name.');
-                    return;
-                  }
-                  if (soundEnabled) playSuccessSound();
-                  setShowCertificate(true);
-                }}
-                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>{isHi ? 'प्रमाण पत्र देखें' : 'Generate Certificate'}</span>
-              </button>
-            </div>
-
-            {/* Live Certificate Card Preview */}
-            {showCertificate && (
-              <div id="kids-quiz-certificate-card" className="mt-4 p-6 sm:p-8 bg-white border-4 border-amber-400 rounded-3xl shadow-xl relative overflow-hidden text-center space-y-3">
-                <div className="absolute top-2 left-3 text-[10px] font-bold text-amber-700 uppercase tracking-widest">
-                  बालवार्ता पोर्टल (Baalvarta Portal)
-                </div>
-                <div className="text-xs uppercase font-extrabold tracking-widest text-amber-600">
-                  ★ CERTIFICATE OF MERIT ★
-                </div>
-                <h4 className="text-xl sm:text-2xl font-black text-slate-900 font-display">
-                  बाल ज्ञानरत्न सम्मान पत्र
-                </h4>
-                <p className="text-xs text-slate-500 italic">
-                  यह प्रमाण पत्र अत्यंत गर्व के साथ प्रदान किया जाता है:
+              <div>
+                <h3 className="text-base sm:text-lg font-black tracking-tight">
+                  {isHi ? '🎖️ अपना बाल ज्ञान प्रमाण पत्र डाउनलोड करें (Download your certificate)' : '🎖️ Download your Kids Star Certificate'}
+                </h3>
+                <p className="text-xs text-amber-100 font-medium">
+                  {isHi ? 'नाम व फोटो के साथ अपना स्टार सर्टिफिकेट प्राप्त करने के लिए क्लिक करें' : 'Click here to generate official certificate with name & photo'}
                 </p>
-                <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 border-b-2 border-dashed border-amber-300 pb-1 max-w-xs mx-auto">
-                  {childName || 'बाल पाठक'}
-                </div>
-                <p className="text-xs text-slate-600 max-w-md mx-auto">
-                  जिन्होंने बालवार्ता 5-Q क्विज़ <strong>"{activeQuiz.titleHi}"</strong> में <strong>{score} / {totalQuestions} अंक ({percentage}%)</strong> प्राप्त कर <strong>{starCount}-स्टार सम्मान</strong> अर्जित किया।
-                </p>
-                
-                <div className="flex items-center justify-center gap-1 text-amber-400 text-xl py-1">
-                  {Array.from({ length: starCount }).map((_, i) => (
-                    <span key={i}>⭐</span>
-                  ))}
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>दिनांक: {new Date().toLocaleDateString('hi-IN')}</span>
-                  <span className="font-bold text-amber-800">निदेशक, बालवार्ता</span>
-                </div>
-
-                <div className="pt-2 flex justify-center gap-2 print:hidden">
-                  <button
-                    onClick={handlePrintCertificate}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>{isHi ? 'प्रमाण पत्र प्रिंट / सेव करें' : 'Print Certificate'}</span>
-                  </button>
-                </div>
               </div>
-            )}
+            </div>
+            <button className="px-4 py-2 bg-white text-amber-950 hover:bg-amber-100 rounded-xl text-xs font-black shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer">
+              <Award className="w-4 h-4 text-amber-600" />
+              <span>{isHi ? 'प्रमाण पत्र डाउनलोड करें ➔' : 'Download Certificate ➔'}</span>
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">

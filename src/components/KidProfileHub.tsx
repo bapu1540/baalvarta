@@ -226,9 +226,9 @@ export const KidProfileHub: React.FC<KidProfileHubProps> = ({
   // 🔒 IF NOT PRO MEMBER: SHOW VIP LOCK WALL
   if (!profile.isPro) {
     return (
-      <div className="space-y-6 sm:space-y-8 animate-in fade-in pb-36 sm:pb-28 font-sans max-w-4xl mx-auto">
+      <div className="space-y-4 sm:space-y-5 animate-in fade-in pb-36 sm:pb-28 font-sans max-w-4xl mx-auto">
         {/* VIP Lock Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 text-white p-5 sm:p-10 shadow-2xl border-2 border-amber-400/80 text-center space-y-5 sm:space-y-6">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 text-white p-4 sm:p-6 shadow-xl border-2 border-amber-400/80 text-center space-y-3.5">
           {/* Glowing Accents */}
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-72 h-72 bg-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
