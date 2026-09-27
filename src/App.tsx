@@ -45,16 +45,17 @@ import { ContactPage } from './components/ContactPage';
 import { ParentalGateModal } from './components/ParentalGateModal';
 import { AdminCMS } from './components/AdminCMS';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
-import { FloatingBackButton } from './components/FloatingBackButton';
+import { FixedBottomBar } from './components/FixedBottomBar';
 import { ThemeAndFontModal } from './components/ThemeAndFontModal';
 import { KidsColoringBook } from './components/KidsColoringBook';
 import { KidsMiniGamesHub } from './components/KidsMiniGamesHub';
 import { KidsCertificateHub } from './components/KidsCertificateHub';
+import { KidProfileHub } from './components/KidProfileHub';
 import { PrintableWorksheetsHub } from './components/PrintableWorksheetsHub';
 import { GeneralKnowledgeHub } from './components/GeneralKnowledgeHub';
 import { BaalmitraChatModal } from './components/BaalmitraChatModal';
-import { FloatingBaalmitraButton } from './components/FloatingBaalmitraButton';
 import { BaalvartaProModal } from './components/BaalvartaProModal';
+import { ContentSkeletonLoader } from './components/ContentSkeletonLoader';
 import {
   ThemeSettings,
   getStoredThemeSettings,
@@ -74,6 +75,7 @@ import {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
+  const [tabHistory, setTabHistory] = useState<ActiveTab[]>(['home']);
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('baalvarta_language_v1');
     return (saved === 'hi' || saved === 'en') ? saved : 'hi';
@@ -95,6 +97,9 @@ export default function App() {
 
   // Baalvarta Pro Membership State
   const [isProModalOpen, setIsProModalOpen] = useState<boolean>(false);
+
+  // Tab Transition & Data Fetching Loading State
+  const [isTabTransitioning, setIsTabTransitioning] = useState<boolean>(false);
 
   useEffect(() => {
     applyThemeToDOM(themeSettings);
@@ -227,6 +232,80 @@ export default function App() {
   const [isAdminCMSOpen, setIsAdminCMSOpen] = useState<boolean>(false);
   const [adminEmail, setAdminEmail] = useState<string>('chauhansanjay932@gmail.com');
 
+  // Secret #admin URL Route Listener - 100% Robust Detection (Supports #admin, /#admin, #admin/, ?admin, /admin, etc.)
+  useEffect(() => {
+    const checkAndTriggerAdminRoute = () => {
+      try {
+        const hash = (window.location.hash || '').toLowerCase();
+        const search = (window.location.search || '').toLowerCase();
+        const path = (window.location.pathname || '').toLowerCase();
+        const href = (window.location.href || '').toLowerCase();
+
+        const isAdminRequested =
+          hash.includes('admin') ||
+          hash.includes('cms') ||
+          search.includes('admin') ||
+          search.includes('cms') ||
+          path.includes('/admin') ||
+          path.includes('/cms') ||
+          href.includes('admin');
+
+        if (isAdminRequested) {
+          setIsParentalGateOpen(true);
+        }
+      } catch {
+        // ignore safely
+      }
+    };
+
+    // 1. Immediate execution on mount
+    checkAndTriggerAdminRoute();
+
+    // 2. Delayed execution to catch iframe / late hydration URL resolution
+    const t1 = setTimeout(checkAndTriggerAdminRoute, 100);
+    const t2 = setTimeout(checkAndTriggerAdminRoute, 500);
+    const t3 = setTimeout(checkAndTriggerAdminRoute, 1200);
+
+    // 3. Native event listeners
+    window.addEventListener('hashchange', checkAndTriggerAdminRoute);
+    window.addEventListener('popstate', checkAndTriggerAdminRoute);
+
+    // 4. Secret Admin Keyboard Shortcut: Ctrl+Shift+A or Cmd+Shift+A
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        setIsParentalGateOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    // 5. Expose global window helper for easy programmatic opening
+    (window as any).openAdminLogin = () => setIsParentalGateOpen(true);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener('hashchange', checkAndTriggerAdminRoute);
+      window.removeEventListener('popstate', checkAndTriggerAdminRoute);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleCloseAdminCMS = () => {
+    setIsAdminCMSOpen(false);
+    if (window.location.hash.toLowerCase().includes('admin')) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  };
+
+  const handleCloseParentalGate = () => {
+    setIsParentalGateOpen(false);
+    if (window.location.hash.toLowerCase().includes('admin')) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  };
+
   // Sync helpers
   const handleToggleBookmark = (id: string) => {
     const updated = toggleBookmark(id);
@@ -303,6 +382,29 @@ export default function App() {
     }
   };
 
+  const handleNavigateTab = (tab: ActiveTab) => {
+    stopSpeech();
+    if (tab !== activeTab) {
+      setTabHistory((prev) => [...prev, tab]);
+      setIsTabTransitioning(true);
+      setTimeout(() => {
+        setIsTabTransitioning(false);
+      }, 150);
+    }
+    pushNavState({ view: 'tab', tab });
+    setActiveTab(tab);
+    setShowBookmarksOnly(false);
+    setSelectedStoryForReader(null);
+  };
+
+  const handleSelectStory = (story: Story) => {
+    stopSpeech();
+    setSelectedStoryForReader(story);
+    setTabHistory((prev) => [...prev, 'stories']);
+    setActiveTab('stories');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSmartBack = () => {
     if (soundEnabled) playPopSound();
     stopSpeech();
@@ -311,12 +413,32 @@ export default function App() {
       // Step 1: Return from story reading to stories list
       setSelectedStoryForReader(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tabHistory.length > 1) {
+      // Step 2: Return to previous visited tab
+      const newHistory = [...tabHistory];
+      newHistory.pop();
+      const prevTab = newHistory[newHistory.length - 1] || 'home';
+      setTabHistory(newHistory);
+      setActiveTab(prevTab);
+      setShowBookmarksOnly(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (activeTab !== 'home') {
-      // Step 2: Return from tab to home
+      // Step 3: Return to home
       setActiveTab('home');
+      setTabHistory(['home']);
       setShowBookmarksOnly(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleDirectHome = () => {
+    if (soundEnabled) playPopSound();
+    stopSpeech();
+    setSelectedStoryForReader(null);
+    setShowBookmarksOnly(false);
+    setTabHistory(['home']);
+    setActiveTab('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Hardware Back Button (Android / Mobile browser back) Listener
@@ -354,9 +476,19 @@ export default function App() {
         return;
       }
 
-      // Priority 5: If in an inner tab, return to home
-      if (activeTab !== 'home') {
+      // Priority 5: If in history / inner tab, step back
+      if (tabHistory.length > 1) {
+        const newHistory = [...tabHistory];
+        newHistory.pop();
+        const prevTab = newHistory[newHistory.length - 1] || 'home';
+        setTabHistory(newHistory);
+        setActiveTab(prevTab);
+        setShowBookmarksOnly(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      } else if (activeTab !== 'home') {
         setActiveTab('home');
+        setTabHistory(['home']);
         setShowBookmarksOnly(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
@@ -365,10 +497,13 @@ export default function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isSearchModalOpen, isAdminCMSOpen, isParentalGateOpen, selectedStoryForReader, activeTab]);
+  }, [isSearchModalOpen, isAdminCMSOpen, isParentalGateOpen, selectedStoryForReader, activeTab, tabHistory]);
 
   const handleSelectStoryFromHome = (story: Story) => {
     stopSpeech();
+    if (activeTab !== 'stories') {
+      setTabHistory((prev) => [...prev, 'stories']);
+    }
     pushNavState({ view: 'story', storyId: story.id });
     setSelectedStoryForReader(story);
     setActiveTab('stories');
@@ -382,6 +517,9 @@ export default function App() {
   const handleWatchVideoFromStory = (category?: string, title?: string) => {
     stopSpeech();
     if (soundEnabled) playPopSound();
+    if (activeTab !== 'videos') {
+      setTabHistory((prev) => [...prev, 'videos']);
+    }
     pushNavState({ view: 'tab', tab: 'videos' });
     setActiveTab('videos');
     setSelectedStoryForReader(null);
@@ -389,18 +527,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-slate-800 flex flex-col font-sans selection:bg-amber-200 overflow-x-hidden w-full max-w-full">
+    <div className="min-h-screen bg-[#FDFBF7] text-slate-800 flex flex-col font-sans selection:bg-amber-200 overflow-x-hidden w-full max-w-full pb-24 sm:pb-28">
       
       {/* Modern Responsive Navigation Header */}
       <WebsiteHeader
         activeTab={activeTab}
-        setActiveTab={(tab) => {
-          stopSpeech();
-          pushNavState({ view: 'tab', tab });
-          setActiveTab(tab);
-          setShowBookmarksOnly(false);
-          setSelectedStoryForReader(null);
-        }}
+        setActiveTab={handleNavigateTab}
         language={language}
         setLanguage={setLanguage}
         soundEnabled={soundEnabled}
@@ -419,28 +551,27 @@ export default function App() {
       />
 
       {/* Main Portal View Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-3 sm:py-5 overflow-x-hidden">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 py-2 sm:py-4 overflow-x-hidden min-h-[50vh]">
         
-        {activeTab === 'home' && (
-          <WebsiteHome
-            onNavigate={(tab) => {
-              stopSpeech();
-              pushNavState({ view: 'tab', tab });
-              setActiveTab(tab);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            stories={stories}
-            facts={facts}
-            learningItems={learningItems}
-            audioStories={audioStories}
-            language={language}
-            soundEnabled={soundEnabled}
-            onOpenAdmin={() => setIsParentalGateOpen(true)}
-            onSelectStory={handleSelectStoryFromHome}
-            onOpenSearch={(q) => handleOpenSearch(q || '')}
-            onOpenProModal={() => setIsProModalOpen(true)}
-          />
-        )}
+        {isTabTransitioning ? (
+          <ContentSkeletonLoader language={language} />
+        ) : (
+          <>
+            {activeTab === 'home' && (
+              <WebsiteHome
+                onNavigate={handleNavigateTab}
+                stories={stories}
+                facts={facts}
+                learningItems={learningItems}
+                audioStories={audioStories}
+                language={language}
+                soundEnabled={soundEnabled}
+                onOpenAdmin={() => setIsParentalGateOpen(true)}
+                onSelectStory={handleSelectStoryFromHome}
+                onOpenSearch={(q) => handleOpenSearch(q || '')}
+                onOpenProModal={() => setIsProModalOpen(true)}
+              />
+            )}
 
         {activeTab === 'stories' && (
           <StoriesHub
@@ -533,6 +664,16 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'profile' && (
+          <KidProfileHub
+            language={language}
+            soundEnabled={soundEnabled}
+            onNavigateTab={handleNavigateTab}
+            onSelectStory={handleSelectStory}
+            onOpenProModal={() => setIsProModalOpen(true)}
+          />
+        )}
+
         {activeTab === 'worksheets' && (
           <PrintableWorksheetsHub
             worksheets={worksheets}
@@ -563,6 +704,8 @@ export default function App() {
             soundEnabled={soundEnabled}
           />
         )}
+          </>
+        )}
       </main>
 
       {/* Comprehensive Modern Web Footer */}
@@ -579,7 +722,7 @@ export default function App() {
       {/* Strict 2-Step 2FA Admin Authentication Modal */}
       <ParentalGateModal
         isOpen={isParentalGateOpen}
-        onClose={() => setIsParentalGateOpen(false)}
+        onClose={handleCloseParentalGate}
         onSuccess={(email) => {
           setAdminEmail(email);
           setIsParentalGateOpen(false);
@@ -591,7 +734,7 @@ export default function App() {
       {/* Admin CMS Full Screen Hub */}
       <AdminCMS
         isOpen={isAdminCMSOpen}
-        onClose={() => setIsAdminCMSOpen(false)}
+        onClose={handleCloseAdminCMS}
         language={language}
         soundEnabled={soundEnabled}
         adminEmail={adminEmail}
@@ -613,12 +756,15 @@ export default function App() {
         onDataRestored={handleDataRestored}
       />
 
-      {/* Persistent Floating Back Button on Scroll */}
-      <FloatingBackButton
-        onBackToHome={handleBackToHome}
+      {/* Persistent Fixed Bottom Navigation Bar (Back, Home, Profile, Upper/ScrollToTop, Chatbot) */}
+      <FixedBottomBar
+        onBack={handleSmartBack}
+        onHome={handleDirectHome}
+        onOpenProfile={() => handleNavigateTab('profile')}
+        onOpenChat={() => setIsChatModalOpen(true)}
         language={language}
         soundEnabled={soundEnabled}
-        show={activeTab !== 'home'}
+        activeTab={activeTab}
         isReadingStory={selectedStoryForReader !== null}
       />
 
@@ -636,10 +782,12 @@ export default function App() {
         soundEnabled={soundEnabled}
         onSelectStory={handleSelectStoryFromHome}
         onNavigateTab={(tab) => {
-          setActiveTab(tab);
-          setShowBookmarksOnly(false);
-          setSelectedStoryForReader(null);
+          handleNavigateTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenAdmin={() => {
+          setIsSearchModalOpen(false);
+          setIsParentalGateOpen(true);
         }}
         initialQuery={searchModalQuery}
       />
@@ -650,13 +798,6 @@ export default function App() {
         onClose={() => setIsThemeModalOpen(false)}
         settings={themeSettings}
         onUpdateSettings={handleUpdateThemeSettings}
-        soundEnabled={soundEnabled}
-      />
-
-      {/* Floating AI Baalmitra Assistant Button */}
-      <FloatingBaalmitraButton
-        onOpenChat={() => setIsChatModalOpen(true)}
-        language={language}
         soundEnabled={soundEnabled}
       />
 

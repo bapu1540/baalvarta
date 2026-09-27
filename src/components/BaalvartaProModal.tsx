@@ -76,7 +76,7 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn font-sans">
+    <div className="fixed inset-0 z-[105] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn font-sans pb-safe">
       {/* Backdrop */}
       <div
         className="absolute inset-0"
@@ -88,7 +88,7 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
 
       {/* Main Modal Card */}
       <div
-        className="relative w-full max-w-2xl bg-white rounded-3xl border-3 border-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] z-10 animate-scaleUp"
+        className="relative w-full max-w-2xl bg-white rounded-3xl border-2 sm:border-3 border-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[92vh] z-10 animate-scaleUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 1. TOP HEADER BANNER */}
@@ -451,8 +451,8 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
               {isHi ? 'आनंद लें (Continue Reading)' : 'Continue to Baalvarta'}
             </button>
           ) : (
-            <>
-              <div className="text-left">
+            <div className="w-full flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-2.5 sm:gap-3">
+              <div className="text-left flex items-center justify-between xs:block">
                 <div className="text-[10px] text-slate-500 font-bold uppercase">
                   {isHi ? 'चयनित प्लान:' : 'Selected:'}
                 </div>
@@ -463,12 +463,12 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
 
               <button
                 onClick={handleProceedToPayment}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                className="w-full xs:w-auto px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
               >
                 <Zap className="w-4 h-4 text-amber-200 fill-amber-200" />
                 <span>{isHi ? 'अभी प्रो अपग्रेड करें 👑' : 'Upgrade to Pro Now 👑'}</span>
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>

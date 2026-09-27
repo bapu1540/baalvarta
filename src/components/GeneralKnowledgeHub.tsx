@@ -34,20 +34,23 @@ export const GeneralKnowledgeHub: React.FC<GeneralKnowledgeHubProps> = ({
       </div>
 
       {/* 2. SUB MENU PATTI: 1. India Map, 2. States & Districts, 3. Basic GK Q&A */}
-      <div className="bg-white rounded-2xl p-1 sm:p-1.5 border-2 border-slate-900 shadow-xs flex items-center gap-1 sm:gap-2">
+      <div className="bg-white rounded-2xl p-1 sm:p-1.5 border-2 border-slate-900 shadow-xs grid grid-cols-3 gap-1 sm:gap-2">
         <button
           onClick={() => {
             if (soundEnabled) playPopSound();
             setActiveSubTab('india');
           }}
-          className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-xl text-[11px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-1.5 sm:py-2 px-1 sm:px-3 rounded-xl text-[10px] sm:text-xs md:text-sm font-black flex items-center justify-center gap-1 sm:gap-1.5 transition-all text-center ${
             activeSubTab === 'india'
               ? 'bg-blue-600 text-white shadow-xs scale-[1.01]'
               : 'text-slate-700 hover:bg-slate-100'
           }`}
         >
-          <span>🇮🇳</span>
-          <span className="truncate">{isHi ? '1. India (नक्शा)' : '1. India Map'}</span>
+          <span className="text-xs sm:text-base shrink-0">🇮🇳</span>
+          <span className="leading-tight">
+            <span className="hidden sm:inline">{isHi ? '1. India (नक्शा)' : '1. India Map'}</span>
+            <span className="sm:hidden">{isHi ? '1. भारत नक्शा' : '1. India Map'}</span>
+          </span>
         </button>
 
         <button
@@ -55,14 +58,17 @@ export const GeneralKnowledgeHub: React.FC<GeneralKnowledgeHubProps> = ({
             if (soundEnabled) playPopSound();
             setActiveSubTab('state');
           }}
-          className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-xl text-[11px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-1.5 sm:py-2 px-1 sm:px-3 rounded-xl text-[10px] sm:text-xs md:text-sm font-black flex items-center justify-center gap-1 sm:gap-1.5 transition-all text-center ${
             activeSubTab === 'state'
               ? 'bg-blue-600 text-white shadow-xs scale-[1.01]'
               : 'text-slate-700 hover:bg-slate-100'
           }`}
         >
-          <span>🏛️</span>
-          <span className="truncate">{isHi ? '2. State (राज्य व जिले)' : '2. States & Districts'}</span>
+          <span className="text-xs sm:text-base shrink-0">🏛️</span>
+          <span className="leading-tight">
+            <span className="hidden sm:inline">{isHi ? '2. State (राज्य व जिले)' : '2. States & Districts'}</span>
+            <span className="sm:hidden">{isHi ? '2. राज्य/जिले' : '2. States'}</span>
+          </span>
         </button>
 
         <button
@@ -70,14 +76,17 @@ export const GeneralKnowledgeHub: React.FC<GeneralKnowledgeHubProps> = ({
             if (soundEnabled) playPopSound();
             setActiveSubTab('basic-gk');
           }}
-          className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-xl text-[11px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-1.5 sm:py-2 px-1 sm:px-3 rounded-xl text-[10px] sm:text-xs md:text-sm font-black flex items-center justify-center gap-1 sm:gap-1.5 transition-all text-center ${
             activeSubTab === 'basic-gk'
               ? 'bg-blue-600 text-white shadow-xs scale-[1.01]'
               : 'text-slate-700 hover:bg-slate-100'
           }`}
         >
-          <span>💡</span>
-          <span className="truncate">{isHi ? '3. Basic GK (प्रतीक व तथ्य)' : '3. Basic GK Q&A'}</span>
+          <span className="text-xs sm:text-base shrink-0">💡</span>
+          <span className="leading-tight">
+            <span className="hidden sm:inline">{isHi ? '3. Basic GK (प्रतीक व तथ्य)' : '3. Basic GK Q&A'}</span>
+            <span className="sm:hidden">{isHi ? '3. बेसिक GK' : '3. Basic GK'}</span>
+          </span>
         </button>
       </div>
 

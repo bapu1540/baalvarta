@@ -30,7 +30,9 @@ import {
   Volume2,
   FileText,
   CheckCircle2,
-  Share2
+  Share2,
+  Lock,
+  ShieldCheck
 } from 'lucide-react';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
 import { downloadOrPrintWorksheet } from '../utils/worksheetPrinter';
@@ -51,6 +53,7 @@ interface GlobalSearchModalProps {
   soundEnabled: boolean;
   onSelectStory: (story: Story) => void;
   onNavigateTab: (tab: ActiveTab) => void;
+  onOpenAdmin?: () => void;
   initialQuery?: string;
 }
 
@@ -78,6 +81,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   soundEnabled,
   onSelectStory,
   onNavigateTab,
+  onOpenAdmin,
   initialQuery = '',
 }) => {
   const [query, setQuery] = useState(initialQuery);
@@ -398,6 +402,35 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
         {/* Scrollable Results Area */}
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-6">
+
+          {/* Admin CMS Direct Gateway (When search query matches 'admin', 'cms', 'login', etc.) */}
+          {(query.toLowerCase().includes('admin') || query.toLowerCase().includes('cms') || query.toLowerCase().includes('login') || query.toLowerCase().includes('व्यवस्थापक')) && onOpenAdmin && (
+            <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg border-2 border-amber-300 flex items-center justify-between gap-4 animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 shadow-inner">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm sm:text-base font-black flex items-center gap-2">
+                    <span>🔐 व्यवस्थापक एडमिन पोर्टल (Admin CMS Portal)</span>
+                    <span className="text-[10px] bg-white/25 px-2 py-0.5 rounded-full font-bold">2-स्टेप सुरक्षित</span>
+                  </h4>
+                  <p className="text-xs text-amber-100 font-medium mt-0.5">
+                    कहानी, वीडियो, रोचक तथ्य व वर्कशीट्स जोड़ने और प्रबंधित करने के लिए प्रवेश करें।
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (soundEnabled) playSuccessSound();
+                  onOpenAdmin();
+                }}
+                className="px-4 py-2.5 rounded-xl bg-white text-slate-900 font-black text-xs sm:text-sm hover:bg-amber-50 active:scale-95 transition-all shadow-md shrink-0 cursor-pointer"
+              >
+                लॉगिन खोलें →
+              </button>
+            </div>
+          )}
 
           {/* 1. PDF WORKSHEETS SECTION (High Priority User Request) */}
           {(activeCategory === 'all' || activeCategory === 'worksheets') && results.worksheets.length > 0 && (

@@ -44,7 +44,8 @@ import {
   FileUp,
   Gamepad2,
   Palette,
-  Award
+  Award,
+  Heart
 } from 'lucide-react';
 import {
   Story,
@@ -59,9 +60,12 @@ import {
   UserReview,
   KidsGameItem,
   ColoringTemplateItem,
-  CertificateAwardItem
+  CertificateAwardItem,
+  DailyTaskItem,
+  UserProfile
 } from '../types';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
+import { safeCopyToClipboard } from '../utils/clipboard';
 import { ImageUpload16x9 } from './ImageUpload16x9';
 import { ImageUpload9x16 } from './ImageUpload9x16';
 import {
@@ -75,6 +79,12 @@ import {
   saveStoredColoringTemplates,
   getStoredCertificateAwards,
   saveStoredCertificateAwards,
+  getStoredDailyTasks,
+  saveStoredDailyTasks,
+  addStoredDailyTask,
+  deleteStoredDailyTask,
+  getUserProfile,
+  saveUserProfile,
   getStoredFooterImage,
   saveStoredFooterImage,
   getAdminPasswords,
@@ -152,7 +162,25 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   onResetAllData,
   onDataRestored,
 }) => {
-  const [activeTab, setActiveTab] = useState<'categories' | 'stories' | 'videos' | 'quizzes' | 'worksheets' | 'games' | 'coloring' | 'awards' | 'facts' | 'learning' | 'audio' | 'reviews' | 'branding' | 'security' | 'firebase'>('categories');
+  const [activeTab, setActiveTab] = useState<
+    | 'categories'
+    | 'stories'
+    | 'videos'
+    | 'quizzes'
+    | 'worksheets'
+    | 'games'
+    | 'coloring'
+    | 'awards'
+    | 'tasks'
+    | 'analytics'
+    | 'facts'
+    | 'learning'
+    | 'audio'
+    | 'reviews'
+    | 'branding'
+    | 'security'
+    | 'firebase'
+  >('categories');
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
@@ -168,10 +196,24 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   const [testingEmail, setTestingEmail] = useState<string | null>(null);
   const [testEmailMsg, setTestEmailMsg] = useState<string>('');
 
-  // Games, Coloring Templates and Certificate Awards State
+  // Games, Coloring Templates, Certificate Awards, Daily Tasks & Profile State
   const [gamesList, setGamesList] = useState<KidsGameItem[]>(() => getStoredGames());
   const [coloringTemplates, setColoringTemplates] = useState<ColoringTemplateItem[]>(() => getStoredColoringTemplates());
   const [certificateAwards, setCertificateAwards] = useState<CertificateAwardItem[]>(() => getStoredCertificateAwards());
+  const [dailyTasksList, setDailyTasksList] = useState<DailyTaskItem[]>(() => getStoredDailyTasks());
+  const [userProfileAdmin, setUserProfileAdmin] = useState<UserProfile>(() => getUserProfile());
+
+  // New Daily Task Form State
+  const [newDailyTask, setNewDailyTask] = useState<Omit<DailyTaskItem, 'id'>>({
+    titleHi: '',
+    titleEn: '',
+    descHi: '',
+    descEn: '',
+    category: 'story',
+    targetCount: 1,
+    rewardStars: 15,
+    icon: '🎯',
+  });
 
   // New Game Form State
   const [newGame, setNewGame] = useState<Omit<KidsGameItem, 'id'>>({
@@ -1300,6 +1342,38 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     saveStoredCertificateAwards(updated);
   };
 
+  // --- Daily Tasks Handlers ---
+  const handleAddDailyTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDailyTask.titleHi) return;
+    if (soundEnabled) playSuccessSound();
+
+    const updated = addStoredDailyTask(newDailyTask);
+    setDailyTasksList(updated);
+
+    setNewDailyTask({
+      titleHi: '',
+      titleEn: '',
+      descHi: '',
+      descEn: '',
+      category: 'story',
+      targetCount: 1,
+      rewardStars: 15,
+      icon: '🎯',
+    });
+
+    setToastMessage({ text: '🎯 नया दैनिक कार्य (Daily Task) सफलतापूर्वक जोड़ा गया!', type: 'success' });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleDeleteDailyTask = (id: string) => {
+    if (soundEnabled) playPopSound();
+    const updated = deleteStoredDailyTask(id);
+    setDailyTasksList(updated);
+    setToastMessage({ text: '🗑️ दैनिक कार्य हटा दिया गया।', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   const allCollectionsData = {
     app: 'Baalvarta App',
     version: '1.0.0',
@@ -1345,16 +1419,14 @@ service cloud.firestore {
   }
 }`;
 
-  const copyToClipboard = (text: string, type: 'rules' | 'json') => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      if (type === 'rules') {
-        setCopiedCode(true);
-        setTimeout(() => setCopiedCode(false), 2000);
-      } else {
-        setCopiedJson(true);
-        setTimeout(() => setCopiedJson(false), 2000);
-      }
+  const copyToClipboard = async (text: string, type: 'rules' | 'json') => {
+    await safeCopyToClipboard(text);
+    if (type === 'rules') {
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    } else {
+      setCopiedJson(true);
+      setTimeout(() => setCopiedJson(false), 2000);
     }
   };
 
@@ -1383,7 +1455,7 @@ service cloud.firestore {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#FDFBF7] flex flex-col overflow-hidden animate-in fade-in duration-200 selection:bg-amber-200">
+    <div className="fixed inset-0 z-[100] bg-[#FDFBF7] flex flex-col overflow-hidden animate-in fade-in duration-200 selection:bg-amber-200">
       {/* Admin Top Header Bar */}
       <header className="sticky top-0 z-40 bg-white border-b-2 border-amber-300 shadow-sm px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -1489,13 +1561,15 @@ service cloud.firestore {
             { id: 'games', label: '5. किड्स गेम्स', icon: Gamepad2, count: gamesList.length },
             { id: 'coloring', label: '6. कलरिंग टेम्पलेट्स', icon: Palette, count: coloringTemplates.length },
             { id: 'awards', label: '7. बाल सम्मान', icon: Award, count: certificateAwards.length },
-            { id: 'facts', label: '8. रोचक तथ्य', icon: Lightbulb, count: facts.length },
-            { id: 'learning', label: '9. अक्षर व गिनती', icon: Sparkles, count: learningItems.length },
-            { id: 'audio', label: '10. ऑडियो कहानियाँ', icon: Headphones, count: audioStories.length },
-            { id: 'reviews', label: '11. पाठक समीक्षाएँ', icon: CheckCircle2, count: reviews.length },
-            { id: 'branding', label: '12. फुटर आर्टवर्क', icon: ImageIcon },
-            { id: 'security', label: '13. सुरक्षा व 2FA', icon: Shield },
-            { id: 'firebase', label: '14. डेटाबेस बैकअप', icon: Cloud },
+            { id: 'tasks', label: '8. दैनिक टास्क व मिशन', icon: CheckCircle2, count: dailyTasksList.length },
+            { id: 'analytics', label: '9. बाल प्रोफ़ाइल व एनालिटिक्स', icon: UserCheck },
+            { id: 'facts', label: '10. रोचक तथ्य', icon: Lightbulb, count: facts.length },
+            { id: 'learning', label: '11. अक्षर व गिनती', icon: Sparkles, count: learningItems.length },
+            { id: 'audio', label: '12. ऑडियो कहानियाँ', icon: Headphones, count: audioStories.length },
+            { id: 'reviews', label: '13. पाठक समीक्षाएँ', icon: Heart, count: reviews.length },
+            { id: 'branding', label: '14. फुटर आर्टवर्क', icon: ImageIcon },
+            { id: 'security', label: '15. सुरक्षा व 2FA', icon: Shield },
+            { id: 'firebase', label: '16. डेटाबेस बैकअप', icon: Cloud },
           ].map((tab) => {
 
             const Icon = tab.icon;
@@ -1653,8 +1727,30 @@ service cloud.firestore {
                       actions: ['+ नया सम्मान मेडल', '🏆 पुरस्कार विवरण', '🗑️ डिलीट'],
                     },
                     {
-                      id: 'facts' as const,
+                      id: 'tasks' as const,
                       num: '8',
+                      titleHi: 'दैनिक टास्क व मिशन (Daily Tasks)',
+                      titleEn: 'Daily Quests & Star Rewards',
+                      icon: CheckCircle2,
+                      count: `${dailyTasksList.length} दैनिक कार्य`,
+                      gradient: 'from-emerald-500 to-teal-600',
+                      desc: 'बच्चों के लिए दैनिक कहानी पढ़ने, क्विज़ हल करने व स्टार्स रिवॉर्ड्स के मिशन।',
+                      actions: ['+ नया टास्क जोड़ें', '⭐ रिवॉर्ड स्टार्स सेट करें', '🗑️ डिलीट'],
+                    },
+                    {
+                      id: 'analytics' as const,
+                      num: '9',
+                      titleHi: 'बाल प्रोफ़ाइल व एनालिटिक्स (Student Profiles)',
+                      titleEn: 'Learner Passports & Reading Analytics',
+                      icon: UserCheck,
+                      count: 'लाइव प्रोफ़ाइल रिपोर्ट',
+                      gradient: 'from-indigo-500 to-purple-600',
+                      desc: 'विद्यार्थियों की कुल पढ़ी गई कहानियाँ, स्ट्रीक, क्विज़ रिकॉर्ड व पासपोर्ट स्थिति।',
+                      actions: ['📊 प्रगति डैशबोर्ड देखें', '👑 PRO स्थिति जांचें', '🔄 रीसेट'],
+                    },
+                    {
+                      id: 'facts' as const,
+                      num: '10',
                       titleHi: 'रोचक तथ्य (Rochak Tathya)',
                       titleEn: 'Science & Animal Fun Facts',
                       icon: Lightbulb,
@@ -3546,6 +3642,291 @@ service cloud.firestore {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: 🎯 DAILY TASKS & MISSIONS CMS */}
+          {activeTab === 'tasks' && (
+            <div className="space-y-6">
+              {/* Back to Categories Hub Header */}
+              <div className="p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (soundEnabled) playPopSound();
+                    setActiveTab('categories');
+                  }}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs transition-all active:scale-95 cursor-pointer self-start"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>← सभी कैटेगरीज मेन्यू (All Categories Menu)</span>
+                </button>
+                <div className="flex items-center gap-2 text-xs font-black text-amber-950">
+                  <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200">
+                    श्रेणी 8: दैनिक कार्य व मिशन ({dailyTasksList.length})
+                  </span>
+                  <span className="text-slate-600 font-semibold hidden md:inline">
+                    • यहाँ से बच्चों के लिए दैनिक पढ़ने व रिवार्ड्स के कार्य प्रबंधित करें
+                  </span>
+                </div>
+              </div>
+
+              {/* Add Daily Task Form */}
+              <div className="bg-emerald-50/70 rounded-3xl p-5 border-2 border-emerald-300 space-y-4 shadow-xs">
+                <h3 className="font-black text-sm text-emerald-950 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>नया दैनिक कार्य / मिशन जोड़ें (Add New Daily Quest)</span>
+                </h3>
+
+                <form onSubmit={handleAddDailyTask} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">
+                  <div className="sm:col-span-2">
+                    <label className="font-bold text-slate-700 block mb-1">टास्क शीर्षक (Hindi) *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="उदा. 📖 1 नई नैतिक कहानी पढ़ें"
+                      value={newDailyTask.titleHi}
+                      onChange={(e) => setNewDailyTask({ ...newDailyTask, titleHi: e.target.value })}
+                      className="w-full p-2.5 rounded-xl bg-white border border-emerald-300 font-semibold focus:ring-2 focus:ring-emerald-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Task Title (English)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Read 1 Moral Story"
+                      value={newDailyTask.titleEn}
+                      onChange={(e) => setNewDailyTask({ ...newDailyTask, titleEn: e.target.value })}
+                      className="w-full p-2.5 rounded-xl bg-white border border-emerald-300 font-semibold focus:ring-2 focus:ring-emerald-400"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="font-bold text-slate-700 block mb-1">कार्य विवरण (Hindi Description) *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="उदा. आज कोई भी एक ज्ञानवर्धक कहानी पूरी पढ़ें।"
+                      value={newDailyTask.descHi}
+                      onChange={(e) => setNewDailyTask({ ...newDailyTask, descHi: e.target.value })}
+                      className="w-full p-2.5 rounded-xl bg-white border border-emerald-300 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">श्रेणी (Category) *</label>
+                    <select
+                      value={newDailyTask.category}
+                      onChange={(e) => setNewDailyTask({ ...newDailyTask, category: e.target.value as any })}
+                      className="w-full p-2.5 rounded-xl bg-white border border-emerald-300 font-bold"
+                    >
+                      <option value="story">📖 कहानी पठन (Story Reading)</option>
+                      <option value="quiz">🎯 बाल क्विज़ (Kids Quiz)</option>
+                      <option value="fact">💡 रोचक तथ्य (Fun Fact)</option>
+                      <option value="audio">🎧 ऑडियो कहानी (Audio Tale)</option>
+                      <option value="coloring">🎨 कलरिंग चित्र (Coloring Canvas)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">रिवॉर्ड स्टार्स (Bonus Stars ⭐) *</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="100"
+                      value={newDailyTask.rewardStars}
+                      onChange={(e) => setNewDailyTask({ ...newDailyTask, rewardStars: Number(e.target.value) || 10 })}
+                      className="w-full p-2.5 rounded-xl bg-white border border-emerald-300 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Emoji / Icon</label>
+                    <input
+                      type="text"
+                      value={newDailyTask.icon}
+                      onChange={(e) => setNewDailyTask({ ...newDailyTask, icon: e.target.value })}
+                      placeholder="उदा. 📖, 🎯, 💡, 🎧, 🎨"
+                      className="w-full p-2.5 rounded-xl bg-white border border-emerald-300 font-bold text-center"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 md:col-span-3">
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>दैनिक कार्य जोड़ें व सुरक्षित करें (Save Daily Task)</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Tasks List */}
+              <div className="space-y-3">
+                <h4 className="font-black text-xs text-slate-800 uppercase tracking-wider">
+                  मौजूदा सक्रिय दैनिक कार्य ({dailyTasksList.length})
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {dailyTasksList.map((task) => (
+                    <div
+                      key={task.id}
+                      className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between gap-3 hover:border-emerald-300 transition-all"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center justify-center text-2xl shrink-0">
+                          {task.icon || '⭐'}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h5 className="font-extrabold text-xs text-slate-900 truncate">{task.titleHi}</h5>
+                            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black shrink-0">
+                              +{task.rewardStars} ⭐
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 line-clamp-1">{task.descHi}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteDailyTask(task.id)}
+                        className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold cursor-pointer shrink-0"
+                        title="टास्क हटाएं"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 9: 👤 STUDENT PROFILES & LEARNING ANALYTICS CMS */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              {/* Back to Categories Hub Header */}
+              <div className="p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (soundEnabled) playPopSound();
+                    setActiveTab('categories');
+                  }}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs transition-all active:scale-95 cursor-pointer self-start"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>← सभी कैटेगरीज मेन्यू (All Categories Menu)</span>
+                </button>
+                <div className="flex items-center gap-2 text-xs font-black text-amber-950">
+                  <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200">
+                    श्रेणी 9: बाल प्रोफ़ाइल व एनालिटिक्स ओवरव्यू
+                  </span>
+                  <span className="text-slate-600 font-semibold hidden md:inline">
+                    • विद्यार्थियों की पठन प्रगति, स्ट्रीक व स्टार्स मॉनिटर करें
+                  </span>
+                </div>
+              </div>
+
+              {/* Learner Passport Overview Card */}
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-indigo-700 via-purple-700 to-amber-700 text-white shadow-xl space-y-4 border-2 border-indigo-400">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/80 flex items-center justify-center text-4xl shadow-md">
+                      {userProfileAdmin.avatar || '🦁'}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full text-indigo-100">
+                        {userProfileAdmin.isPro ? '👑 PRO SCHOLAR VIP' : 'FREE SCHOLAR'}
+                      </span>
+                      <h3 className="text-xl font-black text-white mt-1">{userProfileAdmin.name}</h3>
+                      <p className="text-xs text-indigo-200">{userProfileAdmin.ageGroup} • अंतिम सक्रिय: {userProfileAdmin.lastActiveDate}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-center p-3 rounded-2xl bg-black/30 border border-white/20">
+                      <span className="text-[10px] text-amber-200 block font-bold">कुल स्टार्स</span>
+                      <span className="text-xl font-black text-white">{userProfileAdmin.stars} ⭐</span>
+                    </div>
+                    <div className="text-center p-3 rounded-2xl bg-black/30 border border-white/20">
+                      <span className="text-[10px] text-amber-200 block font-bold">स्ट्रीक</span>
+                      <span className="text-xl font-black text-orange-300">{userProfileAdmin.streakDays} दिन 🔥</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-white/20 text-xs">
+                  <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs">
+                    <span className="text-[10px] text-indigo-200 block">कहानियाँ पढ़ीं</span>
+                    <span className="text-lg font-black text-white">{userProfileAdmin.totalStoriesRead}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs">
+                    <span className="text-[10px] text-indigo-200 block">क्विज़ हल किए</span>
+                    <span className="text-lg font-black text-white">{userProfileAdmin.quizzesCompleted}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs">
+                    <span className="text-[10px] text-indigo-200 block">रोचक तथ्य सीखे</span>
+                    <span className="text-lg font-black text-white">{userProfileAdmin.factsLearned}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/10 backdrop-blur-xs">
+                    <span className="text-[10px] text-indigo-200 block">प्रमाणपत्र अर्जित</span>
+                    <span className="text-lg font-black text-white">{userProfileAdmin.earnedCertificates?.length || 1} 🏆</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Maintenance Tools */}
+              <div className="p-5 rounded-3xl bg-white border-2 border-slate-200 shadow-xs space-y-3">
+                <h4 className="font-black text-sm text-slate-900">
+                  ⚙️ प्रोफ़ाइल डेटा प्रबंधन व सिंक सेटिंग्स:
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  सभी विद्यार्थियों का डेटा स्थानीय रूप से (Offline IndexedDB / LocalStorage) सुरक्षित रहता है और प्रीमियम उपयोगकर्ताओं के लिए Firebase Cloud के साथ सिंक होता है।
+                </p>
+
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (soundEnabled) playPopSound();
+                      const updated = {
+                        ...userProfileAdmin,
+                        stars: userProfileAdmin.stars + 50,
+                      };
+                      saveUserProfile(updated);
+                      setUserProfileAdmin(updated);
+                      setToastMessage({ text: '⭐ +50 डेमो स्टार्स सफलतापूर्वक जोड़े गए!', type: 'success' });
+                      setTimeout(() => setToastMessage(null), 2500);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs cursor-pointer"
+                  >
+                    +50 बोनस स्टार्स दें (Add Demo Stars)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (soundEnabled) playPopSound();
+                      const updated = {
+                        ...userProfileAdmin,
+                        isPro: !userProfileAdmin.isPro,
+                      };
+                      saveUserProfile(updated);
+                      setUserProfileAdmin(updated);
+                      setToastMessage({ text: `👑 PRO VIP स्थिति: ${updated.isPro ? 'सक्रिय' : 'सामान्य'}`, type: 'info' });
+                      setTimeout(() => setToastMessage(null), 2500);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs cursor-pointer"
+                  >
+                    PRO VIP स्टेटस टॉगल करें
+                  </button>
                 </div>
               </div>
             </div>

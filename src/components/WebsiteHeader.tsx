@@ -226,6 +226,14 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       badge: 'मज़ा',
       badgeColor: 'bg-purple-100 text-purple-900 border-purple-300',
     },
+    {
+      id: 'profile' as ActiveTab,
+      labelHi: 'प्रोफ़ाइल',
+      labelEn: 'Profile',
+      icon: Award,
+      badge: '⭐ VIP',
+      badgeColor: 'bg-yellow-100 text-yellow-900 border-yellow-400',
+    },
   ];
 
   // Full category list for 3-dot drawer (1 to 10 exact order)
@@ -237,6 +245,14 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       icon: Home,
       color: 'from-amber-500 to-orange-500',
       badge: null,
+    },
+    {
+      id: 'profile' as ActiveTab,
+      labelHi: '👤 बाल प्रोफ़ाइल व रिपोर्ट कार्ड (My Profile)',
+      labelEn: '👤 Kid Profile & Report Card',
+      icon: Award,
+      color: 'from-amber-500 via-orange-500 to-amber-600',
+      badge: '⭐ VIP',
     },
     {
       id: 'stories' as ActiveTab,
@@ -333,15 +349,6 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       icon: Mail,
       color: 'from-slate-600 to-slate-800',
       badge: null,
-    },
-    {
-      id: 'admin' as ActiveTab,
-      labelHi: '🔒 एडमिन CMS पोर्टल',
-      labelEn: '🔒 Admin CMS Portal',
-      icon: ShieldCheck,
-      color: 'from-amber-600 to-orange-700',
-      badge: 'Admin',
-      isAdmin: true,
     },
   ];
 

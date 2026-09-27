@@ -9,7 +9,10 @@ import {
   UserReview,
   KidsGameItem,
   ColoringTemplateItem,
-  CertificateAwardItem
+  CertificateAwardItem,
+  DailyTaskItem,
+  UserProfile,
+  StreakMilestone
 } from '../types';
 import {
   INITIAL_STORIES,
@@ -56,9 +59,88 @@ export const KEYS = {
   COLORING_TEMPLATES: 'baalvarta_coloring_templates_v1',
   CERTIFICATE_AWARDS: 'baalvarta_certificate_awards_v1',
   READING_STREAK: 'baalvarta_reading_streak_v1',
+  USER_PROFILE: 'baalvarta_user_profile_v2',
+  DAILY_TASKS: 'baalvarta_daily_tasks_v1',
   REVIEWS: 'baalvarta_user_reviews_v1',
   CUSTOM_FOOTER_IMG: 'baalvarta_custom_footer_img',
   ADMIN_PASSWORDS: 'baalvarta_admin_passwords_v2',
+};
+
+export const INITIAL_DAILY_TASKS: DailyTaskItem[] = [
+  {
+    id: 'task-story-1',
+    titleHi: '📖 1 नई नैतिक कहानी पढ़ें',
+    titleEn: 'Read 1 Moral Story',
+    descHi: 'आज कोई भी एक ज्ञानवर्धक या पंचतंत्र कहानी पूरी पढ़ें।',
+    descEn: 'Read any moral or Panchatantra story completely today.',
+    category: 'story',
+    targetCount: 1,
+    rewardStars: 15,
+    icon: '📖',
+  },
+  {
+    id: 'task-quiz-1',
+    titleHi: '🎯 बाल क्विज़ में भाग लें',
+    titleEn: 'Take a Kids Quiz',
+    descHi: 'क्विज़ के 5 प्रश्नों के सही उत्तर देकर अपना ज्ञान परखें।',
+    descEn: 'Test your wisdom by answering 5 quiz questions.',
+    category: 'quiz',
+    targetCount: 1,
+    rewardStars: 20,
+    icon: '🎯',
+  },
+  {
+    id: 'task-fact-1',
+    titleHi: '🌟 1 रोचक तथ्य (Fun Fact) सीखें',
+    titleEn: 'Learn 1 Fun Fact',
+    descHi: 'प्रकृति, विज्ञान या अंतरिक्ष का एक आश्चर्यजनक तथ्य जानें।',
+    descEn: 'Discover an amazing fact about science, space or animals.',
+    category: 'fact',
+    targetCount: 1,
+    rewardStars: 10,
+    icon: '💡',
+  },
+  {
+    id: 'task-audio-1',
+    titleHi: '🎧 1 ऑडियो कहानी सुनें',
+    titleEn: 'Listen to 1 Audio Story',
+    descHi: 'मधुर आवाज़ में बाल कहानी का आनंद लें।',
+    descEn: 'Enjoy a soothing narrated audio tale.',
+    category: 'audio',
+    targetCount: 1,
+    rewardStars: 10,
+    icon: '🎧',
+  },
+  {
+    id: 'task-coloring-1',
+    titleHi: '🎨 1 डिजिटल चित्र में रंग भरें',
+    titleEn: 'Paint 1 Coloring Canvas',
+    descHi: 'कलरिंग बुक में जाकर सुंदर रंगों से चित्र सजाएं।',
+    descEn: 'Color and paint a cute character illustration.',
+    category: 'coloring',
+    targetCount: 1,
+    rewardStars: 15,
+    icon: '🎨',
+  },
+];
+
+export const INITIAL_USER_PROFILE: UserProfile = {
+  id: 'user-default-1',
+  name: 'आरव चौहान',
+  avatar: '🦁',
+  ageGroup: '6-8 वर्ष',
+  isPro: false,
+  stars: 45,
+  totalStoriesRead: 4,
+  streakDays: 3,
+  completedTasks: ['task-story-1'],
+  claimedRewards: [],
+  lastActiveDate: new Date().toISOString().split('T')[0],
+  earnedCertificates: ['super_reader'],
+  quizzesCompleted: 2,
+  factsLearned: 5,
+  audioStoriesListened: 1,
+  coloringPagesFinished: 1,
 };
 
 export const AUTHORIZED_ADMIN_EMAILS = [
@@ -290,34 +372,205 @@ export function toggleBookmark(id: string): string[] {
   return next;
 }
 
-export function getReadingStreak(): { streak: number; totalRead: number; lastDate: string } {
+export interface ReadingStreakData {
+  streak: number;
+  totalRead: number;
+  lastDate: string; // ISO format 'YYYY-MM-DD'
+  activeDays: string[]; // List of YYYY-MM-DD
+  claimedMilestones: string[];
+}
+
+export const STREAK_MILESTONES: StreakMilestone[] = [
+  {
+    days: 1,
+    badgeId: 'streak-1',
+    titleHi: '🌱 शुरुआत स्पार्क (Day 1 Spark)',
+    titleEn: 'Day 1 Spark',
+    badgeIcon: '🔥',
+    rewardStars: 10,
+    flameLevel: 'spark',
+    descriptionHi: 'दैनिक पठन की यात्रा शुरू करने पर प्रथम स्ट्रीक बैज!',
+    descriptionEn: 'First streak badge for starting daily reading journey!',
+  },
+  {
+    days: 3,
+    badgeId: 'streak-3',
+    titleHi: '🥉 3-दिवसीय पठन सितारा (3-Day Reading Star)',
+    titleEn: '3-Day Reading Star',
+    badgeIcon: '🥉',
+    rewardStars: 25,
+    flameLevel: 'spark',
+    descriptionHi: 'लगातार 3 दिन कहानी पढ़कर नियमित पठन की आदत बनाई!',
+    descriptionEn: 'Formed a consistent reading habit for 3 consecutive days!',
+  },
+  {
+    days: 7,
+    badgeId: 'streak-7',
+    titleHi: '🥈 7-दिवसीय साप्ताहिक योद्धा (7-Day Weekly Hero)',
+    titleEn: '7-Day Weekly Hero',
+    badgeIcon: '🥈',
+    rewardStars: 50,
+    flameLevel: 'flame',
+    descriptionHi: 'पूरा 1 सप्ताह लगातार हर दिन नैतिक कहानी पढ़ने का गौरव!',
+    descriptionEn: 'Completed 1 full week of daily moral story reading!',
+  },
+  {
+    days: 14,
+    badgeId: 'streak-14',
+    titleHi: '🥇 14-दिवसीय सुपर स्कॉलर (14-Day Super Scholar)',
+    titleEn: '14-Day Super Scholar',
+    badgeIcon: '🥇',
+    rewardStars: 100,
+    flameLevel: 'blaze',
+    descriptionHi: 'लगातार 2 सप्ताह की स्ट्रीक! ज्ञान व बुद्धि का प्रतीक।',
+    descriptionEn: '2 weeks continuous streak! A true knowledge seeker.',
+  },
+  {
+    days: 30,
+    badgeId: 'streak-30',
+    titleHi: '👑 30-दिवसीय बालवार्ता लेजेंड (30-Day Legend of Baalvarta)',
+    titleEn: '30-Day Legend of Baalvarta',
+    badgeIcon: '👑',
+    rewardStars: 250,
+    flameLevel: 'cosmic',
+    descriptionHi: 'पूरे 1 महीने तक हर दिन कहानी पढ़ने का सर्वोच्च सम्मान!',
+    descriptionEn: 'The ultimate reading achievement for 30 consecutive days!',
+  },
+];
+
+export function getReadingStreak(): ReadingStreakData {
+  const todayIso = new Date().toISOString().split('T')[0];
+  const yesterdayIso = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
   try {
     const data = localStorage.getItem(KEYS.READING_STREAK);
-    if (!data) return { streak: 1, totalRead: 3, lastDate: new Date().toDateString() };
-    return JSON.parse(data);
+    if (!data) {
+      const initial: ReadingStreakData = {
+        streak: 1,
+        totalRead: 3,
+        lastDate: todayIso,
+        activeDays: [todayIso],
+        claimedMilestones: ['streak-1'],
+      };
+      safeLocalStorageSet(KEYS.READING_STREAK, JSON.stringify(initial));
+      return initial;
+    }
+    const parsed = JSON.parse(data);
+    let streak = parsed.streak || 0;
+    const lastDate = parsed.lastDate || '';
+    const activeDays = Array.isArray(parsed.activeDays) ? parsed.activeDays : [];
+    const claimedMilestones = Array.isArray(parsed.claimedMilestones) ? parsed.claimedMilestones : [];
+
+    // Check if streak was broken (last active date was older than yesterday)
+    if (lastDate && lastDate !== todayIso && lastDate !== yesterdayIso) {
+      // Streak broken, if they read today it will restart at 1, otherwise 0
+      streak = 0;
+    }
+
+    return {
+      streak: Math.max(0, streak),
+      totalRead: parsed.totalRead || 0,
+      lastDate,
+      activeDays,
+      claimedMilestones,
+    };
   } catch {
-    return { streak: 1, totalRead: 3, lastDate: new Date().toDateString() };
+    return {
+      streak: 1,
+      totalRead: 3,
+      lastDate: todayIso,
+      activeDays: [todayIso],
+      claimedMilestones: ['streak-1'],
+    };
   }
 }
 
-export function recordStoryRead(): { streak: number; totalRead: number } {
+export function recordStoryRead(): { streak: number; totalRead: number; isNewStreakDay: boolean } {
   const current = getReadingStreak();
-  const today = new Date().toDateString();
+  const todayIso = new Date().toISOString().split('T')[0];
+  const yesterdayIso = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  
   let nextStreak = current.streak;
+  let isNewStreakDay = false;
 
-  if (current.lastDate !== today) {
+  if (current.lastDate === todayIso) {
+    // Already counted today's streak, just keep streak
+    nextStreak = Math.max(1, current.streak);
+  } else if (current.lastDate === yesterdayIso) {
+    // Read yesterday! Consecutive day streak increment
     nextStreak = current.streak + 1;
+    isNewStreakDay = true;
+  } else {
+    // Started fresh today
+    nextStreak = 1;
+    isNewStreakDay = true;
   }
 
-  const updated = {
+  const nextActiveDays = Array.from(new Set([...current.activeDays, todayIso])).slice(-30);
+  const nextTotalRead = current.totalRead + 1;
+
+  const updated: ReadingStreakData = {
     streak: nextStreak,
-    totalRead: current.totalRead + 1,
-    lastDate: today,
+    totalRead: nextTotalRead,
+    lastDate: todayIso,
+    activeDays: nextActiveDays,
+    claimedMilestones: current.claimedMilestones,
   };
 
   safeLocalStorageSet(KEYS.READING_STREAK, JSON.stringify(updated));
   idbSet(KEYS.READING_STREAK, updated);
-  return updated;
+
+  // Synchronize with UserProfile
+  try {
+    const profile = getUserProfile();
+    const updatedProfile: UserProfile = {
+      ...profile,
+      streakDays: nextStreak,
+      totalStoriesRead: nextTotalRead,
+      stars: profile.stars + 10, // 10 stars bonus for reading a story
+      completedTasks: Array.from(new Set([...(profile.completedTasks || []), 'task-story-1'])),
+      streakHistory: nextActiveDays,
+      lastActiveDate: todayIso,
+    };
+    saveUserProfile(updatedProfile);
+  } catch (err) {
+    console.warn('Sync profile error in recordStoryRead:', err);
+  }
+
+  return { streak: nextStreak, totalRead: nextTotalRead, isNewStreakDay };
+}
+
+export function claimStreakMilestone(badgeId: string): { success: boolean; starsAdded: number; milestone?: StreakMilestone } {
+  const current = getReadingStreak();
+  const milestone = STREAK_MILESTONES.find((m) => m.badgeId === badgeId);
+  if (!milestone) return { success: false, starsAdded: 0 };
+
+  if (current.streak < milestone.days) {
+    return { success: false, starsAdded: 0 };
+  }
+
+  if (current.claimedMilestones.includes(badgeId)) {
+    return { success: false, starsAdded: 0 };
+  }
+
+  const updatedMilestones = [...current.claimedMilestones, badgeId];
+  const updatedStreakData: ReadingStreakData = {
+    ...current,
+    claimedMilestones: updatedMilestones,
+  };
+  safeLocalStorageSet(KEYS.READING_STREAK, JSON.stringify(updatedStreakData));
+  idbSet(KEYS.READING_STREAK, updatedStreakData);
+
+  // Add stars to User Profile
+  const profile = getUserProfile();
+  const updatedProfile: UserProfile = {
+    ...profile,
+    stars: profile.stars + milestone.rewardStars,
+    claimedMilestones: updatedMilestones,
+  };
+  saveUserProfile(updatedProfile);
+
+  return { success: true, starsAdded: milestone.rewardStars, milestone };
 }
 
 // Helper to normalize Hindi digits & unicode spaces
@@ -577,6 +830,119 @@ export function saveStoredFooterImage(dataUrl: string | null) {
   }
 }
 
+// --- User Profile & Learner Passport Storage Engine ---
+export function getUserProfile(): UserProfile {
+  try {
+    const data = localStorage.getItem(KEYS.USER_PROFILE);
+    if (!data) {
+      safeLocalStorageSet(KEYS.USER_PROFILE, JSON.stringify(INITIAL_USER_PROFILE));
+      idbSet(KEYS.USER_PROFILE, INITIAL_USER_PROFILE);
+      return INITIAL_USER_PROFILE;
+    }
+    const parsed = JSON.parse(data);
+    return { ...INITIAL_USER_PROFILE, ...parsed };
+  } catch {
+    return INITIAL_USER_PROFILE;
+  }
+}
+
+export function saveUserProfile(profile: UserProfile) {
+  safeLocalStorageSet(KEYS.USER_PROFILE, JSON.stringify(profile));
+  idbSet(KEYS.USER_PROFILE, profile);
+  saveToServerDatabase({ user_profile: profile });
+}
+
+export function updateUserProfile(updates: Partial<UserProfile>): UserProfile {
+  const current = getUserProfile();
+  const updated: UserProfile = {
+    ...current,
+    ...updates,
+    lastActiveDate: new Date().toISOString().split('T')[0],
+  };
+  saveUserProfile(updated);
+  return updated;
+}
+
+export function incrementUserStat(
+  key: 'totalStoriesRead' | 'quizzesCompleted' | 'factsLearned' | 'audioStoriesListened' | 'coloringPagesFinished',
+  amount = 1
+): UserProfile {
+  const current = getUserProfile();
+  const currentVal = current[key] || 0;
+  const updated: UserProfile = {
+    ...current,
+    [key]: currentVal + amount,
+    stars: current.stars + (key === 'totalStoriesRead' ? 10 : key === 'quizzesCompleted' ? 15 : 5),
+    lastActiveDate: new Date().toISOString().split('T')[0],
+  };
+  saveUserProfile(updated);
+  return updated;
+}
+
+export function getStoredDailyTasks(): DailyTaskItem[] {
+  try {
+    const data = localStorage.getItem(KEYS.DAILY_TASKS);
+    if (!data) {
+      safeLocalStorageSet(KEYS.DAILY_TASKS, JSON.stringify(INITIAL_DAILY_TASKS));
+      idbSet(KEYS.DAILY_TASKS, INITIAL_DAILY_TASKS);
+      return INITIAL_DAILY_TASKS;
+    }
+    return JSON.parse(data);
+  } catch {
+    return INITIAL_DAILY_TASKS;
+  }
+}
+
+export function saveStoredDailyTasks(tasks: DailyTaskItem[]) {
+  safeLocalStorageSet(KEYS.DAILY_TASKS, JSON.stringify(tasks));
+  idbSet(KEYS.DAILY_TASKS, tasks);
+  saveToServerDatabase({ daily_tasks: tasks });
+}
+
+export function addStoredDailyTask(task: Omit<DailyTaskItem, 'id'>): DailyTaskItem[] {
+  const current = getStoredDailyTasks();
+  const newTask: DailyTaskItem = {
+    ...task,
+    id: `task-${Date.now()}`,
+  };
+  const updated = [...current, newTask];
+  saveStoredDailyTasks(updated);
+  return updated;
+}
+
+export function deleteStoredDailyTask(id: string): DailyTaskItem[] {
+  const current = getStoredDailyTasks();
+  const updated = current.filter((t) => t.id !== id);
+  saveStoredDailyTasks(updated);
+  return updated;
+}
+
+export function claimDailyTaskReward(taskId: string): { success: boolean; starsAdded: number; profile: UserProfile } {
+  const profile = getUserProfile();
+  const tasks = getStoredDailyTasks();
+  const task = tasks.find((t) => t.id === taskId);
+
+  if (!task) {
+    return { success: false, starsAdded: 0, profile };
+  }
+
+  const alreadyClaimed = (profile.claimedRewards || []).includes(taskId);
+  if (alreadyClaimed) {
+    return { success: false, starsAdded: 0, profile };
+  }
+
+  const starsToAdd = task.rewardStars || 10;
+  const updatedProfile: UserProfile = {
+    ...profile,
+    stars: profile.stars + starsToAdd,
+    claimedRewards: [...(profile.claimedRewards || []), taskId],
+    completedTasks: Array.from(new Set([...(profile.completedTasks || []), taskId])),
+  };
+
+  saveUserProfile(updatedProfile);
+  return { success: true, starsAdded: starsToAdd, profile: updatedProfile };
+}
+
 export function resetAllDataToDefault() {
   saveStoredStories(INITIAL_STORIES);
   saveStoredFunFacts(INITIAL_FUN_FACTS);
@@ -587,6 +953,8 @@ export function resetAllDataToDefault() {
   saveStoredQuizSets(INITIAL_QUIZ_SETS);
   saveStoredWorksheets(INITIAL_WORKSHEETS);
   saveStoredReviews(INITIAL_USER_REVIEWS);
+  saveUserProfile(INITIAL_USER_PROFILE);
+  saveStoredDailyTasks(INITIAL_DAILY_TASKS);
   saveStoredFooterImage(null);
 }
 

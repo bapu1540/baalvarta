@@ -14,7 +14,14 @@ async function startServer() {
   const DB_FILE = path.join(DATA_DIR, 'baalvarta_database.json');
 
   // Initialize Google GenAI on server
-  const ai = new GoogleGenAI();
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
+    },
+  });
 
   // Ensure persistent data directory exists
   if (!fs.existsSync(DATA_DIR)) {
@@ -96,7 +103,7 @@ Your mission:
 5. Safety: Keep all content 100% wholesome, family-friendly, polite, and positive. Never use violence, hate speech, or inappropriate themes. Keep answers relatively concise and engaging for children.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: formattedContents,
         config: {
           systemInstruction,

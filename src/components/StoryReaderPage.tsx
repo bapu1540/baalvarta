@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Story, StoryScene, Language } from '../types';
+import { safeCopyToClipboard } from '../utils/clipboard';
 import {
   playPopSound,
   playSuccessSound,
@@ -42,6 +43,7 @@ import {
 } from '../utils/soundEffects';
 import { recordStoryRead, getReadingStreak } from '../utils/storage';
 import { AdBannerSlot } from './AdBannerSlot';
+import { StoryReadingProgressIndicator } from './StoryReadingProgressIndicator';
 
 interface StoryReaderPageProps {
   story: Story;
@@ -92,11 +94,49 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
   });
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
   const [isSceneSpeaking, setIsSceneSpeaking] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const articleRef = React.useRef<HTMLElement | null>(null);
+
+  // Dynamic reading progress percentage
+  const totalStoryScenes = story.scenes?.length || 1;
+  const isPictureBook = viewMode === 'picture_book' && !!(story.scenes && story.scenes.length > 0);
+  
+  const readingProgressPercentage = isCompleted
+    ? 100
+    : isPictureBook
+    ? Math.round(((currentSceneIndex + 1) / totalStoryScenes) * 100)
+    : Math.max(5, Math.round(scrollProgress));
+
+  // Track scroll position in full text mode
+  useEffect(() => {
+    if (isPictureBook) return;
+
+    const handleScroll = () => {
+      if (!articleRef.current) return;
+      const rect = articleRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const totalHeight = rect.height;
+      const topOffset = rect.top;
+
+      if (topOffset > windowHeight * 0.5) {
+        setScrollProgress(5);
+      } else {
+        const scrolled = Math.max(0, windowHeight * 0.4 - topOffset);
+        const progress = Math.min(100, Math.max(5, (scrolled / Math.max(totalHeight - windowHeight * 0.4, 100)) * 100));
+        setScrollProgress(progress);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isPictureBook, isCompleted, story.id]);
 
   // Scroll to top when story changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsCompleted(false);
+    setScrollProgress(5);
     stopSpeech();
     setIsReadingAloud(false);
     setIsPaused(false);
@@ -269,8 +309,8 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
     window.open(whatsappUrl, '_blank');
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text: string) => {
+    await safeCopyToClipboard(text);
     setShowToast(language === 'hi' ? 'कहानी का लिंक कॉपी हो गया!' : 'Story link copied to clipboard!');
     setTimeout(() => setShowToast(null), 3000);
   };
@@ -322,26 +362,34 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
   const getToolbarClass = () => {
     switch (theme) {
       case 'dark':
-        return 'bg-slate-900/90 text-slate-100 border-slate-800';
+        return 'bg-slate-900 text-slate-100 border-slate-800 shadow-md';
       case 'warm':
-        return 'bg-amber-100/90 text-amber-950 border-amber-200';
+        return 'bg-[#FEF7EA] text-amber-950 border-amber-300 shadow-sm';
       case 'cream':
-        return 'bg-[#FFF8E7]/90 text-amber-950 border-amber-200';
+        return 'bg-[#FFFDF6] text-amber-950 border-amber-200 shadow-sm';
       case 'white':
-        return 'bg-white/90 text-slate-900 border-slate-200';
+        return 'bg-white text-slate-900 border-slate-200 shadow-sm';
     }
   };
 
   return (
-    <div className={`font-sans ${isFullViewMode ? 'fixed inset-0 z-50 overflow-y-auto p-4 sm:p-8 bg-[#FDFBF7] dark:bg-[#12161F] animate-in fade-in' : 'space-y-8 pb-16'}`}>
+    <div className={`font-sans ${isFullViewMode ? 'fixed inset-0 z-50 overflow-y-auto p-3 sm:p-6 bg-[#FDFBF7] dark:bg-[#12161F] animate-in fade-in' : 'space-y-3 sm:space-y-4 pb-12'}`}>
+      
+      {/* Top Floating Reading Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-1 sm:h-1.5 bg-black/10 dark:bg-white/10 pointer-events-none shadow-xs">
+        <div
+          className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 transition-all duration-300 shadow-xs"
+          style={{ width: `${readingProgressPercentage}%` }}
+        />
+      </div>
       
       {/* Full View Exit Top Banner */}
       {isFullViewMode && (
-        <div className="sticky top-2 z-50 mb-6 max-w-4xl mx-auto flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white shadow-2xl border border-slate-700">
+        <div className="sticky top-1 z-50 mb-3 max-w-4xl mx-auto flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white shadow-xl border border-slate-700">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-xs font-black">
-              📖 डिस्टर्ब-फ्री फुल व्यू (Distraction-Free Full View)
+              📖 डिस्टर्ब-फ्री फुल व्यू (Distraction-Free)
             </span>
           </div>
           <button
@@ -349,10 +397,10 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               if (soundEnabled) playPopSound();
               setIsFullViewMode(false);
             }}
-            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
           >
             <Minimize2 className="w-3.5 h-3.5" />
-            <span>फुल व्यू से बाहर निकलें (Exit Full View)</span>
+            <span>सामान्य दृश्य (Exit)</span>
           </button>
         </div>
       )}
@@ -365,217 +413,209 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
         </div>
       )}
 
-      {/* STICKY READING TOOLBAR */}
-      <div className={`sticky ${isFullViewMode ? 'top-16' : 'top-20'} z-40 p-3 sm:p-4 rounded-2xl sm:rounded-3xl backdrop-blur-md border shadow-sm flex flex-wrap items-center justify-between gap-3 transition-colors ${getToolbarClass()}`}>
+      {/* COMPACT ORGANIZED READING TOOLBAR */}
+      <div className={`relative z-10 p-2.5 sm:p-3 rounded-2xl sm:rounded-3xl border shadow-sm transition-colors space-y-2.5 ${getToolbarClass()}`}>
         
-        {/* Left: Audio Narrator & Speed Selector */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button
-            id="tts-read-aloud-btn"
-            onClick={() => handleSpeak()}
-            className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-              isReadingAloud
-                ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
-                : 'bg-amber-500 hover:bg-amber-600 text-white'
-            }`}
-          >
-            {isReadingAloud ? (
-              <>
-                <Square className="w-3.5 h-3.5 fill-white" />
-                <span>{language === 'hi' ? 'रोकें (Stop)' : 'Stop Audio'}</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-4 h-4" />
-                <span>{language === 'hi' ? 'कहानी सुनो' : 'Listen Story'}</span>
-              </>
-            )}
-          </button>
-
-          {/* Speed Selector (0.7x, 0.8x, 1.0x) */}
-          <div className="flex items-center p-0.5 rounded-xl bg-black/5 border border-black/10 text-[10px] font-bold">
-            <button
-              type="button"
-              onClick={() => handleChangeSpeed(0.7)}
-              title="धीमी व मीठी गति"
-              className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                speechRate === 0.7 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              0.7x
-            </button>
-            <button
-              type="button"
-              onClick={() => handleChangeSpeed(0.78)}
-              title="आराम से कहानी गति"
-              className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                speechRate === 0.78 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              0.8x
-            </button>
-            <button
-              type="button"
-              onClick={() => handleChangeSpeed(1.0)}
-              title="सामान्य गति"
-              className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                speechRate === 1.0 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              1.0x
-            </button>
-          </div>
-        </div>
-
-        {/* Center: Font Size, Font Family, Theme */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+        {/* Line 1: Audio Narrator, Speed, Font Size & Theme */}
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
           
-          {/* Font Family Switcher */}
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-xl bg-black/5 border border-black/10">
+          {/* Left: Audio & Speed Group */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <button
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                setFontFamily('noto');
-              }}
-              title="सुंदर देवनागरी (Serif)"
-              className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-colors ${
-                fontFamily === 'noto' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              id="tts-read-aloud-btn"
+              onClick={() => handleSpeak()}
+              className={`h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 ${
+                isReadingAloud
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                  : 'bg-amber-500 hover:bg-amber-600 text-white'
               }`}
-              style={{ fontFamily: "'Noto Serif Devanagari', serif" }}
             >
-              देवनागरी
+              {isReadingAloud ? (
+                <>
+                  <Square className="w-3.5 h-3.5 fill-white" />
+                  <span>{language === 'hi' ? 'रोकें' : 'Stop'}</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span>{language === 'hi' ? 'कहानी सुनो' : 'Listen'}</span>
+                </>
+              )}
             </button>
-            <button
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                setFontFamily('baloo');
-              }}
-              title="बाल-अनुकूल (Baloo)"
-              className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-colors ${
-                fontFamily === 'baloo' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              style={{ fontFamily: "'Baloo 2', cursive" }}
-            >
-              बाल-फ़ॉन्ट
-            </button>
-            <button
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                setFontFamily('mukta');
-              }}
-              title="स्पष्ट (Mukta Sans)"
-              className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-colors ${
-                fontFamily === 'mukta' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              style={{ fontFamily: "'Mukta', sans-serif" }}
-            >
-              मुक्ता
-            </button>
+
+            {/* Speed Selector (0.7x, 0.8x, 1.0x) */}
+            <div className="h-8 sm:h-9 flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-[10px] font-bold">
+              <button
+                type="button"
+                onClick={() => handleChangeSpeed(0.7)}
+                title="धीमी गति (0.7x)"
+                className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
+                  speechRate === 0.7 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                0.7x
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChangeSpeed(0.78)}
+                title="मीठी कहानी गति (0.8x)"
+                className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
+                  speechRate === 0.78 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                0.8x
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChangeSpeed(1.0)}
+                title="सामान्य गति (1.0x)"
+                className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
+                  speechRate === 1.0 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                1.0x
+              </button>
+            </div>
           </div>
 
-          {/* Font Size Button */}
-          <button
-            onClick={() => {
-              if (soundEnabled) playPopSound();
-              setFontSize(
-                fontSize === 'normal' ? 'large' : fontSize === 'large' ? 'huge' : 'normal'
-              );
-            }}
-            title="फ़ॉन्ट आकार बदलें (Change Font Size)"
-            className="px-2.5 py-1.5 rounded-xl border border-black/10 bg-black/5 font-black flex items-center gap-1 hover:bg-black/10 transition-colors"
-          >
-            <Type className="w-3.5 h-3.5" />
-            <span className="text-[11px]">
-              {fontSize === 'normal' ? 'A (सामान्य)' : fontSize === 'large' ? 'A+ (बड़ा)' : 'A++ (विशाल)'}
-            </span>
-          </button>
+          {/* Right: Font Switcher, Font Size & Theme Group */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 ml-auto">
+            {/* Font Family Switcher (Desktop) */}
+            <div className="hidden lg:flex items-center gap-0.5 p-0.5 h-8 sm:h-9 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10">
+              <button
+                onClick={() => {
+                  if (soundEnabled) playPopSound();
+                  setFontFamily('noto');
+                }}
+                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
+                  fontFamily === 'noto' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                देवनागरी
+              </button>
+              <button
+                onClick={() => {
+                  if (soundEnabled) playPopSound();
+                  setFontFamily('baloo');
+                }}
+                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
+                  fontFamily === 'baloo' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                बाल-फ़ॉन्ट
+              </button>
+            </div>
 
-          {/* Theme Palette Toggle */}
-          <div className="flex items-center p-0.5 rounded-xl bg-black/5 border border-black/10">
+            {/* Font Size Button */}
             <button
               onClick={() => {
                 if (soundEnabled) playPopSound();
-                setTheme('cream');
+                setFontSize(
+                  fontSize === 'normal' ? 'large' : fontSize === 'large' ? 'huge' : 'normal'
+                );
               }}
-              title="कागज़ी थीम (Cream Paper)"
-              className={`p-1.5 rounded-lg transition-colors ${
-                theme === 'cream' ? 'bg-amber-200 text-amber-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-              }`}
+              title="फ़ॉन्ट आकार बदलें"
+              className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/10 font-black flex items-center gap-1 hover:bg-black/10 dark:hover:bg-white/20 transition-colors text-[11px] cursor-pointer"
             >
-              <Coffee className="w-3.5 h-3.5" />
+              <Type className="w-3.5 h-3.5" />
+              <span className="font-extrabold text-[10px] sm:text-[11px]">
+                {fontSize === 'normal' ? 'A (छोटा)' : fontSize === 'large' ? 'A+ (मध्यम)' : 'A++ (बड़ा)'}
+              </span>
             </button>
-            <button
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                setTheme('white');
-              }}
-              title="स्वच्छ दिन (Day White)"
-              className={`p-1.5 rounded-lg transition-colors ${
-                theme === 'white' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Sun className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                setTheme('dark');
-              }}
-              title="रात्रि मोड (Night Dark)"
-              className={`p-1.5 rounded-lg transition-colors ${
-                theme === 'dark' ? 'bg-slate-800 text-amber-300 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" />
-            </button>
+
+            {/* Theme Palette Toggle */}
+            <div className="h-8 sm:h-9 flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10">
+              <button
+                onClick={() => {
+                  if (soundEnabled) playPopSound();
+                  setTheme('cream');
+                }}
+                title="कागज़ी थीम (Cream)"
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  theme === 'cream' ? 'bg-amber-200 text-amber-900 shadow-xs' : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <Coffee className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => {
+                  if (soundEnabled) playPopSound();
+                  setTheme('white');
+                }}
+                title="श्वेत दिन मोड (Day White)"
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  theme === 'white' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => {
+                  if (soundEnabled) playPopSound();
+                  setTheme('dark');
+                }}
+                title="रात्रि मोड (Night Dark)"
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-800 text-amber-300 shadow-xs' : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <Moon className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Right: Actions (Bookmark, Like, Share, Print) */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => {
-              if (soundEnabled) playPopSound();
-              onToggleBookmark(story.id);
-            }}
-            title={isBookmarked ? 'बुकमार्क हटाया' : 'बुकमार्क करें'}
-            className={`p-2 rounded-xl border transition-colors ${
-              isBookmarked
-                ? 'bg-amber-500 text-white border-amber-600'
-                : 'bg-black/5 border-black/10 text-slate-700 hover:bg-black/10'
-            }`}
-          >
-            <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-white' : ''}`} />
-          </button>
-
+        {/* Line 2: Actions Bar (Likes, Bookmark, WhatsApp, Share, Full View) */}
+        <div className="flex items-center justify-between gap-1 sm:gap-2 pt-1 border-t border-black/5 dark:border-white/10 w-full overflow-x-auto no-scrollbar">
+          
+          {/* Like */}
           <button
             onClick={() => {
               if (soundEnabled) playPopSound();
               onLikeStory(story.id);
             }}
             title="कहानी पसंद करें"
-            className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center gap-1 transition-colors"
+            className="flex-1 min-w-[54px] h-8 sm:h-8.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-black"
           >
-            <Heart className="w-4 h-4 fill-rose-500" />
-            <span className="text-xs font-black">{story.likes}</span>
+            <Heart className="w-3.5 h-3.5 fill-rose-500" />
+            <span>{story.likes}</span>
           </button>
 
+          {/* Bookmark */}
           <button
-            onClick={handleShare}
-            title="कहानी शेयर करें"
-            className="p-2 rounded-xl bg-black/5 border border-black/10 text-slate-700 hover:bg-black/10 transition-colors"
+            onClick={() => {
+              if (soundEnabled) playPopSound();
+              onToggleBookmark(story.id);
+            }}
+            title={isBookmarked ? 'बुकमार्क हटाया' : 'बुकमार्क करें'}
+            className={`flex-1 min-w-[54px] h-8 sm:h-8.5 rounded-xl border flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-bold ${
+              isBookmarked
+                ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                : 'bg-black/5 dark:bg-white/10 border-black/10 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-black/10'
+            }`}
           >
-            <Share2 className="w-4 h-4" />
+            <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-white' : ''}`} />
+            <span className="hidden xs:inline text-[11px] font-black">{isBookmarked ? 'सहेजा' : 'सहेजें'}</span>
           </button>
 
-          {/* Direct WhatsApp Share Button */}
+          {/* WhatsApp Share */}
           <button
             onClick={handleShareWhatsApp}
             title="WhatsApp पर शेयर करें"
-            className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center gap-1 cursor-pointer font-bold text-xs"
+            className="flex-1 min-w-[70px] h-8 sm:h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer font-bold text-xs"
           >
-            <span className="text-sm">📲</span>
-            <span className="hidden sm:inline">WhatsApp</span>
+            <span className="text-xs">📲</span>
+            <span className="text-[11px] font-black">WhatsApp</span>
+          </button>
+
+          {/* Share Link */}
+          <button
+            onClick={handleShare}
+            title="कहानी शेयर करें"
+            className="flex-1 min-w-[50px] h-8 sm:h-8.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-black/10 flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-bold"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline text-[11px] font-black">शेयर</span>
           </button>
 
           {/* Distraction-Free Full View Button */}
@@ -584,24 +624,43 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               if (soundEnabled) playPopSound();
               setIsFullViewMode(!isFullViewMode);
             }}
-            title={isFullViewMode ? 'फुल व्यू से बाहर निकलें' : 'डिस्टर्ब-फ्री फुल व्यू मोड (Full Screen Reading)'}
-            className={`px-3 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+            title={isFullViewMode ? 'फुल व्यू से बाहर निकलें' : 'डिस्टर्ब-फ्री फुल व्यू मोड'}
+            className={`flex-1 min-w-[65px] h-8 sm:h-8.5 rounded-xl font-black text-xs flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer active:scale-95 ${
               isFullViewMode
                 ? 'bg-amber-600 text-white shadow-md'
-                : 'bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300'
+                : 'bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
             }`}
           >
             {isFullViewMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{isFullViewMode ? 'सामान्य दृश्य' : '📖 फुल व्यू'}</span>
+            <span className="text-[11px] font-black">{isFullViewMode ? 'सामान्य' : 'फुल व्यू'}</span>
           </button>
         </div>
       </div>
 
       {/* MAIN READING PAGE CONTAINER */}
-      <article className={`max-w-4xl mx-auto rounded-3xl p-6 sm:p-10 md:p-12 border transition-colors ${getThemeContainerClass()}`}>
+      <article
+        ref={articleRef}
+        className={`max-w-4xl mx-auto rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 border transition-colors ${getThemeContainerClass()}`}
+      >
+        {/* Visual Reading Progress Indicator at top for children */}
+        <StoryReadingProgressIndicator
+          progressPercentage={readingProgressPercentage}
+          currentScene={currentSceneIndex + 1}
+          totalScenes={totalStoryScenes}
+          isPictureBookMode={isPictureBook}
+          isCompleted={isCompleted}
+          language={language}
+          soundEnabled={soundEnabled}
+          onJumpToScene={(idx) => {
+            if (soundEnabled) playPopSound();
+            stopSpeech();
+            setIsSceneSpeaking(false);
+            setCurrentSceneIndex(idx);
+          }}
+        />
         
         {/* Header Section */}
-        <header className="space-y-4 pb-6 border-b border-black/10">
+        <header className="space-y-3 pb-4 border-b border-black/10">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-amber-500 text-white font-black text-xs shadow-xs">

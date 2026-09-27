@@ -15,7 +15,11 @@ import {
   KeyRound,
   PlusCircle,
   Film,
-  FileQuestion
+  FileQuestion,
+  Trophy,
+  Award,
+  Flame,
+  Download
 } from 'lucide-react';
 import { ActiveTab, Language } from '../types';
 import { getStoredFooterImage } from '../utils/storage';
@@ -377,45 +381,54 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
                 </ul>
               </div>
 
-              {/* Row 2, Right: Admin CMS Portal */}
+              {/* Row 2, Right: Kids Certificate Awards Hub */}
               <div className="space-y-2 sm:space-y-3 bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-amber-950/20 p-2.5 sm:p-4 lg:p-5 rounded-xl sm:rounded-2xl border border-amber-500/30 hover:border-amber-400/60 transition-all flex flex-col justify-between">
                 <div>
                   <h4 className="text-[11px] sm:text-sm font-black text-white uppercase tracking-wider flex items-center justify-between gap-1 pb-1.5 sm:pb-2 border-b border-slate-800">
                     <span className="flex items-center gap-1 sm:gap-2 truncate">
-                      <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-                      <span className="text-amber-400 truncate">{language === 'hi' ? 'एडमिन CMS' : 'Admin CMS'}</span>
+                      <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+                      <span className="text-amber-400 truncate">{language === 'hi' ? 'बाल सम्मान पत्र' : 'Award Certificates'}</span>
                     </span>
                     <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
-                      PIN
+                      PDF
                     </span>
                   </h4>
 
                   <ul className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs mt-2 sm:mt-3">
                     <li>
                       <button
-                        onClick={onOpenAdmin}
+                        onClick={() => {
+                          onNavigate('certificates');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         className="hover:text-amber-400 text-slate-300 transition-colors flex items-center gap-1 cursor-pointer text-left w-full group leading-tight"
                       >
-                        <PlusCircle className="w-3 h-3 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
-                        <span className="line-clamp-2">{language === 'hi' ? 'नई कहानी जोड़ें' : 'Add New Story'}</span>
+                        <Award className="w-3 h-3 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
+                        <span className="line-clamp-2">{language === 'hi' ? 'सुपर स्टोरी रीडर अवॉर्ड' : 'Super Reader Award'}</span>
                       </button>
                     </li>
                     <li>
                       <button
-                        onClick={onOpenAdmin}
+                        onClick={() => {
+                          onNavigate('certificates');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         className="hover:text-amber-400 text-slate-300 transition-colors flex items-center gap-1 cursor-pointer text-left w-full group leading-tight"
                       >
-                        <Film className="w-3 h-3 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
-                        <span className="line-clamp-2">{language === 'hi' ? 'मीडिया प्रबंधन' : 'Media Manager'}</span>
+                        <Sparkles className="w-3 h-3 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
+                        <span className="line-clamp-2">{language === 'hi' ? 'क्विज़ चैंपियन सम्मान पत्र' : 'Quiz Champion Certificate'}</span>
                       </button>
                     </li>
                     <li>
                       <button
-                        onClick={onOpenAdmin}
+                        onClick={() => {
+                          onNavigate('profile');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         className="hover:text-amber-400 text-slate-300 transition-colors flex items-center gap-1 cursor-pointer text-left w-full group leading-tight"
                       >
-                        <FileQuestion className="w-3 h-3 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
-                        <span className="line-clamp-2">{language === 'hi' ? 'तथ्य व क्विज़' : 'Facts & Quiz CMS'}</span>
+                        <Flame className="w-3 h-3 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
+                        <span className="line-clamp-2">{language === 'hi' ? 'लर्नर पासपोर्ट व स्ट्रीक' : 'Learner Passport & Streak'}</span>
                       </button>
                     </li>
                   </ul>
@@ -423,11 +436,14 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
 
                 <div className="pt-2 sm:pt-3 border-t border-slate-800/80 mt-1 sm:mt-2">
                   <button
-                    onClick={onOpenAdmin}
+                    onClick={() => {
+                      onNavigate('certificates');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                     className="w-full text-center py-1.5 sm:py-2 px-1.5 sm:px-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-[10px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 shadow-md hover:shadow-amber-500/20 transition-all cursor-pointer"
                   >
-                    <KeyRound className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-950 shrink-0" />
-                    <span className="truncate">{language === 'hi' ? 'एडमिन लॉगिन (PIN)' : 'Admin Login (PIN)'}</span>
+                    <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-950 shrink-0" />
+                    <span className="truncate">{language === 'hi' ? 'सर्टिफिकेट डाउनलोड करें' : 'Download Certificates'}</span>
                   </button>
                 </div>
               </div>
@@ -437,9 +453,19 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
             {/* 3. Bottom Bar: Copyright & Language Switch */}
             <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 text-center sm:text-left">
               <div>
-                <p className="font-medium text-slate-300">
-                  © {new Date().getFullYear()} बालवार्ता (Baalvarta) • ऑल राइट्स रिसर्व्ड।
-                </p>
+                <div className="font-medium text-slate-300 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                  <span>© {new Date().getFullYear()} बालवार्ता (Baalvarta) • ऑल राइट्स रिसर्व्ड।</span>
+                  <button
+                    onClick={() => {
+                      if (onOpenAdmin) onOpenAdmin();
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-amber-400 transition-colors cursor-pointer py-0.5 px-2 rounded-md hover:bg-slate-800 border border-transparent hover:border-slate-700"
+                    title="व्यवस्थापक (Admin CMS) लॉगिन"
+                  >
+                    <Lock className="w-3 h-3 text-slate-500 hover:text-amber-400" />
+                    <span>व्यवस्थापक</span>
+                  </button>
+                </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   {language === 'hi'
                     ? 'भारतीय बच्चों और परिवारों के लिए प्रेम और शिक्षा के साथ समर्पित।'

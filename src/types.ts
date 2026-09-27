@@ -213,6 +213,53 @@ export interface CertificateAwardItem {
   icon?: string;
 }
 
+export interface DailyTaskItem {
+  id: string;
+  titleHi: string;
+  titleEn: string;
+  descHi: string;
+  descEn: string;
+  category: 'story' | 'quiz' | 'fact' | 'audio' | 'coloring' | 'streak';
+  targetCount: number;
+  rewardStars: number;
+  icon: string;
+}
+
+export interface StreakMilestone {
+  days: number;
+  badgeId: string;
+  titleHi: string;
+  titleEn: string;
+  badgeIcon: string;
+  rewardStars: number;
+  flameLevel: 'spark' | 'flame' | 'blaze' | 'cosmic';
+  descriptionHi: string;
+  descriptionEn: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  ageGroup: string;
+  isPro: boolean;
+  proPlanType?: 'monthly' | 'yearly' | 'lifetime';
+  proExpiryDate?: string;
+  stars: number;
+  totalStoriesRead: number;
+  streakDays: number;
+  completedTasks: string[]; // task IDs completed today
+  claimedRewards: string[]; // task IDs whose rewards were claimed
+  claimedMilestones?: string[]; // streak milestone IDs claimed e.g. ['streak-3', 'streak-7']
+  streakHistory?: string[]; // list of dates (YYYY-MM-DD) when a story was read
+  lastActiveDate: string;
+  earnedCertificates: string[];
+  quizzesCompleted: number;
+  factsLearned: number;
+  audioStoriesListened: number;
+  coloringPagesFinished: number;
+}
+
 export type ActiveTab = 
   | 'home' 
   | 'stories' 
@@ -225,6 +272,7 @@ export type ActiveTab =
   | 'quizzes' 
   | 'coloring' 
   | 'certificates' 
+  | 'profile'
   | 'worksheets' 
   | 'parent-guide' 
   | 'about' 

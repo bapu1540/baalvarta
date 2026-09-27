@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { FunFact, Language } from '../types';
 import { playPopSound, playStarChime, speakText } from '../utils/soundEffects';
+import { safeCopyToClipboard } from '../utils/clipboard';
 
 interface FunFactsHubProps {
   facts: FunFact[];
@@ -74,18 +75,16 @@ export const FunFactsHub: React.FC<FunFactsHubProps> = ({
     );
   };
 
-  const handleShareFact = (fact: FunFact) => {
+  const handleShareFact = async (fact: FunFact) => {
     if (soundEnabled) playPopSound();
     const shareText =
       language === 'hi'
         ? `🌟 रोचक तथ्य (Baalvarta):\n${fact.titleHi}\n${fact.factHi}`
         : `🌟 Fun Fact (Baalvarta):\n${fact.titleEn}\n${fact.factEn}`;
 
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareText);
-      setCopiedId(fact.id);
-      setTimeout(() => setCopiedId(null), 2000);
-    }
+    await safeCopyToClipboard(shareText);
+    setCopiedId(fact.id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
