@@ -2,12 +2,19 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import fs from 'fs';
 import path from 'path';
+import { GoogleGenAI } from '@google/genai';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
   const DATA_DIR = path.resolve(process.cwd(), 'data');
   const DB_FILE = path.join(DATA_DIR, 'baalvarta_database.json');
+
+  // Initialize Google GenAI on server
+  const ai = new GoogleGenAI();
 
   // Ensure persistent data directory exists
   if (!fs.existsSync(DATA_DIR)) {
@@ -66,7 +73,54 @@ async function startServer() {
     }
   });
 
-  // API 3: Health check
+  // API 3: Gemini AI Baalmitra Chatbot (Server-Side)
+  app.post('/api/chat', async (req, res) => {
+    try {
+      const { messages, language = 'hi' } = req.body;
+      if (!messages || !Array.isArray(messages) || messages.length === 0) {
+        return res.status(400).json({ error: 'Messages array is required' });
+      }
+
+      // Format conversation history for @google/genai
+      const formattedContents = messages.map((msg: { role: string; content: string }) => ({
+        role: msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.content || '' }]
+      }));
+
+      const systemInstruction = `You are "AI बालमित्र (Baalmitra)" - an affectionate, knowledgeable, and joyful AI companion for kids and students on the Baalvarta (बालवार्ता - baalvarta.com) platform.
+Your mission:
+1. Explain Indian geography, states, union territories, historical monuments, famous places, and general knowledge in an exciting, easy-to-understand way.
+2. Narrate moral stories, Panchatantra tales, Akbar-Birbal wisdom, Vikram-Betal, Tenali Raman, and inspirational stories for kids.
+3. Teach science, nature, animals, universe, and good moral values (सदाचार, माता-पिता का आदर, सच बोलना, स्वच्छता, मित्रता).
+4. Language style: Use warm, encouraging, simple, and child-friendly Hindi (or English if user asks in English). Use fun emojis (🌟, 🇮🇳, 📖, 🏰, 🦁, 🎈, 💡, 🛕) to make learning joyous and attractive.
+5. Safety: Keep all content 100% wholesome, family-friendly, polite, and positive. Never use violence, hate speech, or inappropriate themes. Keep answers relatively concise and engaging for children.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: formattedContents,
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+        }
+      });
+
+      const reply = response.text || (language === 'hi' 
+        ? 'नमस्ते नन्हे दोस्त! मैं आपका बालमित्र हूँ। क्या आप कोई कहानी सुनना चाहते हैं या किसी राज्य के बारे में जानना चाहते हैं? 🌟'
+        : 'Hello young friend! I am Baalmitra. Would you like to hear a story or learn about India? 🌟');
+
+      return res.json({ reply });
+    } catch (err: any) {
+      console.error('Gemini API chat error:', err);
+      return res.status(500).json({
+        error: 'AI service unavailable',
+        reply: req.body?.language === 'en'
+          ? 'Sorry little friend! Baalmitra is resting for a moment. Please try again in a little while! 🌟'
+          : 'माफ कीजिए नन्हे दोस्त, बालमित्र से संपर्क करने में कुछ समस्या आई। कृपया थोड़ी देर बाद पुनः प्रयास करें। 🌟'
+      });
+    }
+  });
+
+  // API 4: Health check
   app.get('/api/health', (_req, res) => {
     res.json({
       status: 'ok',

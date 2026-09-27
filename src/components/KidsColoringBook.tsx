@@ -499,23 +499,24 @@ export const KidsColoringBook: React.FC<KidsColoringBookProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-12 font-kids">
+    <div className="space-y-4 pb-12 font-kids">
       
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 rounded-3xl p-5 sm:p-7 text-white shadow-lg relative overflow-hidden">
-        <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black mb-2">
-            <Palette className="w-4 h-4 text-amber-200" />
-            <span>{isHi ? 'किड्स डिजिटल आर्ट व कलरिंग रूम' : 'Kids Digital Coloring & Art Room'}</span>
+      {/* Sleek Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-orange-200/80 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+            🎨
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-            {isHi ? '🎨 रंग भरो और सुंदर चित्र बनाओ!' : '🎨 Color & Draw Your Masterpiece!'}
-          </h1>
-          <p className="text-white/95 text-xs sm:text-sm font-bold mt-1">
-            {isHi
-              ? 'शेर, हाथी, मोर और तितली के चित्रों में मनपसंद रंग भरें या अपनी खुद की पेंटिंग बनाकर डाउनलोड करें।'
-              : 'Choose favorite animal templates, color with brushes and crayons, and download your artwork!'}
-          </p>
+          <div>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+              {isHi ? '9. कलरिंग बुक (Digital Coloring Book)' : '9. Digital Kids Coloring Book'}
+            </h1>
+            <p className="text-xs text-slate-500 font-medium">
+              {isHi
+                ? 'जानवरों के चित्रों में रंग भरें, ब्रश व क्रेयॉन चलाएं और डाउनलोड करें'
+                : 'Interactive digital coloring with rainbow brushes and download'}
+            </p>
+          </div>
         </div>
       </div>
 

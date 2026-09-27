@@ -51,6 +51,10 @@ import { KidsColoringBook } from './components/KidsColoringBook';
 import { KidsMiniGamesHub } from './components/KidsMiniGamesHub';
 import { KidsCertificateHub } from './components/KidsCertificateHub';
 import { PrintableWorksheetsHub } from './components/PrintableWorksheetsHub';
+import { GeneralKnowledgeHub } from './components/GeneralKnowledgeHub';
+import { BaalmitraChatModal } from './components/BaalmitraChatModal';
+import { FloatingBaalmitraButton } from './components/FloatingBaalmitraButton';
+import { BaalvartaProModal } from './components/BaalvartaProModal';
 import {
   ThemeSettings,
   getStoredThemeSettings,
@@ -85,6 +89,12 @@ export default function App() {
   // Theme & Font Settings State
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>(() => getStoredThemeSettings());
   const [isThemeModalOpen, setIsThemeModalOpen] = useState<boolean>(false);
+
+  // Gemini AI Baalmitra Chatbot State
+  const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
+
+  // Baalvarta Pro Membership State
+  const [isProModalOpen, setIsProModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     applyThemeToDOM(themeSettings);
@@ -401,6 +411,7 @@ export default function App() {
         bookmarkCount={bookmarks.length}
         onQuickSearchClick={(q) => handleOpenSearch(q || '')}
         onOpenThemeModal={() => setIsThemeModalOpen(true)}
+        onOpenProModal={() => setIsProModalOpen(true)}
         stories={stories}
         videoStories={videoStories}
         worksheets={worksheets}
@@ -408,54 +419,8 @@ export default function App() {
       />
 
       {/* Main Portal View Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-3 sm:py-5 overflow-x-hidden">
         
-        {/* Mobile & Desktop Step-by-Step Back Navigation Bar */}
-        {activeTab !== 'home' && (
-          <div className="mb-4 sm:mb-6 flex items-center justify-between gap-3 bg-white border-2 border-amber-300 rounded-2xl p-2.5 sm:p-3 shadow-sm">
-            <button
-              onClick={handleSmartBack}
-              className="flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs sm:text-sm shadow-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>
-                {selectedStoryForReader
-                  ? language === 'hi'
-                    ? '← कहानियों की सूची (Back to Stories)'
-                    : '← Back to Stories'
-                  : language === 'hi'
-                  ? '← मुख्य पृष्ठ (Home)'
-                  : '← Back to Home'}
-              </span>
-            </button>
-
-            <div className="flex items-center gap-2 text-xs font-black text-amber-950">
-              <span className="hidden sm:inline bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg">
-                {selectedStoryForReader
-                  ? language === 'hi'
-                    ? `कहानी #${selectedStoryForReader.number}`
-                    : `Story #${selectedStoryForReader.number}`
-                  : language === 'hi'
-                  ? 'बालवार्ता पोर्टल'
-                  : 'Baalvarta Portal'}
-              </span>
-              <button
-                onClick={() => {
-                  stopSpeech();
-                  if (soundEnabled) playPopSound();
-                  setActiveTab('home');
-                  setSelectedStoryForReader(null);
-                  setShowBookmarksOnly(false);
-                }}
-                className="p-2 rounded-xl text-slate-500 hover:text-amber-700 hover:bg-amber-50 transition-colors cursor-pointer"
-                title="होम पर जाएं"
-              >
-                <Home className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'home' && (
           <WebsiteHome
             onNavigate={(tab) => {
@@ -473,6 +438,7 @@ export default function App() {
             onOpenAdmin={() => setIsParentalGateOpen(true)}
             onSelectStory={handleSelectStoryFromHome}
             onOpenSearch={(q) => handleOpenSearch(q || '')}
+            onOpenProModal={() => setIsProModalOpen(true)}
           />
         )}
 
@@ -506,6 +472,14 @@ export default function App() {
             items={learningItems}
             language={language}
             soundEnabled={soundEnabled}
+          />
+        )}
+
+        {activeTab === 'gk' && (
+          <GeneralKnowledgeHub
+            language={language}
+            soundEnabled={soundEnabled}
+            onBackToHome={handleBackToHome}
           />
         )}
 
@@ -565,6 +539,7 @@ export default function App() {
             language={language}
             soundEnabled={soundEnabled}
             onBackToHome={handleBackToHome}
+            onOpenProModal={() => setIsProModalOpen(true)}
           />
         )}
 
@@ -675,6 +650,29 @@ export default function App() {
         onClose={() => setIsThemeModalOpen(false)}
         settings={themeSettings}
         onUpdateSettings={handleUpdateThemeSettings}
+        soundEnabled={soundEnabled}
+      />
+
+      {/* Floating AI Baalmitra Assistant Button */}
+      <FloatingBaalmitraButton
+        onOpenChat={() => setIsChatModalOpen(true)}
+        language={language}
+        soundEnabled={soundEnabled}
+      />
+
+      {/* Gemini AI Baalmitra Chatbot Modal */}
+      <BaalmitraChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        language={language}
+        soundEnabled={soundEnabled}
+      />
+
+      {/* Baalvarta Pro VIP Membership Modal */}
+      <BaalvartaProModal
+        isOpen={isProModalOpen}
+        onClose={() => setIsProModalOpen(false)}
+        language={language}
         soundEnabled={soundEnabled}
       />
     </div>

@@ -32,13 +32,16 @@ import {
   Play,
   Printer,
   ExternalLink,
-  FileText
+  FileText,
+  Crown,
+  Zap
 } from 'lucide-react';
 import { BaalvartaLogo } from './BaalvartaLogo';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
 import { downloadOrPrintWorksheet } from '../utils/worksheetPrinter';
 import { INITIAL_KIDS_GAMES } from '../data/gamesData';
 import { getStoredWorksheets } from '../utils/storage';
+import { getProSubscription } from '../utils/proManager';
 
 interface WebsiteHeaderProps {
   activeTab: ActiveTab;
@@ -53,6 +56,7 @@ interface WebsiteHeaderProps {
   bookmarkCount: number;
   onQuickSearchClick?: (query?: string) => void;
   onOpenThemeModal?: () => void;
+  onOpenProModal?: () => void;
   stories?: Story[];
   videoStories?: VideoStory[];
   worksheets?: PrintableWorksheet[];
@@ -73,6 +77,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
   bookmarkCount,
   onQuickSearchClick,
   onOpenThemeModal,
+  onOpenProModal,
   stories = [],
   videoStories = [],
   worksheets: propWorksheets,
@@ -83,6 +88,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
   const [headerQuery, setHeaderQuery] = useState('');
   const [isLiveDropdownOpen, setIsLiveDropdownOpen] = useState(false);
   const [downloadingSheetId, setDownloadingSheetId] = useState<string | null>(null);
+  const isPro = getProSubscription().isPro;
 
   const menuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -201,7 +207,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelHi: 'वीडियो कहानियाँ',
       labelEn: 'Videos',
       icon: Film,
-      badge: '9:16',
+      badge: 'Videos',
       badgeColor: 'bg-red-100 text-red-900 border-red-300',
     },
     {
@@ -222,124 +228,100 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
     },
   ];
 
-  // Full category list for 3-dot drawer
+  // Full category list for 3-dot drawer (1 to 10 exact order)
   const allNavLinks = [
     {
       id: 'home' as ActiveTab,
-      labelHi: 'होम पेज',
-      labelEn: 'Home Page',
-      subtextHi: 'मुख्य पृष्ठ',
-      subtextEn: 'Main Landing',
+      labelHi: '🏠 होम पेज (Home)',
+      labelEn: '🏠 Home Page',
       icon: Home,
       color: 'from-amber-500 to-orange-500',
       badge: null,
     },
     {
-      id: 'videos' as ActiveTab,
-      labelHi: '🎬 वीडियो कहानियाँ (Videos & Shorts)',
-      labelEn: '🎬 Video Stories (Shorts)',
-      subtextHi: 'रोमांचक 9:16 वीडियो व शॉर्ट्स कथाएँ',
-      subtextEn: 'Exciting 9:16 Stories & Shorts',
-      icon: Film,
-      color: 'from-red-500 to-rose-600',
-      badge: '9:16 Shorts',
-    },
-    {
       id: 'stories' as ActiveTab,
       labelHi: '1. कहानियाँ (Stories)',
       labelEn: '1. Stories',
-      subtextHi: 'पंचतंत्र व नैतिक कथाएँ (500+)',
-      subtextEn: 'Moral & Folk Tales (500+)',
       icon: BookOpen,
       color: 'from-amber-500 to-orange-600',
       badge: '500+',
     },
     {
-      id: 'worksheets' as ActiveTab,
-      labelHi: '2. प्रिंट एक्टिविटी वर्कशीट्स (PDF)',
-      labelEn: '2. Printable Worksheets (PDF)',
-      subtextHi: 'वर्णमाला ट्रेसिंग, कलरिंग व अभ्यास PDF',
-      subtextEn: 'Tracing, Mazes & Habit Charts',
-      icon: Download,
+      id: 'learning' as ActiveTab,
+      labelHi: '2. सीखें (Learning)',
+      labelEn: '2. Learning',
+      icon: Sparkles,
       color: 'from-emerald-500 to-teal-600',
-      badge: 'मुफ्त PDF',
+      badge: 'ABC 🔤',
+    },
+    {
+      id: 'facts' as ActiveTab,
+      labelHi: '3. रोचक तथ्य (Fun Facts)',
+      labelEn: '3. Fun Facts',
+      icon: Lightbulb,
+      color: 'from-sky-500 to-blue-600',
+      badge: 'ज्ञान 💡',
+    },
+    {
+      id: 'gk' as ActiveTab,
+      labelHi: '4. सामान्य ज्ञान (General Knowledge)',
+      labelEn: '4. General Knowledge',
+      icon: Globe,
+      color: 'from-indigo-500 to-blue-700',
+      badge: 'GK 🧠',
+    },
+    {
+      id: 'audio' as ActiveTab,
+      labelHi: '5. ऑडियो कहानियाँ (Audio Stories)',
+      labelEn: '5. Audio Stories',
+      icon: Headphones,
+      color: 'from-purple-500 to-indigo-600',
+      badge: 'ऑडियो 🎧',
+    },
+    {
+      id: 'videos' as ActiveTab,
+      labelHi: '6. वीडियो कहानियाँ (Video Stories)',
+      labelEn: '6. Video Stories',
+      icon: Film,
+      color: 'from-red-500 to-rose-600',
+      badge: 'Videos',
     },
     {
       id: 'games' as ActiveTab,
-      labelHi: '3. गेम्स ज़ोन (Mini Games)',
-      labelEn: '3. Kids Mini Games',
-      subtextHi: 'मेमोरी कार्ड मैच, पहेली, गुब्बारे व क्विज़',
-      subtextEn: 'Memory Match, Jigsaw & Fun Games',
+      labelHi: '7. मिनी गेम्स (Mini Games)',
+      labelEn: '7. Mini Games',
       icon: Gamepad2,
       color: 'from-purple-500 to-indigo-600',
       badge: '8 गेम्स 🎮',
     },
     {
+      id: 'quizzes' as ActiveTab,
+      labelHi: '8. बाल क्विज़ (Kids Quiz)',
+      labelEn: '8. Kids Quiz',
+      icon: Trophy,
+      color: 'from-rose-500 to-pink-600',
+      badge: '🎯 खेलें',
+    },
+    {
       id: 'coloring' as ActiveTab,
-      labelHi: '4. डिजिटल बाल कलरिंग बुक',
-      labelEn: '4. Digital Kids Coloring Book',
-      subtextHi: 'शेर, मोर, हाथी व पात्रों में रंग भरें',
-      subtextEn: 'Draw & Color Animals and Scenes',
+      labelHi: '9. कलरिंग बुक (Colouring Books)',
+      labelEn: '9. Colouring Books',
       icon: Palette,
       color: 'from-amber-400 to-orange-500',
       badge: 'कलरिंग 🎨',
     },
     {
-      id: 'learning' as ActiveTab,
-      labelHi: '5. प्रारंभिक बाल शिक्षा (Learning Zone)',
-      labelEn: '5. Early Learning Zone',
-      subtextHi: 'वर्णमाला, गिनती व ध्वनियाँ',
-      subtextEn: 'Alphabet, Numbers & Phonics',
-      icon: Sparkles,
-      color: 'from-emerald-500 to-teal-600',
-      badge: 'शिक्षा',
-    },
-    {
-      id: 'facts' as ActiveTab,
-      labelHi: '6. रोचक ज्ञान तथ्य (Fun Facts)',
-      labelEn: '6. Fun Facts Hub',
-      subtextHi: 'विज्ञान, प्रकृति व पशु-पक्षी',
-      subtextEn: 'Science, Nature & Animals',
-      icon: Lightbulb,
-      color: 'from-sky-500 to-blue-600',
-      badge: 'ज्ञान',
-    },
-    {
-      id: 'audio' as ActiveTab,
-      labelHi: '7. ऑडियो कहानियाँ (Audio Stories)',
-      labelEn: '7. Audio Stories',
-      subtextHi: 'मधुर आवाज़ व लोरी संगीत',
-      subtextEn: 'Calm Voice & Bedtime Tales',
-      icon: Headphones,
-      color: 'from-purple-500 to-indigo-600',
-      badge: 'ऑडियो',
-    },
-    {
-      id: 'quizzes' as ActiveTab,
-      labelHi: '8. बाल ज्ञान क्विज़ (5-Q Tests)',
-      labelEn: '8. Kids Quizzes',
-      subtextHi: '5 प्रश्नों का रोचक खेल',
-      subtextEn: '5-Question Trivia Game',
-      icon: Trophy,
-      color: 'from-rose-500 to-pink-600',
-      badge: 'क्विज़',
-    },
-    {
-      id: 'certificates' as ActiveTab,
-      labelHi: '9. बाल पाठक प्रमाण पत्र (Awards)',
-      labelEn: '9. Reader Certificates',
-      subtextHi: 'स्टार्स, मेडल व 1-क्लिक सर्टिफिकेट',
-      subtextEn: 'Personalized Printable Certificate',
-      icon: Award,
-      color: 'from-amber-500 to-yellow-600',
-      badge: 'सम्मान 🏆',
+      id: 'worksheets' as ActiveTab,
+      labelHi: '10. फ्री डाउनलोड (Free Download)',
+      labelEn: '10. Free Download',
+      icon: Download,
+      color: 'from-teal-500 via-cyan-500 to-blue-600',
+      badge: 'PDF + 🎖️',
     },
     {
       id: 'about' as ActiveTab,
       labelHi: 'हमारे बारे में (About Us)',
       labelEn: 'About Baalvarta',
-      subtextHi: 'बालवार्ता का उद्देश्य व टीम',
-      subtextEn: 'Our Mission & Storytellers',
       icon: Award,
       color: 'from-slate-600 to-slate-800',
       badge: null,
@@ -348,8 +330,6 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       id: 'contact' as ActiveTab,
       labelHi: 'संपर्क व सुझाव (Contact)',
       labelEn: 'Contact Us',
-      subtextHi: 'baalvarta@gmail.com',
-      subtextEn: 'baalvarta@gmail.com',
       icon: Mail,
       color: 'from-slate-600 to-slate-800',
       badge: null,
@@ -358,8 +338,6 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       id: 'admin' as ActiveTab,
       labelHi: '🔒 एडमिन CMS पोर्टल',
       labelEn: '🔒 Admin CMS Portal',
-      subtextHi: 'कहानियाँ, वीडियो व सामग्री प्रबंधित करें',
-      subtextEn: 'Manage Content & Settings',
       icon: ShieldCheck,
       color: 'from-amber-600 to-orange-700',
       badge: 'Admin',
@@ -429,7 +407,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
           {/* Desktop & Tablet Integrated Search Bar with Live Instant Autocomplete */}
           <div ref={searchContainerRef} className="relative flex-1 max-w-xs sm:max-w-sm hidden md:flex items-center">
             <form onSubmit={handleSearchSubmit} className="w-full">
-              <div className="relative flex items-center bg-amber-50/70 hover:bg-white focus-within:bg-white rounded-xl p-1 border-2 border-amber-200 focus-within:border-amber-600 focus-within:ring-2 focus-within:ring-amber-200 transition-all shadow-2xs">
+              <div className="relative flex items-center bg-slate-100 hover:bg-white focus-within:bg-white rounded-xl p-1 border border-slate-200 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-200 transition-all shadow-2xs">
                 <Search className="w-4 h-4 text-amber-600 ml-2 shrink-0" />
                 <input
                   type="text"
@@ -622,6 +600,35 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
           {/* Action Utilities (Language Switcher, Saved, Fixed 3-Dot Menu) */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             
+            {/* Baalvarta Pro VIP Button (Header Action) */}
+            {onOpenProModal && (
+              <button
+                id="header-pro-modal-btn"
+                onClick={() => {
+                  if (soundEnabled) playPopSound();
+                  onOpenProModal();
+                }}
+                title={
+                  isPro
+                    ? (language === 'hi' ? 'आप सक्रिय प्रो वीआईपी सदस्य हैं 👑' : 'Active Pro VIP Member 👑')
+                    : (language === 'hi' ? 'बालवार्ता प्रो - ₹29/माह (100% विज्ञापन-मुक्त व असीमित)' : 'Upgrade to Baalvarta Pro - ₹29/mo')
+                }
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-black text-xs transition-all active:scale-95 cursor-pointer shadow-xs border shrink-0 ${
+                  isPro
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400'
+                    : 'bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-500 hover:to-rose-600 text-white border-amber-300 ring-2 ring-amber-400/40 animate-pulse'
+                }`}
+              >
+                <Crown className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200 shrink-0" />
+                <span className="hidden sm:inline">
+                  {isPro ? (language === 'hi' ? 'VIP सदस्य' : 'VIP Pro') : (language === 'hi' ? 'प्रो (₹29)' : 'Pro (₹29)')}
+                </span>
+                <span className="sm:hidden">
+                  {isPro ? 'VIP' : 'PRO'}
+                </span>
+              </button>
+            )}
+
             {/* Saved Bookmarks Button */}
             <button
               id="header-saved-button"
@@ -774,6 +781,38 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                   </div>
 
                   <div className="p-2 max-h-[65vh] overflow-y-auto space-y-1">
+                    {/* Baalvarta Pro VIP Banner in Menu */}
+                    {onOpenProModal && (
+                      <div
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setIsMenuOpen(false);
+                          onOpenProModal();
+                        }}
+                        className={`p-2.5 mb-2 rounded-2xl cursor-pointer transition-all border-2 flex items-center justify-between gap-2 shadow-xs ${
+                          isPro
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-emerald-600'
+                            : 'bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white border-amber-400 hover:scale-[1.01]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-lg shrink-0">
+                            👑
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-black truncate">
+                              {isPro ? (language === 'hi' ? 'बालवार्ता वीआईपी सदस्य' : 'Baalvarta VIP Member') : (language === 'hi' ? 'बालवार्ता प्रो (₹29/माह)' : 'Baalvarta Pro Pass')}
+                            </div>
+                            <div className="text-[10px] text-amber-100 font-semibold truncate">
+                              {isPro ? (language === 'hi' ? 'सभी सुविधाएं सक्रिय ✓' : 'All Features Active ✓') : (language === 'hi' ? '100% Ad-Free • असीमित PDF' : 'Ad-Free • Unlimited')}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded-lg bg-white/20 font-black shrink-0 border border-white/30">
+                          {isPro ? 'VIP' : (language === 'hi' ? 'देखें ↗' : 'View ↗')}
+                        </span>
+                      </div>
+                    )}
                     {allNavLinks.map((link: any) => {
                       const Icon = link.icon;
                       const isActive = activeTab === link.id && !showBookmarksOnly;
@@ -789,21 +828,18 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div
-                              className={`w-7 h-7 rounded-lg bg-gradient-to-br ${link.color} text-white flex items-center justify-center shrink-0 shadow-2xs`}
+                              className={`w-8 h-8 rounded-xl bg-gradient-to-br ${link.color} text-white flex items-center justify-center shrink-0 shadow-2xs`}
                             >
-                              <Icon className="w-3.5 h-3.5" />
+                              <Icon className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
-                              <span className="text-xs font-bold truncate block">
+                              <span className="text-xs sm:text-sm font-black truncate block text-slate-800">
                                 {language === 'hi' ? link.labelHi : link.labelEn}
-                              </span>
-                              <span className="text-[10px] text-slate-500 truncate block">
-                                {language === 'hi' ? link.subtextHi : link.subtextEn}
                               </span>
                             </div>
                           </div>
                           {link.badge && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded-full font-extrabold bg-amber-200 text-amber-950 shrink-0">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-extrabold bg-amber-100 text-amber-950 shrink-0">
                               {link.badge}
                             </span>
                           )}
@@ -818,10 +854,10 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
           </div>
         </div>
 
-        {/* Mobile Integrated Search Bar (Directly below navbar, no separate search button required) */}
+        {/* Mobile Integrated Search Bar (Clean crisp styling, zero yellow tint) */}
         <div className="md:hidden pt-1 pb-1">
-          <form onSubmit={handleSearchSubmit} className="relative flex items-center bg-amber-50/90 focus-within:bg-white rounded-xl p-0.5 border-2 border-amber-300 focus-within:border-amber-600 transition-all shadow-2xs">
-            <Search className="w-4 h-4 text-amber-700 ml-2 shrink-0" />
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center bg-slate-50 focus-within:bg-white rounded-xl p-0.5 border border-slate-200 focus-within:border-amber-500 transition-all shadow-2xs">
+            <Search className="w-4 h-4 text-amber-600 ml-2 shrink-0" />
             <input
               type="text"
               value={headerQuery}

@@ -48,7 +48,7 @@ export interface FunFact {
 
 export interface LearningItem {
   id: string;
-  module: 'alphabet' | 'numbers' | 'colors_shapes' | 'animals' | 'vocabulary' | 'custom';
+  module: 'alphabet' | 'numbers' | 'colors_shapes' | 'animals' | 'gk' | 'vocabulary' | 'custom';
   symbol: string;
   name: string; // En only
   pronunciation: string;
@@ -216,13 +216,14 @@ export interface CertificateAwardItem {
 export type ActiveTab = 
   | 'home' 
   | 'stories' 
-  | 'videos' 
+  | 'learning'
   | 'facts' 
-  | 'learning' 
+  | 'gk'
   | 'audio' 
+  | 'videos' 
+  | 'games' 
   | 'quizzes' 
   | 'coloring' 
-  | 'games' 
   | 'certificates' 
   | 'worksheets' 
   | 'parent-guide' 

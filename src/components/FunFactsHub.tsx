@@ -100,7 +100,7 @@ export const FunFactsHub: React.FC<FunFactsHubProps> = ({
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-xs font-black uppercase tracking-wider text-sky-100">
                 <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-                <span>{language === 'hi' ? 'आज का रोचक तथ्य' : 'Today’s Featured Fact'}</span>
+                <span>{language === 'hi' ? '3. रोचक तथ्य (Fun Facts)' : '3. Fun Facts & Knowledge'}</span>
               </div>
               <button
                 onClick={handleShuffleFeatured}

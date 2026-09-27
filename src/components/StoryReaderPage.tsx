@@ -365,41 +365,6 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
         </div>
       )}
 
-      {/* Top Breadcrumb & Quick Back (Hidden in Full View Mode) */}
-      {!isFullViewMode && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-600">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                stopSpeech();
-                setIsReadingAloud(false);
-                setIsPaused(false);
-                onBack();
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 transition-colors shadow-xs cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>{language === 'hi' ? '← कहानियों की सूची' : '← All Stories'}</span>
-            </button>
-            <span className="text-slate-400">/</span>
-            <span className="text-amber-800 font-extrabold">
-              #{story.number} {language === 'hi' ? story.titleHi : story.titleEn}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">
-              {story.recommendedAge}
-            </span>
-            <span className="text-[11px] px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-semibold flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {story.readTime}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* STICKY READING TOOLBAR */}
       <div className={`sticky ${isFullViewMode ? 'top-16' : 'top-20'} z-40 p-3 sm:p-4 rounded-2xl sm:rounded-3xl backdrop-blur-md border shadow-sm flex flex-wrap items-center justify-between gap-3 transition-colors ${getToolbarClass()}`}>
         

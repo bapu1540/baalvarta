@@ -20,7 +20,7 @@ import { playPopSound, speakText, stopSpeech } from '../utils/soundEffects';
 import { KidsQuizHub } from './KidsQuizHub';
 import { PrintableWorksheetsHub } from './PrintableWorksheetsHub';
 import { getStoredQuizSets, getStoredWorksheets } from '../utils/storage';
-
+import { INITIAL_LEARNING_ITEMS } from '../data/initialData';
 
 interface EarlyLearningZoneProps {
   items: LearningItem[];
@@ -34,7 +34,7 @@ export const EarlyLearningZone: React.FC<EarlyLearningZoneProps> = ({
   soundEnabled,
 }) => {
   const [learningMode, setLearningMode] = useState<'flashcards' | 'quiz' | 'printables'>('flashcards');
-  const [activeModule, setActiveModule] = useState<'alphabet' | 'numbers' | 'colors_shapes' | 'animals' | 'vocabulary' | 'custom'>('alphabet');
+  const [activeModule, setActiveModule] = useState<'alphabet' | 'numbers' | 'colors_shapes' | 'animals' | 'gk' | 'vocabulary' | 'custom'>('alphabet');
   const [selectedItem, setSelectedItem] = useState<LearningItem | null>(null);
   const [activeModalTab, setActiveModalTab] = useState<'info' | 'video' | 'audio' | 'game' | 'pdf'>('info');
 
@@ -76,7 +76,9 @@ export const EarlyLearningZone: React.FC<EarlyLearningZoneProps> = ({
     { id: 'custom', label: isHi ? 'कस्टम' : 'Custom', icon: Sparkles, tag: '✨' },
   ];
 
-  const filteredItems = items.filter((item) => item.module === activeModule);
+  const allAvailableItems = items.length > 0 ? items : INITIAL_LEARNING_ITEMS;
+  const filteredItems = allAvailableItems.filter((item) => item.module === activeModule);
+  const displayItems = filteredItems.length > 0 ? filteredItems : INITIAL_LEARNING_ITEMS.filter((item) => item.module === activeModule);
 
   const handleCardClick = (item: LearningItem) => {
     if (soundEnabled) playPopSound();
@@ -90,7 +92,7 @@ export const EarlyLearningZone: React.FC<EarlyLearningZoneProps> = ({
   return (
     <div className="space-y-6">
       {/* 3 Main Mode Switchers */}
-      <div className="bg-white rounded-3xl p-3 border border-slate-200 shadow-sm flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-3 border border-slate-200 shadow-sm flex flex-wrap items-center justify-center gap-1.5 sm:gap-3">
         {mainTabs.map((tab) => {
           const isActive = learningMode === tab.id;
           return (
@@ -101,13 +103,13 @@ export const EarlyLearningZone: React.FC<EarlyLearningZoneProps> = ({
                 if (soundEnabled) playPopSound();
                 setLearningMode(tab.id);
               }}
-              className={`flex-1 min-w-[200px] py-3.5 px-5 rounded-2xl text-sm sm:text-base font-extrabold transition-all flex items-center justify-center gap-2.5 ${
+              className={`flex-1 min-w-[120px] sm:min-w-[160px] py-2.5 sm:py-3.5 px-3 sm:px-5 rounded-xl sm:rounded-2xl text-xs sm:text-base font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2.5 ${
                 isActive
-                  ? `${tab.color} shadow-lg scale-105 ring-2 ring-offset-2 ring-amber-300`
+                  ? `${tab.color} shadow-md scale-[1.01] ring-2 ring-amber-300`
                   : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
               }`}
             >
-              <span>{isHi ? tab.labelHi : tab.labelEn}</span>
+              <span className="text-center">{isHi ? tab.labelHi : tab.labelEn}</span>
             </button>
           );
         })}
@@ -133,30 +135,38 @@ export const EarlyLearningZone: React.FC<EarlyLearningZoneProps> = ({
 
       {/* VIEW 3: Flashcards and Interactive Modules */}
       {learningMode === 'flashcards' && (
-        <div className="space-y-6">
-          {/* Header Banner */}
-          <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-            <div className="relative z-10 max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm font-bold mb-3">
-                <Sparkles className="w-4 h-4 text-emerald-200" />
-                <span>{isHi ? 'प्रारंभिक बाल शिक्षा ज़ोन (Early Learning)' : 'Interactive Early Learning Zone'}</span>
+        <div className="space-y-4">
+          {/* Sleek Category Top Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-emerald-200/80 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+                🔤
               </div>
-              <h2 className="text-2xl sm:text-4xl font-extrabold mb-2 font-display">
-                {isHi ? 'अक्षर, संख्याएँ और रंगों का जादुई संसार' : 'Letters, Numbers, Colors & Wonder'}
-              </h2>
-              <p className="text-white/90 text-sm sm:text-base leading-relaxed">
-                {isHi
-                  ? 'हर कार्ड पर क्लिक करके सही उच्चारण सुनें, वीडियो देखें और नए शब्दों को आसानी से सीखें।'
-                  : 'Tap any flashcard to hear crystal clear pronunciation, learn words, and explore videos.'}
-              </p>
+              <div>
+                <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+                  {isHi ? '2. सीखें (Early Learning)' : '2. Early Learning Zone'}
+                </h1>
+                <p className="text-xs text-slate-500 font-medium">
+                  {isHi
+                    ? 'अंग्रेजी ABC, गिनती, रंग-आकार और प्रारंभिक शब्दावली'
+                    : 'English ABCs, numbers, shapes, colors & vocabulary'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 text-xs font-black">
+                {isHi ? `${displayItems.length} कार्ड उपलब्ध` : `${displayItems.length} Cards`}
+              </span>
             </div>
           </div>
 
-          {/* Module Selector Buttons */}
-          <div className="flex flex-wrap gap-2.5">
+          {/* Module Selector Buttons (Sub-Menus) */}
+          <div className="flex flex-wrap gap-2">
             {modules.map((m) => {
               const Icon = m.icon;
               const isActive = activeModule === m.id;
+              const isGK = m.id === 'gk';
               return (
                 <button
                   key={m.id}
@@ -164,10 +174,14 @@ export const EarlyLearningZone: React.FC<EarlyLearningZoneProps> = ({
                     if (soundEnabled) playPopSound();
                     setActiveModule(m.id as any);
                   }}
-                  className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                     isActive
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+                      ? isGK
+                        ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300'
+                        : 'bg-emerald-600 text-white shadow-md'
+                      : isGK
+                        ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-300 font-extrabold'
+                        : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -178,12 +192,12 @@ export const EarlyLearningZone: React.FC<EarlyLearningZoneProps> = ({
           </div>
 
           {/* Flashcards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {filteredItems.map((item) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            {displayItems.map((item) => (
               <div
                 key={item.id}
                 onClick={() => handleCardClick(item)}
-                className="bg-white rounded-3xl p-5 border-2 border-slate-100 hover:border-emerald-400 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center group hover:-translate-y-1"
+                className="bg-white rounded-2xl p-4 border-2 border-slate-100 hover:border-emerald-400 shadow-xs hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center group hover:-translate-y-1"
               >
                 <div className="text-5xl sm:text-6xl mb-3 group-hover:scale-110 transition-transform">
                   {item.imageOrEmoji}

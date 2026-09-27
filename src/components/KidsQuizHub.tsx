@@ -111,22 +111,29 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
   // List View (All Quiz Categories)
   if (!activeQuiz) {
     return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm font-bold mb-3">
-              <Brain className="w-4 h-4 text-amber-200" />
-              <span>{isHi ? 'बाल प्रश्नोत्तरी ज़ोन (5 सवाल - 4 विकल्प)' : 'Kids Interactive Quiz (5 Questions - 4 Options)'}</span>
+      <div className="space-y-4">
+        {/* Sleek Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-rose-200/80 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+              🏆
             </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold mb-2 font-display">
-              {isHi ? 'खेल-खेल में सीखें और बनें सुपर स्टार!' : 'Play & Learn with 5-Question Quizzes!'}
-            </h2>
-            <p className="text-white/90 text-sm sm:text-base leading-relaxed">
-              {isHi
-                ? 'हर प्रश्न के 4 विकल्प हैं। गलत जवाब होने पर सही उत्तर और "यह क्यों सही है" का सचित्र कारण भी समझाया जाएगा।'
-                : 'Each question has 4 options. Instant visual explanations show why the correct answer is right!'}
-            </p>
+            <div>
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+                {isHi ? '8. बाल क्विज़ (5-Q Kids Quiz)' : '8. Kids Quiz Games'}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium">
+                {isHi
+                  ? 'ज्ञानवर्धक प्रश्नोत्तरी, 4 विकल्प और सचित्र व्याख्या'
+                  : 'Interactive 5-question quizzes with instant picture explanation'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="px-3 py-1 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-xs font-black">
+              {isHi ? `${quizSets.length} क्विज़ सेट्स` : `${quizSets.length} Quiz Sets`}
+            </span>
           </div>
         </div>
 

@@ -297,13 +297,13 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-2.5 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl my-4 sm:my-6 bg-white rounded-3xl shadow-2xl border-4 border-amber-300 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-4xl my-4 sm:my-6 bg-white rounded-3xl shadow-2xl border-2 border-indigo-200 overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header Search Area */}
-        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-3.5 sm:p-5 text-white shrink-0 shadow-md">
+        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 p-3.5 sm:p-5 text-white shrink-0 shadow-md">
           <div className="flex items-center justify-between gap-3 mb-2.5 sm:mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-2xl sm:text-3xl animate-pulse">🔍</span>
+              <span className="text-2xl sm:text-3xl">🔍</span>
               <div>
                 <h3 className="text-base sm:text-xl font-black tracking-tight flex items-center gap-2">
                   <span>{language === 'hi' ? 'बालवार्ता सुपर सर्च' : 'Baalvarta Global Search'}</span>
@@ -311,10 +311,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     {language === 'hi' ? 'पूरी वेबसाइट' : 'Entire Website'}
                   </span>
                 </h3>
-                <p className="text-[11px] sm:text-xs text-amber-100 font-medium">
+                <p className="text-[11px] sm:text-xs text-indigo-100 font-medium">
                   {language === 'hi'
-                    ? 'कहानियाँ, 9:16 वीडियो, प्रिंटेबल PDF वर्कशीट्स, बाल गेम्स, अक्षर व तथ्य'
-                    : 'Search 500+ stories, 9:16 videos, printable PDFs, mini-games & alphabet'}
+                    ? 'कहानियाँ, वीडियो, प्रिंटेबल PDF वर्कशीट्स, बाल गेम्स, अक्षर व सामान्य ज्ञान खोजें'
+                    : 'Search 500+ stories, videos, printable PDFs, mini-games & GK'}
                 </p>
               </div>
             </div>
@@ -329,8 +329,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           </div>
 
           {/* Search Input Box */}
-          <div className="relative flex items-center bg-white rounded-2xl p-1 sm:p-1.5 shadow-lg border-2 border-white/60 focus-within:ring-4 focus-within:ring-amber-200 transition-all">
-            <Search className="w-5 h-5 text-amber-600 ml-3 shrink-0" />
+          <div className="relative flex items-center bg-white rounded-2xl p-1 sm:p-1.5 shadow-lg border border-slate-200 focus-within:ring-4 focus-within:ring-indigo-200 transition-all">
+            <Search className="w-5 h-5 text-indigo-600 ml-3 shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -338,7 +338,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
               onChange={(e) => setQuery(e.target.value)}
               placeholder={
                 language === 'hi'
-                  ? 'जैसे: शेर, पंचतंत्र, वीडियो, PDF, वर्कशीट, खेल, मोर, varnamala...'
+                  ? 'जैसे: शेर, पंचतंत्र, वीडियो, PDF, वर्कशीट, खेल, मोर, GK...'
                   : 'E.g., lion, panchatantra, video, pdf, worksheet, games, coloring...'
               }
               className="w-full px-3 py-2 text-sm sm:text-base font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none bg-transparent"
@@ -352,40 +352,21 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                 <X className="w-4 h-4" />
               </button>
             )}
-            <span className="hidden sm:inline-flex text-[11px] font-black px-2.5 py-1 bg-amber-100 text-amber-900 rounded-xl mr-1 shrink-0">
-              {query ? `${results.totalCount} मिले` : 'लाइव सर्च'}
+            <span className="hidden sm:inline-flex text-[11px] font-black px-2.5 py-1 bg-indigo-100 text-indigo-900 rounded-xl mr-1 shrink-0">
+              {query ? `${results.totalCount} मिले` : 'सर्च'}
             </span>
-          </div>
-
-          {/* Quick Popular Suggestion Chips */}
-          <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-0.5 no-scrollbar text-xs">
-            <span className="text-[11px] font-bold text-amber-100 shrink-0">
-              {language === 'hi' ? 'त्वरित खोज:' : 'Quick tags:'}
-            </span>
-            {popularKeywords.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  if (soundEnabled) playPopSound();
-                  setQuery(item.query);
-                }}
-                className="px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/35 text-white text-[11px] font-bold transition-all shrink-0 cursor-pointer"
-              >
-                {item.label}
-              </button>
-            ))}
           </div>
         </div>
 
         {/* Category Tabs Filter */}
-        <div className="flex items-center gap-1 p-2 bg-amber-50/90 border-b border-amber-200 overflow-x-auto shrink-0 no-scrollbar">
+        <div className="flex items-center gap-1 p-2 bg-slate-50 border-b border-slate-200 overflow-x-auto shrink-0 no-scrollbar">
           {[
             { id: 'all' as SearchCategoryFilter, labelHi: '🌟 सभी (All)', labelEn: 'All', count: results.totalCount },
             { id: 'stories' as SearchCategoryFilter, labelHi: '📖 कहानियाँ', labelEn: 'Stories', count: results.stories.length },
-            { id: 'videos' as SearchCategoryFilter, labelHi: '🎬 वीडियो (9:16)', labelEn: 'Videos', count: results.videoStories.length },
-            { id: 'worksheets' as SearchCategoryFilter, labelHi: '📄 PDF वर्कशीट्स', labelEn: 'PDFs & Sheets', count: results.worksheets.length },
+            { id: 'videos' as SearchCategoryFilter, labelHi: '🎬 वीडियो', labelEn: 'Videos', count: results.videoStories.length },
+            { id: 'worksheets' as SearchCategoryFilter, labelHi: '📄 PDF वर्कशीट्स', labelEn: 'PDFs', count: results.worksheets.length },
             { id: 'games' as SearchCategoryFilter, labelHi: '🎮 बाल गेम्स', labelEn: 'Games', count: results.games.length },
-            { id: 'learning' as SearchCategoryFilter, labelHi: '🔤 लर्निंग ज़ोन', labelEn: 'Learning', count: results.learningItems.length },
+            { id: 'learning' as SearchCategoryFilter, labelHi: '🔤 सीखें व GK', labelEn: 'Learning & GK', count: results.learningItems.length },
             { id: 'facts' as SearchCategoryFilter, labelHi: '💡 रोचक तथ्य', labelEn: 'Facts', count: results.facts.length },
             { id: 'audio' as SearchCategoryFilter, labelHi: '🎧 ऑडियो', labelEn: 'Audio', count: results.audioStories.length },
           ].map((cat) => (
@@ -397,15 +378,15 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
               }}
               className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
                 activeCategory === cat.id
-                  ? 'bg-amber-950 text-white shadow-xs'
-                  : 'bg-white text-slate-700 hover:bg-amber-100 border border-amber-200'
+                  ? 'bg-indigo-700 text-white shadow-xs'
+                  : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200'
               }`}
             >
               <span>{language === 'hi' ? cat.labelHi : cat.labelEn}</span>
               {cat.count !== null && (
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    activeCategory === cat.id ? 'bg-amber-800 text-amber-200' : 'bg-slate-100 text-slate-600'
+                    activeCategory === cat.id ? 'bg-indigo-900 text-indigo-100' : 'bg-slate-100 text-slate-600'
                   }`}
                 >
                   {cat.count}

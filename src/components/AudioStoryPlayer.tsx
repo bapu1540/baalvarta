@@ -135,7 +135,7 @@ export const AudioStoryPlayer: React.FC<AudioStoryPlayerProps> = ({
         <div className="relative z-10 max-w-2xl space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-xs font-black uppercase tracking-wider text-purple-100">
             <Radio className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-            <span>{language === 'hi' ? 'क्लाउड ऑडियो स्टोरी प्लेयर' : 'Streaming Cloud Audio Player'}</span>
+            <span>{language === 'hi' ? '5. ऑडियो कहानियाँ (Audio Stories)' : '5. Streaming Audio Stories'}</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
             {language === 'hi' ? 'मनपसंद ऑडियो कहानियाँ व प्रेरक किस्से' : 'Audio Stories & Inspiring Tales to Listen Anytime'}

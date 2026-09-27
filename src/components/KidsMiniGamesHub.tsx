@@ -512,7 +512,7 @@ export const KidsMiniGamesHub: React.FC<KidsMiniGamesHubProps> = ({
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black mb-2">
             <Gamepad2 className="w-4 h-4 text-purple-200" />
-            <span>{isHi ? 'किड्स गेम्स ज़ोन (8 मज़ेदार खेल)' : 'Kids Brain Games & Puzzles (8 Games)'}</span>
+            <span>{isHi ? '7. मिनी गेम्स (8 मज़ेदार खेल)' : '7. Mini Games & Puzzles (8 Games)'}</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
             {isHi ? '🎮 बाल गेम्स व दिमागी कसरत मंच' : '🎮 Play, Learn & Have Fun!'}

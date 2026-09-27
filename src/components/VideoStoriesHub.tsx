@@ -61,56 +61,47 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 pb-12">
-      {/* Top Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white p-6 sm:p-10 shadow-xl border-4 border-red-300/40">
-        <div className="relative z-10 max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-xs text-xs font-black uppercase tracking-wider text-rose-100">
-            <Film className="w-3.5 h-3.5" />
-            <span>{language === 'hi' ? 'बालवार्ता वीडियो हब' : 'Baalvarta Video Hub'}</span>
+    <div className="space-y-4 animate-in fade-in duration-300 pb-12">
+      {/* Sleek Category Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-rose-200/80 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+            🎬
           </div>
-
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight drop-shadow-xs">
-            {language === 'hi'
-              ? '🎬 सचित्र वीडियो कहानियाँ (YouTube 16:9)'
-              : '🎬 Animated Video Stories (YouTube 16:9)'}
-          </h1>
-
-          <p className="text-sm sm:text-base text-red-50 max-w-2xl font-medium leading-relaxed">
-            {language === 'hi'
-              ? 'यहाँ आप बालवार्ता की मनोरंजक और सीख देने वाली 16:9 वीडियो कहानियाँ देख सकते हैं। किसी भी कहानी पर क्लिक करें और सीधे हमारे यूट्यूब चैनल पर वीडियो का आनंद लें!'
-              : 'Watch engaging moral and educational video stories in standard 16:9 format. Click any story to jump directly to YouTube!'}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <span className="px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-xs text-xs sm:text-sm font-black border border-white/30 flex items-center gap-2">
-              📹 {videos.length} {language === 'hi' ? 'वीडियो कहानियाँ उपलब्ध' : 'Video Stories Available'}
-            </span>
+          <div>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+              {language === 'hi' ? '6. वीडियो कहानियाँ (Video Stories)' : '6. Animated Video Stories'}
+            </h1>
+            <p className="text-xs text-slate-500 font-medium">
+              {language === 'hi'
+                ? 'मनोरंजक व नैतिक बाल कथाएं सीधे यूट्यूब पर देखें'
+                : 'Engaging moral stories & fables on YouTube'}
+            </p>
           </div>
         </div>
 
-        {/* Playful Floating Glows */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 right-10 text-8xl opacity-20 pointer-events-none select-none">
-          🎬
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="px-3 py-1 rounded-xl bg-red-50 text-red-900 border border-red-200 text-xs font-black">
+            {language === 'hi' ? `${filteredVideos.length} वीडियो उपलब्ध` : `${filteredVideos.length} Videos`}
+          </span>
         </div>
       </div>
 
       {/* Filter, Search & Layout Switcher Bar */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 shadow-md border-2 border-red-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl p-3 shadow-xs border border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search Bar */}
         <div className="relative flex-1">
-          <Search className="w-5 h-5 text-red-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-red-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
               language === 'hi'
-                ? 'वीडियो कहानी या श्रेणी खोजें (जैसे: शेर, अकबर बीरबल, Shorts)...'
-                : 'Search video stories or category (e.g. lion, Akbar Birbal, Shorts)...'
+                ? 'वीडियो कहानी या श्रेणी खोजें (जैसे: शेर, अकबर बीरबल)...'
+                : 'Search video stories or category (e.g. lion, Akbar Birbal)...'
             }
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-red-50/50 border border-red-200 text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:bg-white transition-all"
+            className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:bg-white transition-all"
           />
         </div>
 
@@ -128,7 +119,7 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>{language === 'hi' ? '16:9 कार्ड' : '16:9 Cards'}</span>
+            <span>{language === 'hi' ? 'ग्रिड' : 'Grid'}</span>
           </button>
           <button
             onClick={() => {
@@ -142,7 +133,7 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
             }`}
           >
             <LayoutList className="w-3.5 h-3.5" />
-            <span>{language === 'hi' ? 'लिस्ट व्यू' : 'List View'}</span>
+            <span>{language === 'hi' ? 'सूची' : 'List'}</span>
           </button>
         </div>
       </div>

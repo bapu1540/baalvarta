@@ -130,69 +130,31 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Search & Hero Banner with Baalvarta Mascot Artwork */}
-      <div className="rounded-3xl bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 p-5 sm:p-7 md:p-8 text-white shadow-lg relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Left Column: Title, Subtitle & Search Bar */}
-          <div className="w-full md:max-w-xl lg:max-w-2xl space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/25 backdrop-blur-sm text-xs font-black uppercase tracking-wider text-amber-950">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
-              <span>{language === 'hi' ? 'क्रमांक अनुसार बाल कहानियाँ' : 'Numbered Moral Stories Hub'}</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
-              {language === 'hi'
-                ? 'सुनो, पढ़ो और सीखो नई कहानियाँ'
-                : 'Listen, Read & Cherish Playful Stories'}
-            </h2>
-            <p className="text-amber-100 text-xs sm:text-sm md:text-base font-medium">
-              {language === 'hi'
-                ? '1. सच्ची दोस्ती, 2. किसान की मजबूरी और ढेर सारी मजेदार बाल कथाएं जो बच्चों में अच्छे संस्कार भरें!'
-                : 'Curated chronological moral fables with high quality Devanagari typography & narrator!'}
-            </p>
-
-            {/* Quick Search */}
-            <div className="relative pt-1">
-              <Search className="w-5 h-5 absolute left-3.5 top-3.5 text-amber-800" />
-              <input
-                id="story-search-input"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  language === 'hi'
-                    ? 'कहानी खोजें (उदा: 1, दोस्ती, किसान, लोमड़ी...)'
-                    : 'Search stories by title or number (e.g. 1, bear, farmer...)'
-                }
-                className="w-full pl-11 pr-4 py-2.5 rounded-2xl bg-white text-slate-800 placeholder-slate-400 text-xs sm:text-sm font-bold shadow-inner focus:outline-hidden focus:ring-4 focus:ring-amber-300 transition-all"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3.5 text-xs text-slate-400 hover:text-slate-600 font-bold"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+    <div className="space-y-4">
+      {/* Sleek Category Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-amber-200/80 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+            📚
           </div>
-
-          {/* Right Column: 3D Glossy Baalvarta Logo Artwork */}
-          <div className="hidden md:flex flex-col items-center justify-center shrink-0 w-72 lg:w-96">
-            <div className="relative w-full h-44 lg:h-52 flex items-center justify-center p-1 group">
-              <img
-                src="/baalvarta-logo.svg"
-                alt="Baalvarta - Fun Learning Stories"
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-contain filter drop-shadow-2xl select-none group-hover:scale-105 transition-transform duration-300 pointer-events-none"
-              />
-            </div>
+          <div>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+              {language === 'hi' ? '1. बाल कहानियाँ (Kids Stories)' : '1. Kids Stories Hub'}
+            </h1>
+            <p className="text-xs text-slate-500 font-medium">
+              {language === 'hi'
+                ? `सचित्र बाल कथाएं, पंचतंत्र व ज्ञानवर्धक कहानियाँ`
+                : `Illustrated kids stories, Panchatantra & fun tales`}
+            </p>
           </div>
         </div>
 
-        {/* Playful Background Decorative Bubbles */}
-        <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-white/10 pointer-events-none blur-xl" />
-        <div className="absolute -left-6 -top-6 w-36 h-36 rounded-full bg-yellow-300/20 pointer-events-none blur-lg" />
+        {/* Stories Count Badge */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="px-3 py-1 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 text-xs font-black">
+            {language === 'hi' ? `${filteredStories.length} कहानियाँ` : `${filteredStories.length} Stories`}
+          </span>
+        </div>
       </div>
 
       {/* Categories & Filter Badges */}

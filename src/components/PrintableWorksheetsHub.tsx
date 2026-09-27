@@ -10,18 +10,25 @@ import {
   CheckCircle,
   Eye,
   X,
-  Share2
+  Share2,
+  Award,
+  Crown,
+  Zap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PrintableWorksheet, Language } from '../types';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
 import { AdBannerSlot } from './AdBannerSlot';
+import { KidsCertificateHub } from './KidsCertificateHub';
+import { getProSubscription, getDailyDownloadCount, incrementDailyDownloadCount } from '../utils/proManager';
 
 interface PrintableWorksheetsHubProps {
   worksheets?: PrintableWorksheet[];
   language: Language;
   soundEnabled: boolean;
   onBackToHome?: () => void;
+  initialCategory?: string;
+  onOpenProModal?: () => void;
 }
 
 const DEFAULT_WORKSHEETS: PrintableWorksheet[] = [
@@ -97,16 +104,21 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
   worksheets = DEFAULT_WORKSHEETS,
   language,
   soundEnabled,
+  initialCategory,
+  onOpenProModal,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'all');
   const [activePreviewSheet, setActivePreviewSheet] = useState<PrintableWorksheet | null>(null);
   const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
+  const [downloadCount, setDownloadCount] = useState<number>(() => getDailyDownloadCount());
 
   const isHi = language === 'hi';
+  const isPro = getProSubscription().isPro;
   const list = worksheets.length > 0 ? worksheets : DEFAULT_WORKSHEETS;
 
   const categories = [
     { id: 'all', labelHi: 'सभी शीट्स (All)', labelEn: 'All Sheets', icon: FileText },
+    { id: 'certificates', labelHi: '🎖️ स्टार प्रमाण पत्र (Certificates)', labelEn: '🎖️ Star Certificates', icon: Award },
     { id: 'tracing', labelHi: 'अक्षर ट्रेसिंग (Tracing)', labelEn: 'Letter Tracing', icon: Edit3 },
     { id: 'coloring', labelHi: 'कलरिंग शीट्स (Coloring)', labelEn: 'Coloring Sheets', icon: Palette },
     { id: 'puzzle', labelHi: 'मज़ेदार पहेलियाँ (Puzzles)', labelEn: 'Puzzles & Mazes', icon: Puzzle },
@@ -127,7 +139,20 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
   };
 
   const handleDownloadSheet = (sheet: PrintableWorksheet) => {
+    // Check free daily limit if not pro member
+    if (!isPro && downloadCount >= 2) {
+      if (soundEnabled) playPopSound();
+      if (onOpenProModal) {
+        onOpenProModal();
+      }
+      return;
+    }
+
     if (soundEnabled) playSuccessSound();
+    if (!isPro) {
+      const updated = incrementDailyDownloadCount();
+      setDownloadCount(updated);
+    }
 
     // Generate high-resolution printable sheet on canvas and download
     const canvas = document.createElement('canvas');
@@ -211,28 +236,83 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-12 font-kids">
+    <div className="space-y-4 pb-12 font-kids">
       
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 rounded-3xl p-5 sm:p-7 text-white shadow-lg relative overflow-hidden">
-        <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black mb-2">
-            <Printer className="w-4 h-4 text-emerald-200" />
-            <span>{isHi ? 'स्क्रीन-फ़्री पढ़ाई व कला अभ्यास' : 'Screen-Free Printable Worksheets'}</span>
+      {/* Sleek Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-3.5 sm:p-4 border border-teal-200/80 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+            📄
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-            {isHi ? '🖨️ प्रिंटेबल वर्कशीट व कलरिंग शीट्स' : '🖨️ Printable Worksheets & Coloring'}
-          </h1>
-          <p className="text-white/95 text-xs sm:text-sm font-bold mt-1">
-            {isHi
-              ? 'वर्णमाला ट्रेसिंग, पंचतंत्र कहानियों के पात्रों में रंग भरने और मज़ेदार पहेलियों की उच्च-गुणवत्ता वाली PDF/प्रिंट शीट्स 1-क्लिक में डाउनलोड करें।'
-              : 'Download free printable handwriting tracing sheets, story coloring activities, and daily habit charts for kids!'}
-          </p>
+          <div>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+              {isHi ? '10. फ्री डाउनलोड PDF (Free Download & Certificates)' : '10. Free Download PDFs & Certificates'}
+            </h1>
+            <p className="text-xs text-slate-500 font-medium">
+              {isHi
+                ? 'वर्णमाला ट्रेसिंग, कलरिंग शीट्स, स्टार प्रमाण पत्र व पहेलियों की उच्च-गुणवत्ता वाली PDF'
+                : 'Free handwriting tracing sheets, coloring sheets, Star Certificates & habit charts'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="px-3 py-1 rounded-xl bg-teal-50 text-teal-900 border border-teal-200 text-xs font-black">
+            {selectedCategory === 'certificates' 
+              ? (isHi ? '4 प्रमाण पत्र टेम्पलेट' : '4 Certificate Types')
+              : (isHi ? `${filtered.length} शीट्स उपलब्ध` : `${filtered.length} Worksheets`)}
+          </span>
         </div>
       </div>
 
+      {/* Pro Membership & Download Limit Banner */}
+      <div className={`p-3 sm:p-3.5 rounded-2xl border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs ${
+        isPro 
+          ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+          : 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border-amber-300 text-amber-950'
+      }`}>
+        <div className="flex items-center gap-2.5">
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 shadow-xs ${
+            isPro ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+          }`}>
+            {isPro ? '👑' : '💎'}
+          </div>
+          <div>
+            <div className="text-xs font-black flex items-center gap-1.5">
+              <span>
+                {isPro
+                  ? (isHi ? 'बालवार्ता वीआईपी सदस्य: असीमित डाउनलोड सक्रिय!' : 'Baalvarta VIP: Unlimited HD Downloads Active!')
+                  : (isHi ? `दैनिक मुफ़्त डाउनलोड: ${Math.max(0, 2 - downloadCount)} / 2 शेष` : `Free Daily Downloads: ${Math.max(0, 2 - downloadCount)} / 2 remaining`)}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 font-medium">
+              {isPro
+                ? (isHi ? 'आप बिना किसी सीमा के सभी शीट्स व सर्टिफिकेट्स डाउनलोड कर सकते हैं।' : 'You can download all worksheets and certificates without limits.')
+                : (isHi ? 'केवल ₹29/माह या ₹299/वर्ष में 100% Ad-Free व असीमित डाउनलोड प्राप्त करें।' : 'Upgrade to Pro for ₹29/mo or ₹299/yr for unlimited downloads & ad-free access.')}
+            </p>
+          </div>
+        </div>
+
+        {onOpenProModal && (
+          <button
+            onClick={() => {
+              if (soundEnabled) playPopSound();
+              onOpenProModal();
+            }}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all active:scale-95 shadow-xs shrink-0 self-start sm:self-auto flex items-center gap-1.5 ${
+              isPro
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+            }`}
+          >
+            <Crown className="w-3.5 h-3.5 text-yellow-200" />
+            <span>{isPro ? (isHi ? 'VIP स्थिति' : 'VIP Status') : (isHi ? 'प्रो अपग्रेड (₹29) 👑' : 'Upgrade to Pro (₹29) 👑')}</span>
+          </button>
+        )}
+      </div>
+
       {/* Category Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
         {categories.map((cat) => {
           const Icon = cat.icon;
           const isActive = selectedCategory === cat.id;
@@ -267,9 +347,13 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
         </div>
       )}
 
-      {/* Worksheets Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filtered.map((ws) => (
+      {/* VIEW: Reader Star Certificate Generator */}
+      {selectedCategory === 'certificates' ? (
+        <KidsCertificateHub language={language} soundEnabled={soundEnabled} />
+      ) : (
+        /* Worksheets Grid */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map((ws) => (
           <div
             key={ws.id}
             className="bg-white rounded-3xl border-2 border-amber-200 hover:border-emerald-400 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
@@ -320,7 +404,9 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
           </div>
         ))}
       </div>
+      )}
 
+      {/* Preview / Modal if active */}
     </div>
   );
 };
