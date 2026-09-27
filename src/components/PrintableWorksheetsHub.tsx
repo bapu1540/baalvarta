@@ -18,6 +18,7 @@ import {
 import confetti from 'canvas-confetti';
 import { PrintableWorksheet, Language } from '../types';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
+import { trackWorksheetDownload } from '../utils/analytics';
 import { AdBannerSlot } from './AdBannerSlot';
 import { KidsCertificateHub } from './KidsCertificateHub';
 import { getProSubscription, getDailyDownloadCount, incrementDailyDownloadCount } from '../utils/proManager';
@@ -131,6 +132,7 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
 
   const handlePrintSheet = (sheet: PrintableWorksheet) => {
     if (soundEnabled) playPopSound();
+    trackWorksheetDownload(sheet.id, sheet.titleHi || sheet.titleEn, sheet.category);
     setActivePreviewSheet(sheet);
     // Allow state to render then print
     setTimeout(() => {
@@ -149,6 +151,7 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
     }
 
     if (soundEnabled) playSuccessSound();
+    trackWorksheetDownload(sheet.id, sheet.titleHi || sheet.titleEn, sheet.category);
     if (!isPro) {
       const updated = incrementDailyDownloadCount();
       setDownloadCount(updated);

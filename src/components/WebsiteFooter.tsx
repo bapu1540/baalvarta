@@ -42,21 +42,21 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
 }) => {
   const currentFooterImage = customFooterImage !== undefined ? customFooterImage : getStoredFooterImage();
   return (
-    <footer className="mt-16 relative bg-slate-950 text-slate-200 border-t-4 border-amber-500 font-sans overflow-hidden w-full max-w-full">
+    <footer className="mt-2 sm:mt-3 relative bg-slate-950 text-slate-200 border-t-4 border-amber-500 font-sans overflow-hidden w-full max-w-full">
       {/* Top Banner / Family & Reader Trust Guarantee */}
-      <div className="relative z-10 bg-amber-600/95 text-white py-3.5 px-4 sm:px-6 border-b border-amber-500/50">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+      <div className="relative z-10 bg-amber-600/95 text-white py-2.5 px-3 sm:px-6 border-b border-amber-500/50">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0 shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-lg shrink-0 shadow-xs">
               🛡️
             </div>
             <div>
-              <p className="font-extrabold text-sm sm:text-base">
+              <p className="font-extrabold text-xs sm:text-sm">
                 {language === 'hi'
                   ? 'परिवार व सभी उम्र के बच्चों के लिए 100% सुरक्षित, ज्ञानवर्धक व नैतिक मंच'
                   : 'Family-Friendly, Safe & Moral Storytelling for All Ages'}
               </p>
-              <p className="text-amber-100 text-xs font-medium">
+              <p className="text-amber-100 text-[11px] font-medium">
                 {language === 'hi'
                   ? 'सदाबहार नैतिक कहानियाँ • भारतीय संस्कृति व संस्कार • वैज्ञानिक रोचक तथ्य व ज्ञान'
                   : 'Timeless Moral Tales • Cultural & Family Values • Science Facts & Early Learning'}
@@ -64,7 +64,7 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold bg-amber-700/80 px-3.5 py-1.5 rounded-xl border border-amber-400/50 shrink-0">
+          <div className="flex items-center gap-2 text-[11px] font-bold bg-amber-700/80 px-3 py-1 rounded-xl border border-amber-400/50 shrink-0">
             <Mail className="w-3.5 h-3.5 text-amber-200" />
             <a href="mailto:baalvarta@gmail.com" className="hover:text-amber-100 transition-colors">
               baalvarta@gmail.com
@@ -74,8 +74,8 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
       </div>
 
       {/* Main Multi-Column Footer Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-        <div className="w-full flex flex-col space-y-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <div className="w-full flex flex-col space-y-4 sm:space-y-5">
           
           {/* 1. Brand & Mission */}
           <div className="space-y-3">
@@ -448,7 +448,7 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
             </div>
 
             {/* 3. Bottom Bar: Copyright & Language Switch */}
-            <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 text-center sm:text-left">
+            <div className="pt-3 sm:pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 text-center sm:text-left">
               <div>
                 <div className="font-medium text-slate-300 flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <span>© {new Date().getFullYear()} बालवार्ता (Baalvarta) • ऑल राइट्स रिसर्व्ड।</span>

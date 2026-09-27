@@ -533,7 +533,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-slate-800 flex flex-col font-sans selection:bg-amber-200 overflow-x-hidden w-full max-w-full pb-24 sm:pb-28">
+    <div className="min-h-screen bg-[#FDFBF7] text-slate-800 flex flex-col font-sans selection:bg-amber-200 overflow-x-hidden w-full max-w-full pb-14 sm:pb-16">
       
       {/* Modern Responsive Navigation Header */}
       <WebsiteHeader

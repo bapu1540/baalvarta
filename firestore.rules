@@ -22,5 +22,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isValidId(worksheetId);
     }
+
+    match /analytics_events/{eventId} {
+      allow read: if true;
+      allow write: if isValidId(eventId);
+    }
   }
 }

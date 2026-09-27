@@ -45,7 +45,10 @@ import {
   Gamepad2,
   Palette,
   Award,
-  Heart
+  Heart,
+  Flame,
+  TrendingUp,
+  Zap
 } from 'lucide-react';
 import {
   Story,
@@ -97,6 +100,7 @@ import {
 } from '../utils/storage';
 import { sendAdminOtpEmail } from '../utils/emailService';
 import { saveToServerDatabase } from '../utils/dbStorage';
+import { getAnalyticsStrategyReport, getLocalAnalyticsSummary } from '../utils/analytics';
 import {
   isFirebaseConfigured,
   getFirebaseConfig,
@@ -523,9 +527,11 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     descriptionEn: '',
   });
 
-  // Story Management & Safe Deletion State
+  // Story Management & Heatmap Analytics View State
   const [storySearchTerm, setStorySearchTerm] = useState('');
   const [storyFilter, setStoryFilter] = useState<'all' | 'custom' | 'default' | 'picture_book' | 'single_image'>('all');
+  const [heatmapMode, setHeatmapMode] = useState<boolean>(true);
+  const [sortByHeatmap, setSortByHeatmap] = useState<boolean>(false);
   const [storyToDelete, setStoryToDelete] = useState<Story | null>(null);
   const [expandedStoryId, setExpandedStoryId] = useState<string | null>(null);
   const [undoStory, setUndoStory] = useState<{ story: Story; index: number } | null>(null);
@@ -2262,28 +2268,66 @@ service cloud.firestore {
                   </div>
                 )}
 
-                {/* Search & Filter Bar */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="कहानी खोजें (शीर्षक, नंबर या सीख)..."
-                      value={storySearchTerm}
-                      onChange={(e) => setStorySearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-8 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    />
-                    {storySearchTerm && (
+                {/* Search, Filter & Heatmap Analytics Control Bar */}
+                <div className="space-y-3">
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="कहानी खोजें (शीर्षक, नंबर या सीख)..."
+                        value={storySearchTerm}
+                        onChange={(e) => setStorySearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-8 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      {storySearchTerm && (
+                        <button
+                          onClick={() => setStorySearchTerm('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Heatmap & Analytics Toggles */}
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                       <button
-                        onClick={() => setStorySearchTerm('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setHeatmapMode(!heatmapMode);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs ${
+                          heatmapMode
+                            ? 'bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-md ring-2 ring-rose-300'
+                            : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                        }`}
+                        title="हीटमैप व्यू चालू/बंद करें"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <Flame className={`w-4 h-4 ${heatmapMode ? 'text-amber-200 animate-pulse' : 'text-slate-400'}`} />
+                        <span>{heatmapMode ? '🔥 हीटमैप मोड चालू' : '🔥 हीटमैप बंद'}</span>
                       </button>
-                    )}
+
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setSortByHeatmap(!sortByHeatmap);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                          sortByHeatmap
+                            ? 'bg-amber-900 text-white shadow-xs'
+                            : 'bg-white border border-amber-200 text-amber-900 hover:bg-amber-50'
+                        }`}
+                        title="उच्चतम एंगेजमेंट (हिट) के अनुसार क्रमित करें"
+                      >
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        <span>{sortByHeatmap ? '📈 एंगेजमेंट सॉर्टेड' : 'सॉर्ट: एंगेजमेंट'}</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  {/* Standard Category Filter Pills */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
                     <button
                       onClick={() => setStoryFilter('all')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
@@ -2325,137 +2369,245 @@ service cloud.firestore {
                       नई अपलोड ({stories.filter((s) => s.id.startsWith('story-') || s.number > 6).length})
                     </button>
                   </div>
+
+                  {/* Heatmap Legend Banner */}
+                  {heatmapMode && (
+                    <div className="p-3 bg-gradient-to-r from-rose-50 via-amber-50 to-emerald-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span className="font-black text-slate-900">हीटमैप रंग संकेत (Color-coded Heatmap Legend):</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] font-bold flex-wrap">
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-rose-100 text-rose-900 border border-rose-300">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping" />
+                          🔥 उच्च जुड़ाव (Home Feature Candidate)
+                        </span>
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                          ⚡ मध्यम जुड़ाव
+                        </span>
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-300">
+                          <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                          🧊 सामान्य / नई
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Stories Listing */}
-                <div className="space-y-3">
-                  {filteredStories.length === 0 ? (
-                    <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500 text-xs">
-                      <p className="font-bold text-sm text-slate-700">कोई कहानी नहीं मिली</p>
-                      <p className="mt-1">खोज शब्द बदलें या ऊपर से नई कहानी प्रकाशित करें।</p>
-                    </div>
-                  ) : (
-                    filteredStories.map((s) => {
-                      const isExpanded = expandedStoryId === s.id;
-                      const isCustom = s.id.startsWith('story-') || s.number > 6;
+                {/* Stories Listing with Heatmap Calculation */}
+                {(() => {
+                  const summaryStats = getLocalAnalyticsSummary();
 
-                      return (
-                        <div
-                          key={s.id}
-                          className="bg-white border-2 border-slate-200 hover:border-amber-300 rounded-2xl overflow-hidden transition-all shadow-2xs"
-                        >
-                          {/* Main Row */}
-                          <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                            <div className="flex items-center gap-3">
-                              {/* Story Thumbnail (16:9 Aspect Ratio) */}
-                              <div className="relative w-20 sm:w-24 aspect-video rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
-                                <img
-                                  src={s.coverImage}
-                                  alt={s.titleHi}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=200&auto=format&fit=crop&q=80';
-                                  }}
-                                />
-                                <span className="absolute top-0.5 left-0.5 px-1 py-0.2 bg-black/60 text-white font-extrabold text-[9px] rounded">
-                                  #{s.number}
-                                </span>
-                              </div>
+                  let processedStories = stories.filter((s) => {
+                    const matchesSearch =
+                      s.titleHi.toLowerCase().includes(storySearchTerm.toLowerCase()) ||
+                      s.titleEn.toLowerCase().includes(storySearchTerm.toLowerCase()) ||
+                      s.moralHi.toLowerCase().includes(storySearchTerm.toLowerCase()) ||
+                      s.number.toString().includes(storySearchTerm);
 
-                              {/* Story Info */}
-                              <div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <p className="font-black text-slate-900 text-sm">{s.titleHi}</p>
-                                  {isCustom && (
-                                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
-                                      नई अपलोड
-                                    </span>
-                                  )}
-                                  <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">
-                                    {s.category}
-                                  </span>
-                                  {s.format === 'picture_book' || (s.scenes && s.scenes.length > 1) ? (
-                                    <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-extrabold flex items-center gap-0.5">
-                                      <span>🎨</span>
-                                      <span>सचित्र ({s.scenes?.length || 3} दृश्य)</span>
-                                    </span>
-                                  ) : (
-                                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-extrabold flex items-center gap-0.5">
-                                      <span>🖼️</span>
-                                      <span>1 इमेज</span>
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-slate-500 text-[11px] line-clamp-1 mt-0.5">
-                                  {s.titleEn} • {s.readTime} • सीख: {s.moralHi}
-                                </p>
-                              </div>
-                            </div>
+                    if (!matchesSearch) return false;
 
-                            {/* Action Buttons */}
-                            <div className="flex items-center gap-2 self-end sm:self-center">
-                              {/* Preview / Expand Toggle */}
-                              <button
-                                onClick={() => {
-                                  if (soundEnabled) playPopSound();
-                                  setExpandedStoryId(isExpanded ? null : s.id);
-                                }}
-                                className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1 transition-colors"
-                                title="कहानी का विवरण देखें"
-                              >
-                                {isExpanded ? <EyeOff className="w-3.5 h-3.5 text-slate-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
-                                <span>{isExpanded ? 'छुपाएँ' : 'देखें'}</span>
-                              </button>
+                    if (storyFilter === 'custom') {
+                      return s.id.startsWith('story-') || s.number > 6;
+                    }
+                    if (storyFilter === 'picture_book') {
+                      return s.format === 'picture_book' || (s.scenes && s.scenes.length > 1);
+                    }
+                    if (storyFilter === 'single_image') {
+                      return !(s.format === 'picture_book' || (s.scenes && s.scenes.length > 1));
+                    }
 
-                              {/* Delete Button */}
-                              <button
-                                onClick={() => handleRequestDelete(s)}
-                                className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 font-black text-xs flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
-                                title="यह कहानी हमेशा के लिए डिलीट करें"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                                <span>हटाएं (Delete)</span>
-                              </button>
-                            </div>
-                          </div>
+                    return true;
+                  });
 
-                          {/* Expanded Full Story Preview */}
-                          {isExpanded && (
-                            <div className="p-4 bg-amber-50/40 border-t border-amber-200 text-xs space-y-3">
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="md:col-span-1 rounded-xl overflow-hidden border border-amber-200 bg-white">
+                  // Calculate score for each story
+                  const getStoryScore = (s: Story) => {
+                    const stat = summaryStats.popularStories[s.id] || { views: 0, likes: 0 };
+                    const totalViews = ((s as any).viewsCount || 0) + stat.views;
+                    const totalLikes = (s.likes || 0) + stat.likes;
+                    return totalViews * 1 + totalLikes * 3;
+                  };
+
+                  if (sortByHeatmap) {
+                    processedStories = [...processedStories].sort((a, b) => getStoryScore(b) - getStoryScore(a));
+                  }
+
+                  if (processedStories.length === 0) {
+                    return (
+                      <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500 text-xs">
+                        <p className="font-bold text-sm text-slate-700">कोई कहानी नहीं मिली</p>
+                        <p className="mt-1">खोज शब्द बदलें या ऊपर से नई कहानी प्रकाशित करें।</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-3">
+                      {processedStories.map((s) => {
+                        const isExpanded = expandedStoryId === s.id;
+                        const isCustom = s.id.startsWith('story-') || s.number > 6;
+
+                        const stat = summaryStats.popularStories[s.id] || { views: 0, likes: 0 };
+                        const totalViews = ((s as any).viewsCount || 0) + stat.views;
+                        const totalLikes = (s.likes || 0) + stat.likes;
+                        const score = totalViews * 1 + totalLikes * 3;
+
+                        // Heatmap Tier definition
+                        let heatClass = 'bg-white border-2 border-slate-200 hover:border-amber-300';
+                        let heatBadge = null;
+
+                        if (heatmapMode) {
+                          if (score >= 5 || s.isFeatured) {
+                            heatClass = 'bg-gradient-to-r from-rose-50/90 via-orange-50/70 to-amber-50/50 border-2 border-rose-400 shadow-sm ring-2 ring-rose-200';
+                            heatBadge = (
+                              <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-amber-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                                <Flame className="w-3 h-3 text-amber-200" />
+                                <span>🔥 High Heat (Home Feature)</span>
+                              </span>
+                            );
+                          } else if (score >= 2) {
+                            heatClass = 'bg-amber-50/80 border-2 border-amber-300 shadow-2xs';
+                            heatBadge = (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px] flex items-center gap-1">
+                                <Zap className="w-3 h-3 text-amber-600" />
+                                <span>⚡ Moderate Heat</span>
+                              </span>
+                            );
+                          } else {
+                            heatClass = 'bg-slate-50/80 border-2 border-slate-200';
+                            heatBadge = (
+                              <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center gap-1">
+                                <span>🧊 Cool / New</span>
+                              </span>
+                            );
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={s.id}
+                            className={`${heatClass} rounded-2xl overflow-hidden transition-all`}
+                          >
+                            {/* Main Row */}
+                            <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                              <div className="flex items-center gap-3">
+                                {/* Story Thumbnail (16:9 Aspect Ratio) */}
+                                <div className="relative w-20 sm:w-24 aspect-video rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200 shadow-xs">
                                   <img
                                     src={s.coverImage}
                                     alt={s.titleHi}
-                                    className="w-full h-36 object-cover"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=200&auto=format&fit=crop&q=80';
+                                    }}
                                   />
-                                  <div className="p-2 bg-amber-50 text-[10px] text-amber-900 font-medium">
-                                    <span>उम्र: {s.recommendedAge} | समय: {s.readTime}</span>
-                                  </div>
+                                  <span className="absolute top-0.5 left-0.5 px-1 py-0.2 bg-black/60 text-white font-extrabold text-[9px] rounded">
+                                    #{s.number}
+                                  </span>
                                 </div>
-                                <div className="md:col-span-2 space-y-2">
-                                  <div className="p-2.5 rounded-xl bg-white border border-amber-200 text-slate-700 leading-relaxed max-h-36 overflow-y-auto whitespace-pre-line font-serif text-[13px]">
-                                    {s.contentHi}
+
+                                {/* Story Info */}
+                                <div>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="font-black text-slate-900 text-sm">{s.titleHi}</p>
+
+                                    {/* Heatmap Tier Badge */}
+                                    {heatBadge}
+
+                                    {isCustom && (
+                                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
+                                        नई अपलोड
+                                      </span>
+                                    )}
+                                    <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">
+                                      {s.category}
+                                    </span>
+                                    {s.format === 'picture_book' || (s.scenes && s.scenes.length > 1) ? (
+                                      <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-extrabold flex items-center gap-0.5">
+                                        <span>🎨</span>
+                                        <span>सचित्र ({s.scenes?.length || 3} दृश्य)</span>
+                                      </span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-extrabold flex items-center gap-0.5">
+                                        <span>🖼️</span>
+                                        <span>1 इमेज</span>
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-amber-100/70 text-amber-900 font-bold text-[11px]">
-                                    <span>💡 सीख: {s.moralHi}</span>
-                                    <button
-                                      onClick={() => handleRequestDelete(s)}
-                                      className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-extrabold text-[10px] hover:bg-rose-700 transition-colors flex items-center gap-1"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                      <span>गलत अपलोड हुई है? इसे डिलीट करें</span>
-                                    </button>
+                                  <p className="text-slate-500 text-[11px] line-clamp-1 mt-0.5">
+                                    {s.titleEn} • {s.readTime} • सीख: {s.moralHi}
+                                  </p>
+
+                                  {/* Engagement Metrics Indicator */}
+                                  <div className="flex items-center gap-3 mt-1 text-[11px] font-bold text-slate-600">
+                                    <span className="flex items-center gap-1 text-slate-700">
+                                      <span>👁️</span> {totalViews} व्यूज
+                                    </span>
+                                    <span className="flex items-center gap-1 text-rose-600">
+                                      <span>❤️</span> {totalLikes} पसंद
+                                    </span>
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-[10px] font-extrabold">
+                                      स्कोर: {score}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex items-center gap-2 self-end sm:self-center">
+                                {/* Preview / Expand Toggle */}
+                                <button
+                                  onClick={() => {
+                                    if (soundEnabled) playPopSound();
+                                    setExpandedStoryId(isExpanded ? null : s.id);
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="कहानी का विवरण देखें"
+                                >
+                                  {isExpanded ? <EyeOff className="w-3.5 h-3.5 text-slate-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+                                  <span>{isExpanded ? 'छुपाएँ' : 'देखें'}</span>
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                  onClick={() => handleRequestDelete(s)}
+                                  className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 font-black text-xs flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                                  title="यह कहानी हमेशा के लिए डिलीट करें"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>हटाएं (Delete)</span>
+                                </button>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+
+                            {/* Expanded Full Story Preview */}
+                            {isExpanded && (
+                              <div className="p-4 bg-amber-50/40 border-t border-amber-200 text-xs space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div className="md:col-span-1 rounded-xl overflow-hidden border border-amber-200 bg-white">
+                                    <img
+                                      src={s.coverImage}
+                                      alt={s.titleHi}
+                                      className="w-full h-auto object-cover"
+                                    />
+                                  </div>
+                                  <div className="md:col-span-2 space-y-2">
+                                    <h4 className="font-black text-sm text-slate-900">{s.titleHi} ({s.titleEn})</h4>
+                                    <p className="text-slate-700 leading-relaxed font-serif whitespace-pre-line">{s.contentHi}</p>
+                                    <div className="p-2.5 rounded-xl bg-amber-100/60 border border-amber-200 font-bold text-amber-900">
+                                      💡 सीख: {s.moralHi}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -3908,6 +4060,111 @@ service cloud.firestore {
                   </div>
                 </div>
               </div>
+
+              {/* FIREBASE CONTENT STRATEGY & POPULAR STORIES ANALYTICS CARD */}
+              {(() => {
+                const analyticsReport = getAnalyticsStrategyReport();
+                return (
+                  <div className="p-6 rounded-3xl bg-white border-2 border-amber-300 shadow-md space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black text-2xl shadow-sm">
+                          📊
+                        </div>
+                        <div>
+                          <h4 className="font-black text-base text-slate-900">
+                            Firebase Analytics & कंटेंट रणनीति अंतर्दृष्टि (Content Strategy Report)
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            लोकप्रिय कहानियों, क्विज़ और वर्कशीट्स के आंकड़े—भविष्य की बाल कहानियों की रणनीति तय करने के लिए:
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300 self-start sm:self-auto">
+                        🔥 Firebase Live Tracking
+                      </span>
+                    </div>
+
+                    {/* Metric Cards Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-1">
+                        <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">कुल कहानी व्यूज</span>
+                        <div className="text-2xl font-black text-amber-600">{analyticsReport.totalStoryViews}</div>
+                        <span className="text-[10px] text-slate-500 font-bold">Story Reads</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-center space-y-1">
+                        <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider">कुल पसंद (Likes)</span>
+                        <div className="text-2xl font-black text-rose-600">{analyticsReport.totalLikes} ❤️</div>
+                        <span className="text-[10px] text-slate-500 font-bold">Total Story Likes</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-center space-y-1">
+                        <span className="text-[10px] font-black uppercase text-purple-800 tracking-wider">क्विज़ पूर्ण किए गए</span>
+                        <div className="text-2xl font-black text-purple-600">{analyticsReport.totalQuizCompletions} 🏆</div>
+                        <span className="text-[10px] text-slate-500 font-bold">Quiz Attempts</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-center space-y-1">
+                        <span className="text-[10px] font-black uppercase text-blue-800 tracking-wider">वर्कशीट प्रिंट/डाउनलोड</span>
+                        <div className="text-2xl font-black text-blue-600">{analyticsReport.totalWorksheetDownloads} 📥</div>
+                        <span className="text-[10px] text-slate-500 font-bold">Worksheets Used</span>
+                      </div>
+                    </div>
+
+                    {/* Popular Stories & Content Recommendations */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                      {/* Top Performing Stories */}
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                        <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <Trophy className="w-4 h-4 text-amber-500" />
+                          <span>सबसे लोकप्रिय कहानियाँ (Top Ranked Stories)</span>
+                        </h5>
+                        {analyticsReport.topPerformingStories.length > 0 ? (
+                          <div className="space-y-2">
+                            {analyticsReport.topPerformingStories.map((storyItem, idx) => (
+                              <div key={storyItem.id || idx} className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs font-semibold">
+                                <div className="min-w-0 pr-2">
+                                  <p className="font-extrabold text-slate-900 truncate">#{idx + 1}. {storyItem.title}</p>
+                                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-bold uppercase">{storyItem.category}</span>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="font-black text-emerald-600">{storyItem.views} व्यूज</span>
+                                  <span className="text-[10px] text-slate-400 block">{storyItem.likes} पसंद</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500 italic p-3 bg-white rounded-xl border border-slate-200">
+                            अभी तक कोई व्यूज डेटा रिकॉर्ड नहीं हुआ है। पाठक जैसे-जैसे कहानियाँ पढ़ना शुरू करेंगे, यहाँ रैंकिंग अपने आप अपडेट हो जाएगी।
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Content Strategy Recommendation Box */}
+                      <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-300 space-y-3">
+                        <h5 className="text-xs font-black text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                          <Lightbulb className="w-4 h-4 text-amber-600" />
+                          <span>रणनीतिक सुझाव (Content Strategy Tip)</span>
+                        </h5>
+                        <div className="text-xs text-amber-900 space-y-2 font-medium leading-relaxed">
+                          <p>
+                            • <strong>पंचतंत्र व नैतिक कहानियाँ:</strong> भारतीय बच्चों में पंचतंत्र और जानवरों वाली सचित्र कहानियों में सर्वाधिक जुड़ाव (Engagement) देखा जाता है।
+                          </p>
+                          <p>
+                            • <strong>5-Q क्विज़ गेम्स:</strong> कहानी पढ़ने के बाद क्विज़ खेलने से बच्चों का ध्यान अधिक समय तक बना रहता है।
+                          </p>
+                          <p>
+                            • <strong>सुझाव:</strong> नई कहानियाँ जोड़ते समय 16:9 आकार के रंगीन चित्रों (Picture-book mode) का उपयोग करें ताकि पाठक अधिक समय तक रुकें।
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Maintenance Tools */}
               <div className="p-5 rounded-3xl bg-white border-2 border-slate-200 shadow-xs space-y-3">

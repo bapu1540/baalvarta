@@ -2,7 +2,7 @@
   "entities": {
     "Story": {
       "title": "Story",
-      "description": "Children's story in Gujarati with translations, audio, quiz, and moral values",
+      "description": "Children's story in Gujarati/Hindi with translations, audio, quiz, and moral values",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -17,6 +17,7 @@
         "coverImage": { "type": "string" },
         "contentHi": { "type": "string" },
         "contentEn": { "type": "string" },
+        "viewsCount": { "type": "number" },
         "_syncedAt": { "type": "number" }
       },
       "required": ["id", "titleHi", "category"]
@@ -40,6 +41,20 @@
       },
       "required": ["id", "titleHi", "category", "thumbnailUrl"]
     },
+    "AnalyticsEvent": {
+      "title": "AnalyticsEvent",
+      "description": "User engagement events and story view metrics for content strategy optimization",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "eventType": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetTitle": { "type": "string" },
+        "category": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "eventType", "targetId", "timestamp"]
+    },
     "ConnectionTest": {
       "title": "ConnectionTest",
       "description": "Firebase Firestore health check document",
@@ -59,6 +74,10 @@
     "/worksheets/{worksheetId}": {
       "schema": "Worksheet",
       "description": "Public printable worksheets collection"
+    },
+    "/analytics_events/{eventId}": {
+      "schema": "AnalyticsEvent",
+      "description": "User engagement and content analytics events"
     },
     "/_connection_test/{testId}": {
       "schema": "ConnectionTest",

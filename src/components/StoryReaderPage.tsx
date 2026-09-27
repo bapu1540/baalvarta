@@ -42,6 +42,7 @@ import {
   isSpeechPaused
 } from '../utils/soundEffects';
 import { recordStoryRead, getReadingStreak } from '../utils/storage';
+import { trackStoryView, trackStoryLike, trackStoryShare } from '../utils/analytics';
 import { AdBannerSlot } from './AdBannerSlot';
 import { StoryReadingProgressIndicator } from './StoryReadingProgressIndicator';
 
@@ -134,7 +135,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isPictureBook, isCompleted, story.id]);
 
-  // Scroll to top when story changes
+  // Scroll to top and track view when story changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsCompleted(false);
@@ -149,6 +150,8 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
     } else {
       setViewMode('full_text');
     }
+    // Track story view in Firebase Analytics
+    trackStoryView(story);
   }, [story.id]);
 
   const handleSpeakScene = (scene: StoryScene) => {
@@ -285,6 +288,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
 
     if (navigator.share) {
       try {
+        trackStoryShare(story.id, shareTitle, 'web_share');
         await navigator.share({
           title: `बालवार्ता - ${shareTitle}`,
           text: `${shareText}\n\nबालवार्ता पर पूरी कहानी पढ़ें:`,
@@ -295,6 +299,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
         copyToClipboard(shareUrl);
       }
     } else {
+      trackStoryShare(story.id, shareTitle, 'clipboard');
       copyToClipboard(shareUrl);
     }
   };
@@ -306,6 +311,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
     const shareSummary = language === 'hi' ? story.summaryHi : story.summaryEn;
     const shareUrl = window.location.origin;
 
+    trackStoryShare(story.id, shareTitle, 'whatsapp');
     const message = `📖 *बालवार्ता (Baalvarta) - ${shareTitle}*\n\n"${shareSummary}"\n\n✨ *कहानी की सीख:* ${shareMoral}\n\n👇 बालवार्ता पर बच्चों के लिए यह सचित्र कहानी पढ़ें:\n${shareUrl}`;
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -589,6 +595,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
           <button
             onClick={() => {
               if (soundEnabled) playPopSound();
+              trackStoryLike(story.id, language === 'hi' ? story.titleHi : story.titleEn, story.category);
               onLikeStory(story.id);
             }}
             title="कहानी पसंद करें"

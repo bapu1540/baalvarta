@@ -22,6 +22,7 @@ import {
 import confetti from 'canvas-confetti';
 import { QuizSet, QuizQuestion, Language } from '../types';
 import { playPopSound, playSuccessSound, speakText } from '../utils/soundEffects';
+import { trackQuizComplete } from '../utils/analytics';
 import { AdBannerSlot } from './AdBannerSlot';
 
 interface KidsQuizHubProps {
@@ -125,6 +126,7 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
       setTimeout(scrollToQuizTop, 180);
     } else {
       setQuizFinished(true);
+      trackQuizComplete(activeQuiz.titleHi || activeQuiz.titleEn, score, activeQuiz.questions.length, activeQuiz.category);
       scrollToQuizTop();
       setTimeout(scrollToQuizTop, 50);
       if (score >= 3) {

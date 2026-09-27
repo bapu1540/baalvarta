@@ -221,7 +221,7 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6 pb-8 font-sans selection:bg-amber-200 overflow-x-hidden">
+    <div className="space-y-3 sm:space-y-4 pb-0 font-sans selection:bg-amber-200 overflow-x-hidden">
       
       {/* 1. VIBRANT COMPACT CATEGORY CARDS (1 TO 10 ORDER) */}
       <section className="space-y-2.5">
@@ -772,6 +772,9 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
           )}
         </div>
       </section>
+
+      {/* Footer Bottom Ad Banner & Sponsored Direct Ad Slot */}
+      <AdBannerSlot format="banner" slotId="home-footer-bottom-ad" className="!my-1 sm:!my-2" />
 
     </div>
   );
