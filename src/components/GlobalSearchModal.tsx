@@ -38,6 +38,10 @@ import { playPopSound, playSuccessSound } from '../utils/soundEffects';
 import { downloadOrPrintWorksheet } from '../utils/worksheetPrinter';
 import { INITIAL_KIDS_GAMES } from '../data/gamesData';
 import { getStoredWorksheets } from '../utils/storage';
+import {
+  getDisplayStoryTitle,
+  getDisplayStorySummary,
+} from '../utils/storyLanguageHelper';
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -658,7 +662,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                   >
                     <img
                       src={story.coverImage}
-                      alt={language === 'hi' ? story.titleHi : story.titleEn}
+                      alt={getDisplayStoryTitle(story, language)}
                       className="w-18 h-18 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 border border-amber-200 group-hover:scale-105 transition-transform"
                       referrerPolicy="no-referrer"
                     />
@@ -678,16 +682,16 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                       </div>
 
                       <h5 className="text-xs sm:text-sm font-black text-slate-900 line-clamp-1 group-hover:text-amber-700 transition-colors">
-                        {language === 'hi' ? story.titleHi : story.titleEn}
+                        {getDisplayStoryTitle(story, language)}
                       </h5>
 
                       <p className="text-[11px] text-slate-500 line-clamp-1">
-                        {language === 'hi' ? story.summaryHi : story.summaryEn}
+                        {getDisplayStorySummary(story, language)}
                       </p>
 
                       <div className="pt-1 flex items-center gap-2">
                         <span className="text-[11px] font-black text-amber-800 flex items-center gap-1">
-                          <span>📖 पढ़ें</span>
+                          <span>📖 {language === 'hi' ? 'पढ़ें' : 'Read'}</span>
                         </span>
                       </div>
                     </div>

@@ -13,6 +13,11 @@ import { Story, Language } from '../types';
 import { playPopSound } from '../utils/soundEffects';
 import { StoryReaderPage } from './StoryReaderPage';
 import { AdBannerSlot } from './AdBannerSlot';
+import {
+  getDisplayStoryTitle,
+  getDisplayStorySummary,
+  getDisplayStoryMoral,
+} from '../utils/storyLanguageHelper';
 
 interface StoriesHubProps {
   stories: Story[];
@@ -447,7 +452,7 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
                         )}
                         {isNewlyUploaded && (
                           <span className="px-2 py-0.5 rounded-xl bg-rose-500 text-white font-black text-[10px] shadow-sm animate-pulse">
-                            🌟 नई
+                            {language === 'hi' ? '🌟 नई' : '🌟 New'}
                           </span>
                         )}
                       </div>
@@ -502,16 +507,16 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
                       {story.isFeatured && (
                         <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md flex items-center gap-1">
                           <Sparkles className="w-3 h-3 text-amber-500" />
-                          <span>विशेष</span>
+                          <span>{language === 'hi' ? 'विशेष' : 'Featured'}</span>
                         </span>
                       )}
                     </div>
                     <h3 className="font-extrabold text-slate-800 text-base sm:text-lg group-hover:text-amber-600 transition-colors line-clamp-1">
                       {story.number}.{' '}
-                      {language === 'hi' ? story.titleHi : story.titleEn}
+                      {getDisplayStoryTitle(story, language)}
                     </h3>
                     <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed">
-                      {language === 'hi' ? story.summaryHi : story.summaryEn}
+                      {getDisplayStorySummary(story, language)}
                     </p>
                   </div>
 
@@ -536,15 +541,18 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           if (soundEnabled) playPopSound();
-                          const title = language === 'hi' ? story.titleHi : story.titleEn;
-                          const msg = `📖 *बालवार्ता (Baalvarta) - ${title}*\n\n"${story.summaryHi}"\n\n✨ *कहानी की सीख:* ${story.moralHi}\n\n👇 बालवार्ता पर बच्चों के लिए यह सचित्र कहानी पढ़ें:\n${window.location.origin}`;
+                          const title = getDisplayStoryTitle(story, language);
+                          const summary = getDisplayStorySummary(story, language);
+                          const moral = getDisplayStoryMoral(story, language);
+                          const moralLabel = language === 'hi' ? 'कहानी की सीख:' : 'Moral of the Story:';
+                          const msg = `📖 *बालवार्ता (Baalvarta) - ${title}*\n\n"${summary}"\n\n✨ *${moralLabel}* ${moral}\n\n👇 बालवार्ता पर बच्चों के लिए यह सचित्र कहानी पढ़ें:\n${window.location.origin}`;
                           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
                         }}
-                        title="WhatsApp पर शेयर करें"
+                        title={language === 'hi' ? 'WhatsApp पर शेयर करें' : 'Share on WhatsApp'}
                         className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors flex items-center gap-1 text-[11px] font-bold cursor-pointer"
                       >
                         <span>📲</span>
-                        <span className="hidden xs:inline">शेयर</span>
+                        <span className="hidden xs:inline">{language === 'hi' ? 'शेयर' : 'Share'}</span>
                       </button>
                     </div>
 

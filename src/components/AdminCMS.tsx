@@ -101,6 +101,7 @@ import {
 import { sendAdminOtpEmail } from '../utils/emailService';
 import { saveToServerDatabase } from '../utils/dbStorage';
 import { getAnalyticsStrategyReport, getLocalAnalyticsSummary } from '../utils/analytics';
+import { hasDevanagari } from '../utils/storyLanguageHelper';
 import {
   isFirebaseConfigured,
   getFirebaseConfig,
@@ -762,17 +763,21 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       ? newStory.illustrationsText.split('\n').map((u) => u.trim()).filter((u) => u.length > 0)
       : undefined;
 
+    const isHindi = hasDevanagari(newStory.titleHi) || hasDevanagari(newStory.contentHi) || hasDevanagari(newStory.moralHi);
+    const originalLanguage: 'hi' | 'en' = isHindi ? 'hi' : 'en';
+
     const created: Story = {
       id: `story-${Date.now()}`,
       number: stories.length + 1,
       titleHi: newStory.titleHi,
       titleEn: newStory.titleEn || newStory.titleHi,
       summaryHi: newStory.summaryHi || newStory.contentHi.slice(0, 80) + '...',
-      summaryEn: newStory.summaryEn || newStory.contentEn.slice(0, 80) + '...',
+      summaryEn: newStory.summaryEn || (newStory.contentEn ? newStory.contentEn.slice(0, 80) + '...' : newStory.summaryHi || newStory.contentHi.slice(0, 80) + '...'),
       contentHi: newStory.contentHi,
       contentEn: newStory.contentEn || newStory.contentHi,
-      moralHi: newStory.moralHi || 'सदा सच बोलो।',
-      moralEn: newStory.moralEn || 'Always be truthful.',
+      moralHi: newStory.moralHi || (isHindi ? 'सदा सच और अच्छाई के मार्ग पर चलें।' : (newStory.moralEn || 'Always walk on the path of truth and goodness.')),
+      moralEn: newStory.moralEn || newStory.moralHi || (isHindi ? 'सदा सच और अच्छाई के मार्ग पर चलें।' : 'Always walk on the path of truth and goodness.'),
+      originalLanguage,
       category: newStory.category,
       coverImage: newStory.coverImage,
       readTime: newStory.readTime,
@@ -877,6 +882,9 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const combinedEn = formattedScenes.map((s) => s.textEn || s.textHi).join('\n\n');
     const sceneImages = formattedScenes.map((s) => s.image);
 
+    const isHindi = hasDevanagari(newPictureBook.titleHi) || hasDevanagari(combinedHi) || hasDevanagari(newPictureBook.moralHi);
+    const originalLanguage: 'hi' | 'en' = isHindi ? 'hi' : 'en';
+
     const created: Story = {
       id: `story-pb-${Date.now()}`,
       number: stories.length + 1,
@@ -886,8 +894,9 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       summaryEn: newPictureBook.summaryEn || (formattedScenes[0].textEn || formattedScenes[0].textHi).slice(0, 80) + '...',
       contentHi: combinedHi,
       contentEn: combinedEn,
-      moralHi: newPictureBook.moralHi || 'सच्चाई और अच्छाई की सदा जीत होती है।',
-      moralEn: newPictureBook.moralEn || 'Goodness and truth always prevail.',
+      moralHi: newPictureBook.moralHi || (isHindi ? 'सच्चाई और अच्छाई की सदा जीत होती है।' : (newPictureBook.moralEn || 'Goodness and truth always prevail.')),
+      moralEn: newPictureBook.moralEn || newPictureBook.moralHi || (isHindi ? 'सच्चाई और अच्छाई की सदा जीत होती है।' : 'Goodness and truth always prevail.'),
+      originalLanguage,
       category: newPictureBook.category,
       coverImage: formattedScenes[0].image,
       format: 'picture_book',

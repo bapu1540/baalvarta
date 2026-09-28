@@ -26,6 +26,7 @@ export interface Story {
   recommendedAge: string;
   likes: number;
   isFeatured?: boolean;
+  originalLanguage?: 'hi' | 'en';
   format?: 'standard' | 'picture_book';
   createdAt?: number;
   scenes?: StoryScene[];

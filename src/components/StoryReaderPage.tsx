@@ -31,6 +31,12 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Story, StoryScene, Language } from '../types';
+import {
+  getDisplayStoryTitle,
+  getDisplayStoryContent,
+  getDisplayStorySummary,
+  getDisplayStoryMoral,
+} from '../utils/storyLanguageHelper';
 import { safeCopyToClipboard } from '../utils/clipboard';
 import {
   playPopSound,
@@ -210,9 +216,11 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
     }
 
     const rateToUse = customRate ?? speechRate;
-    const title = language === 'hi' ? story.titleHi : story.titleEn;
-    const content = language === 'hi' ? story.contentHi : story.contentEn;
-    const moral = language === 'hi' ? `कहानी की सीख: ${story.moralHi}` : `Moral: ${story.moralEn}`;
+    const title = getDisplayStoryTitle(story, language);
+    const content = getDisplayStoryContent(story, language);
+    const moral = language === 'hi'
+      ? `कहानी की सीख: ${getDisplayStoryMoral(story, language)}`
+      : `Moral of the Story: ${getDisplayStoryMoral(story, language)}`;
     const fullText = `${title}. ... ${content}. ... ${moral}`;
 
     speakText(
@@ -282,8 +290,8 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
 
   const handleShare = async () => {
     if (soundEnabled) playPopSound();
-    const shareTitle = language === 'hi' ? story.titleHi : story.titleEn;
-    const shareText = language === 'hi' ? story.summaryHi : story.summaryEn;
+    const shareTitle = getDisplayStoryTitle(story, language);
+    const shareText = getDisplayStorySummary(story, language);
     const shareUrl = window.location.href;
 
     if (navigator.share) {
@@ -306,9 +314,9 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
 
   const handleShareWhatsApp = () => {
     if (soundEnabled) playPopSound();
-    const shareTitle = language === 'hi' ? story.titleHi : story.titleEn;
-    const shareMoral = language === 'hi' ? story.moralHi : story.moralEn;
-    const shareSummary = language === 'hi' ? story.summaryHi : story.summaryEn;
+    const shareTitle = getDisplayStoryTitle(story, language);
+    const shareMoral = getDisplayStoryMoral(story, language);
+    const shareSummary = getDisplayStorySummary(story, language);
     const shareUrl = window.location.origin;
 
     trackStoryShare(story.id, shareTitle, 'whatsapp');
@@ -334,7 +342,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
     .slice(0, 3);
 
   // Split content into paragraphs
-  const rawContent = language === 'hi' ? story.contentHi : story.contentEn;
+  const rawContent = getDisplayStoryContent(story, language);
   const paragraphs = rawContent.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
 
   // Get active font family style
@@ -397,7 +405,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-xs font-black">
-              📖 डिस्टर्ब-फ्री फुल व्यू (Distraction-Free)
+              📖 {language === 'hi' ? 'डिस्टर्ब-फ्री फुल व्यू (Distraction-Free)' : 'Distraction-Free Full View'}
             </span>
           </div>
           <button
@@ -408,7 +416,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
           >
             <Minimize2 className="w-3.5 h-3.5" />
-            <span>सामान्य दृश्य (Exit)</span>
+            <span>{language === 'hi' ? 'सामान्य दृश्य (Exit)' : 'Exit Full View'}</span>
           </button>
         </div>
       )}
@@ -427,8 +435,20 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
         {/* Line 1: Audio Narrator, Speed, Font Size & Theme */}
         <div className="flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
           
-          {/* Left: Audio & Speed Group */}
+          {/* Left: Back, Audio & Speed Group */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <button
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onBack();
+              }}
+              title={language === 'hi' ? 'कहानियों पर वापस जाएं' : 'Back to Stories'}
+              className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[11px] sm:text-xs font-black flex items-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{language === 'hi' ? 'वापस' : 'Back'}</span>
+            </button>
+
             <button
               id="tts-read-aloud-btn"
               onClick={() => handleSpeak()}
@@ -456,7 +476,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleChangeSpeed(0.7)}
-                title="धीमी गति (0.7x)"
+                title={language === 'hi' ? 'धीमी गति (0.7x)' : 'Slow pace (0.7x)'}
                 className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
                   speechRate === 0.7 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                 }`}
@@ -466,7 +486,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleChangeSpeed(0.78)}
-                title="मीठी कहानी गति (0.8x)"
+                title={language === 'hi' ? 'मीठी कहानी गति (0.8x)' : 'Bedtime pace (0.8x)'}
                 className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
                   speechRate === 0.78 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                 }`}
@@ -476,7 +496,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleChangeSpeed(1.0)}
-                title="सामान्य गति (1.0x)"
+                title={language === 'hi' ? 'सामान्य गति (1.0x)' : 'Normal speed (1.0x)'}
                 className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
                   speechRate === 1.0 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                 }`}
@@ -499,7 +519,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   fontFamily === 'noto' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
                 }`}
               >
-                देवनागरी
+                {language === 'hi' ? 'देवनागरी' : 'Serif'}
               </button>
               <button
                 onClick={() => {
@@ -510,7 +530,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   fontFamily === 'baloo' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
                 }`}
               >
-                बाल-फ़ॉन्ट
+                {language === 'hi' ? 'बाल-फ़ॉन्ट' : 'Kids Font'}
               </button>
             </div>
 
@@ -537,12 +557,12 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   fontSize === 'normal' ? 'large' : fontSize === 'large' ? 'huge' : 'normal'
                 );
               }}
-              title="फ़ॉन्ट आकार बदलें"
+              title={language === 'hi' ? 'फ़ॉन्ट आकार बदलें' : 'Change font size'}
               className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/10 font-black flex items-center gap-1 hover:bg-black/10 dark:hover:bg-white/20 transition-colors text-[11px] cursor-pointer"
             >
               <Type className="w-3.5 h-3.5" />
               <span className="font-extrabold text-[10px] sm:text-[11px]">
-                {fontSize === 'normal' ? 'A (छोटा)' : fontSize === 'large' ? 'A+ (मध्यम)' : 'A++ (बड़ा)'}
+                {fontSize === 'normal' ? (language === 'hi' ? 'A (छोटा)' : 'A (Small)') : fontSize === 'large' ? (language === 'hi' ? 'A+ (मध्यम)' : 'A+ (Medium)') : (language === 'hi' ? 'A++ (बड़ा)' : 'A++ (Large)')}
               </span>
             </button>
 
@@ -553,7 +573,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   if (soundEnabled) playPopSound();
                   setTheme('cream');
                 }}
-                title="कागज़ी थीम (Cream)"
+                title={language === 'hi' ? 'कागज़ी थीम (Cream)' : 'Cream Theme'}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   theme === 'cream' ? 'bg-amber-200 text-amber-900 shadow-xs' : 'text-slate-500 dark:text-slate-400'
                 }`}
@@ -565,7 +585,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   if (soundEnabled) playPopSound();
                   setTheme('white');
                 }}
-                title="श्वेत दिन मोड (Day White)"
+                title={language === 'hi' ? 'श्वेत दिन मोड (Day White)' : 'Day White Mode'}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   theme === 'white' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 dark:text-slate-400'
                 }`}
@@ -577,7 +597,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   if (soundEnabled) playPopSound();
                   setTheme('dark');
                 }}
-                title="रात्रि मोड (Night Dark)"
+                title={language === 'hi' ? 'रात्रि मोड (Night Dark)' : 'Night Dark Mode'}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   theme === 'dark' ? 'bg-slate-800 text-amber-300 shadow-xs' : 'text-slate-500 dark:text-slate-400'
                 }`}
@@ -598,7 +618,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               trackStoryLike(story.id, language === 'hi' ? story.titleHi : story.titleEn, story.category);
               onLikeStory(story.id);
             }}
-            title="कहानी पसंद करें"
+            title={language === 'hi' ? 'कहानी पसंद करें' : 'Like Story'}
             className="flex-1 min-w-[54px] h-8 sm:h-8.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-black"
           >
             <Heart className="w-3.5 h-3.5 fill-rose-500" />
@@ -611,7 +631,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               if (soundEnabled) playPopSound();
               onToggleBookmark(story.id);
             }}
-            title={isBookmarked ? 'बुकमार्क हटाया' : 'बुकमार्क करें'}
+            title={isBookmarked ? (language === 'hi' ? 'बुकमार्क हटाया' : 'Remove Bookmark') : (language === 'hi' ? 'बुकमार्क करें' : 'Bookmark Story')}
             className={`flex-1 min-w-[54px] h-8 sm:h-8.5 rounded-xl border flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-bold ${
               isBookmarked
                 ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
@@ -619,13 +639,13 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             }`}
           >
             <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-white' : ''}`} />
-            <span className="hidden xs:inline text-[11px] font-black">{isBookmarked ? 'सहेजा' : 'सहेजें'}</span>
+            <span className="hidden xs:inline text-[11px] font-black">{isBookmarked ? (language === 'hi' ? 'सहेजा' : 'Saved') : (language === 'hi' ? 'सहेजें' : 'Save')}</span>
           </button>
 
           {/* WhatsApp Share */}
           <button
             onClick={handleShareWhatsApp}
-            title="WhatsApp पर शेयर करें"
+            title={language === 'hi' ? 'WhatsApp पर शेयर करें' : 'Share on WhatsApp'}
             className="flex-1 min-w-[70px] h-8 sm:h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer font-bold text-xs"
           >
             <span className="text-xs">📲</span>
@@ -635,11 +655,11 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
           {/* Share Link */}
           <button
             onClick={handleShare}
-            title="कहानी शेयर करें"
+            title={language === 'hi' ? 'कहानी शेयर करें' : 'Share Story'}
             className="flex-1 min-w-[50px] h-8 sm:h-8.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-black/10 flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-bold"
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline text-[11px] font-black">शेयर</span>
+            <span className="hidden xs:inline text-[11px] font-black">{language === 'hi' ? 'शेयर' : 'Share'}</span>
           </button>
 
           {/* Distraction-Free Full View Button */}
@@ -648,7 +668,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               if (soundEnabled) playPopSound();
               setIsFullViewMode(!isFullViewMode);
             }}
-            title={isFullViewMode ? 'फुल व्यू से बाहर निकलें' : 'डिस्टर्ब-फ्री फुल व्यू मोड'}
+            title={isFullViewMode ? (language === 'hi' ? 'फुल व्यू से बाहर निकलें' : 'Exit Full View') : (language === 'hi' ? 'डिस्टर्ब-फ्री फुल व्यू मोड' : 'Distraction-Free Mode')}
             className={`flex-1 min-w-[65px] h-8 sm:h-8.5 rounded-xl font-black text-xs flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer active:scale-95 ${
               isFullViewMode
                 ? 'bg-amber-600 text-white shadow-md'
@@ -656,7 +676,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             }`}
           >
             {isFullViewMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span className="text-[11px] font-black">{isFullViewMode ? 'सामान्य' : 'फुल व्यू'}</span>
+            <span className="text-[11px] font-black">{isFullViewMode ? (language === 'hi' ? 'सामान्य' : 'Exit') : (language === 'hi' ? 'फुल व्यू' : 'Full View')}</span>
           </button>
         </div>
       </div>
@@ -688,7 +708,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-amber-500 text-white font-black text-xs shadow-xs">
-                क्रमांक #{story.number}
+                {language === 'hi' ? 'क्रमांक #' : 'Story #'}{story.number}
               </span>
               <span className="px-3 py-1 rounded-xl bg-amber-100 text-amber-900 font-extrabold text-xs uppercase tracking-wider">
                 {story.category}
@@ -696,13 +716,13 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               {story.scenes && story.scenes.length > 0 && (
                 <span className="px-3 py-1 rounded-xl bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center gap-1">
                   <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>📸 सचित्र दृश्य-कथा ({story.scenes.length} फोटो)</span>
+                  <span>📸 {language === 'hi' ? `सचित्र दृश्य-कथा (${story.scenes.length} फोटो)` : `Picture Book (${story.scenes.length} Photos)`}</span>
                 </span>
               )}
               {story.isFeatured && (
                 <span className="px-3 py-1 rounded-xl bg-purple-100 text-purple-900 font-bold text-xs flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-purple-600" />
-                  <span>विशेष बाल कथा</span>
+                  <span>{language === 'hi' ? 'विशेष बाल कथा' : 'Featured Story'}</span>
                 </span>
               )}
             </div>
@@ -723,7 +743,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   }`}
                 >
                   <ImageIcon className="w-3.5 h-3.5" />
-                  <span>📸 सचित्र दृश्य मोड</span>
+                  <span>📸 {language === 'hi' ? 'सचित्र दृश्य मोड' : 'Picture Scene Mode'}</span>
                 </button>
                 <button
                   type="button"
@@ -738,7 +758,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span>📜 सम्पूर्ण पृष्ठ पाठ</span>
+                  <span>📜 {language === 'hi' ? 'सम्पूर्ण पृष्ठ पाठ' : 'Full Page Text'}</span>
                 </button>
               </div>
             )}
@@ -748,11 +768,11 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight"
             style={{ fontFamily: getFontFamilyStyle() }}
           >
-            {language === 'hi' ? story.titleHi : story.titleEn}
+            {getDisplayStoryTitle(story, language)}
           </h1>
 
           <p className="text-xs sm:text-sm font-semibold opacity-80 leading-relaxed font-sans">
-            {language === 'hi' ? story.summaryHi : story.summaryEn}
+            {getDisplayStorySummary(story, language)}
           </p>
         </header>
 
@@ -763,10 +783,10 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-xl bg-amber-500 text-white font-black text-xs">
-                  दृश्य {currentSceneIndex + 1} / {story.scenes.length}
+                  {language === 'hi' ? 'दृश्य' : 'Scene'} {currentSceneIndex + 1} / {story.scenes.length}
                 </span>
                 <span className="font-bold text-xs sm:text-sm text-amber-950">
-                  {story.scenes[currentSceneIndex].captionHi || `दृश्य ${currentSceneIndex + 1}`}
+                  {story.scenes[currentSceneIndex].captionHi || `${language === 'hi' ? 'दृश्य' : 'Scene'} ${currentSceneIndex + 1}`}
                 </span>
               </div>
 
@@ -781,7 +801,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                       setIsSceneSpeaking(false);
                       setCurrentSceneIndex(idx);
                     }}
-                    title={`दृश्य ${idx + 1}`}
+                    title={`${language === 'hi' ? 'दृश्य' : 'Scene'} ${idx + 1}`}
                     className={`h-2.5 rounded-full transition-all cursor-pointer ${
                       idx === currentSceneIndex
                         ? 'w-7 bg-amber-500'
@@ -808,17 +828,17 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               {/* Top/Bottom Badges */}
               <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>दृश्य #{currentSceneIndex + 1}</span>
+                <span>{language === 'hi' ? 'दृश्य #' : 'Scene #'}{currentSceneIndex + 1}</span>
               </div>
 
               <button
                 type="button"
                 onClick={() => setSelectedZoomImage(story.scenes![currentSceneIndex].image)}
                 className="absolute bottom-3 right-3 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white p-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-transform hover:scale-105"
-                title="फोटो बड़ा करें"
+                title={language === 'hi' ? 'फोटो बड़ा करें' : 'Zoom Image'}
               >
                 <Maximize2 className="w-4 h-4" />
-                <span className="hidden sm:inline">बड़ा देखें</span>
+                <span className="hidden sm:inline">{language === 'hi' ? 'बड़ा देखें' : 'View Full'}</span>
               </button>
             </div>
 
@@ -839,7 +859,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             >
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-amber-200/60">
                 <span className="text-xs font-black uppercase text-amber-900 font-sans flex items-center gap-1.5">
-                  <span>📖 दृश्य के बोल (Story Words for this Photo)</span>
+                  <span>📖 {language === 'hi' ? 'दृश्य के बोल (Story Words)' : 'Story Words for this Scene'}</span>
                 </span>
                 <button
                   type="button"
@@ -853,12 +873,12 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   {isSceneSpeaking ? (
                     <>
                       <VolumeX className="w-3.5 h-3.5" />
-                      <span>रोकें</span>
+                      <span>{language === 'hi' ? 'रोकें' : 'Stop'}</span>
                     </>
                   ) : (
                     <>
                       <Volume2 className="w-3.5 h-3.5" />
-                      <span>🔊 यह दृश्य सुनें</span>
+                      <span>🔊 {language === 'hi' ? 'यह दृश्य सुनें' : 'Listen to Scene'}</span>
                     </>
                   )}
                 </button>
@@ -890,7 +910,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                 }`}
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span>पिछला दृश्य</span>
+                <span>{language === 'hi' ? 'पिछला दृश्य' : 'Previous Scene'}</span>
               </button>
 
               <div className="text-center">
@@ -904,7 +924,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                 onClick={handleNextScene}
                 className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer transition-all hover:scale-102"
               >
-                <span>{currentSceneIndex === story.scenes.length - 1 ? '🎉 कहानी पूर्ण करें' : 'अगला दृश्य ➔'}</span>
+                <span>{currentSceneIndex === story.scenes.length - 1 ? (language === 'hi' ? '🎉 कहानी पूर्ण करें' : '🎉 Complete Story') : (language === 'hi' ? 'अगला दृश्य ➔' : 'Next Scene ➔')}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -913,7 +933,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             <div className="p-4 rounded-2xl bg-black/5 border border-black/10 space-y-2">
               <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
                 <ImageIcon className="w-3.5 h-3.5 text-amber-600" />
-                <span>सभी दृश्य (Click to jump):</span>
+                <span>{language === 'hi' ? 'सभी दृश्य (क्लिक करके जाएं):' : 'All Scenes (Click to jump):'}</span>
               </p>
               <div className="flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar">
                 {story.scenes.map((sc, idx) => (
@@ -954,12 +974,12 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               <div className="my-6 sm:my-8 rounded-3xl overflow-hidden shadow-lg border border-black/10 relative group aspect-video w-full bg-slate-100">
                 <img
                   src={story.coverImage}
-                  alt={story.titleEn}
+                  alt={getDisplayStoryTitle(story, language)}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover transform transition-transform group-hover:scale-102 duration-300"
                 />
                 <div className="absolute bottom-3 right-3 bg-black/60 text-white backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold">
-                  चित्र: {language === 'hi' ? story.titleHi : story.titleEn}
+                  {language === 'hi' ? 'चित्र:' : 'Photo:'} {getDisplayStoryTitle(story, language)}
                 </div>
               </div>
             )}
@@ -974,7 +994,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-white font-black text-xs">
-                        दृश्य #{scIdx + 1}
+                        {language === 'hi' ? 'दृश्य #' : 'Scene #'}{scIdx + 1}
                       </span>
                       {scene.captionHi && (
                         <span className="font-bold text-xs text-amber-950">{scene.captionHi}</span>
@@ -984,7 +1004,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                     <div className="rounded-2xl overflow-hidden shadow-sm border border-black/10 relative group aspect-video w-full bg-slate-100">
                       <img
                         src={scene.image}
-                        alt={`दृश्य ${scIdx + 1}`}
+                        alt={`${language === 'hi' ? 'दृश्य' : 'Scene'} ${scIdx + 1}`}
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover cursor-pointer hover:scale-102 transition-transform duration-300"
                         onClick={() => setSelectedZoomImage(scene.image)}
@@ -1045,17 +1065,17 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                         >
                           <img
                             src={story.illustrations[0]}
-                            alt={`कहानी दृश्य 1`}
+                            alt={language === 'hi' ? 'कहानी दृश्य 1' : 'Story Scene 1'}
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover max-h-80 rounded-lg group-hover:scale-102 transition-transform duration-300"
                           />
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5">
                             <Maximize2 className="w-4 h-4" />
-                            <span>बड़ा चित्र देखें</span>
+                            <span>{language === 'hi' ? 'बड़ा चित्र देखें' : 'View Full Image'}</span>
                           </div>
                         </div>
                         <figcaption className="mt-2 text-[11px] sm:text-xs font-sans font-bold opacity-75">
-                          चित्र 1: {language === 'hi' ? 'कहानी का मुख्य प्रसंग' : 'Story Illustration Scene'}
+                          {language === 'hi' ? 'चित्र 1: कहानी का मुख्य प्रसंग' : 'Illustration 1: Story Scene'}
                         </figcaption>
                       </figure>
                     )}
@@ -1068,17 +1088,17 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                         >
                           <img
                             src={story.illustrations[1]}
-                            alt={`कहानी दृश्य 2`}
+                            alt={language === 'hi' ? 'कहानी दृश्य 2' : 'Story Scene 2'}
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover max-h-80 rounded-lg group-hover:scale-102 transition-transform duration-300"
                           />
                           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5">
                             <Maximize2 className="w-4 h-4" />
-                            <span>बड़ा चित्र देखें</span>
+                            <span>{language === 'hi' ? 'बड़ा चित्र देखें' : 'View Full Image'}</span>
                           </div>
                         </div>
                         <figcaption className="mt-2 text-[11px] sm:text-xs font-sans font-bold opacity-75">
-                          चित्र 2: {language === 'hi' ? 'कहानी का शिक्षाप्रद मोड़' : 'Story Climax Illustration'}
+                          {language === 'hi' ? 'चित्र 2: कहानी का शिक्षाप्रद मोड़' : 'Illustration 2: Story Climax Scene'}
                         </figcaption>
                       </figure>
                     )}
@@ -1104,7 +1124,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
             className="text-base sm:text-xl font-bold leading-relaxed text-amber-950/90 italic pl-2 border-l-4 border-amber-500"
             style={{ fontFamily: getFontFamilyStyle() }}
           >
-            "{language === 'hi' ? story.moralHi : story.moralEn}"
+            "{getDisplayStoryMoral(story, language)}"
           </p>
         </div>
 
@@ -1248,7 +1268,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                 {language === 'hi' ? 'पिछली कहानी' : 'Previous Story'}
               </span>
               <p className="font-extrabold text-xs sm:text-sm line-clamp-1">
-                #{prevStory.number} {language === 'hi' ? prevStory.titleHi : prevStory.titleEn}
+                #{prevStory.number} {getDisplayStoryTitle(prevStory, language)}
               </p>
             </div>
           </button>
@@ -1265,7 +1285,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                 {language === 'hi' ? 'अगली कहानी' : 'Next Story'}
               </span>
               <p className="font-extrabold text-xs sm:text-sm line-clamp-1">
-                #{nextStory.number} {language === 'hi' ? nextStory.titleHi : nextStory.titleEn}
+                #{nextStory.number} {getDisplayStoryTitle(nextStory, language)}
               </p>
             </div>
             <ChevronRight className="w-5 h-5 text-amber-600 shrink-0 group-hover:translate-x-1 transition-transform" />
@@ -1306,7 +1326,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                 <div className="relative rounded-xl overflow-hidden h-32 w-full">
                   <img
                     src={rel.coverImage}
-                    alt={rel.titleEn}
+                    alt={getDisplayStoryTitle(rel, language)}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
@@ -1315,10 +1335,10 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                   </span>
                 </div>
                 <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-amber-700 transition-colors">
-                  {language === 'hi' ? rel.titleHi : rel.titleEn}
+                  {getDisplayStoryTitle(rel, language)}
                 </h4>
                 <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                  {language === 'hi' ? rel.summaryHi : rel.summaryEn}
+                  {getDisplayStorySummary(rel, language)}
                 </p>
               </div>
 

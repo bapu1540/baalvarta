@@ -217,7 +217,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelHi: 'PDF वर्कशीट्स',
       labelEn: 'PDFs',
       icon: Download,
-      badge: 'मुफ्त',
+      badgeHi: 'मुफ्त',
+      badgeEn: 'Free',
       badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
     },
     {
@@ -225,7 +226,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelHi: 'बाल खेल',
       labelEn: 'Games',
       icon: Gamepad2,
-      badge: 'मज़ा',
+      badgeHi: 'मज़ा',
+      badgeEn: 'Fun',
       badgeColor: 'bg-purple-100 text-purple-900 border-purple-300',
     },
     {
@@ -233,7 +235,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelHi: 'प्रोफ़ाइल',
       labelEn: 'Profile',
       icon: Award,
-      badge: '⭐ VIP',
+      badgeHi: '⭐ VIP',
+      badgeEn: '⭐ VIP',
       badgeColor: 'bg-yellow-100 text-yellow-900 border-yellow-400',
     },
   ];
@@ -246,7 +249,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '🏠 Home Page',
       icon: Home,
       color: 'from-amber-500 to-orange-500',
-      badge: null,
+      badgeHi: null,
+      badgeEn: null,
     },
     {
       id: 'profile' as ActiveTab,
@@ -254,7 +258,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '👤 Kid Profile & Report Card',
       icon: Award,
       color: 'from-amber-500 via-orange-500 to-amber-600',
-      badge: '⭐ VIP',
+      badgeHi: '⭐ VIP',
+      badgeEn: '⭐ VIP',
     },
     {
       id: 'stories' as ActiveTab,
@@ -262,7 +267,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '1. Stories',
       icon: BookOpen,
       color: 'from-amber-500 to-orange-600',
-      badge: '500+',
+      badgeHi: '500+',
+      badgeEn: '500+',
     },
     {
       id: 'learning' as ActiveTab,
@@ -270,7 +276,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '2. Learning',
       icon: Sparkles,
       color: 'from-emerald-500 to-teal-600',
-      badge: 'ABC 🔤',
+      badgeHi: 'ABC 🔤',
+      badgeEn: 'ABC 🔤',
     },
     {
       id: 'facts' as ActiveTab,
@@ -278,7 +285,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '3. Fun Facts',
       icon: Lightbulb,
       color: 'from-sky-500 to-blue-600',
-      badge: 'ज्ञान 💡',
+      badgeHi: 'ज्ञान 💡',
+      badgeEn: 'Facts 💡',
     },
     {
       id: 'gk' as ActiveTab,
@@ -286,7 +294,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '4. General Knowledge',
       icon: Globe,
       color: 'from-indigo-500 to-blue-700',
-      badge: 'GK 🧠',
+      badgeHi: 'GK 🧠',
+      badgeEn: 'GK 🧠',
     },
     {
       id: 'audio' as ActiveTab,
@@ -294,7 +303,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '5. Audio Stories',
       icon: Headphones,
       color: 'from-purple-500 to-indigo-600',
-      badge: 'ऑडियो 🎧',
+      badgeHi: 'ऑडियो 🎧',
+      badgeEn: 'Audio 🎧',
     },
     {
       id: 'videos' as ActiveTab,
@@ -302,7 +312,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '6. Video Stories',
       icon: Film,
       color: 'from-red-500 to-rose-600',
-      badge: 'Videos',
+      badgeHi: 'Videos',
+      badgeEn: 'Videos',
     },
     {
       id: 'games' as ActiveTab,
@@ -310,7 +321,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '7. Mini Games',
       icon: Gamepad2,
       color: 'from-purple-500 to-indigo-600',
-      badge: '8 गेम्स 🎮',
+      badgeHi: '8 गेम्स 🎮',
+      badgeEn: '8 Games 🎮',
     },
     {
       id: 'quizzes' as ActiveTab,
@@ -318,7 +330,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '8. Kids Quiz',
       icon: Trophy,
       color: 'from-rose-500 to-pink-600',
-      badge: '🎯 खेलें',
+      badgeHi: '🎯 खेलें',
+      badgeEn: '🎯 Play',
     },
     {
       id: 'coloring' as ActiveTab,
@@ -326,7 +339,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '9. Colouring Books',
       icon: Palette,
       color: 'from-amber-400 to-orange-500',
-      badge: 'कलरिंग 🎨',
+      badgeHi: 'कलरिंग 🎨',
+      badgeEn: 'Colour 🎨',
     },
     {
       id: 'worksheets' as ActiveTab,
@@ -334,7 +348,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       labelEn: '10. Free Download',
       icon: Download,
       color: 'from-teal-500 via-cyan-500 to-blue-600',
-      badge: 'PDF + 🎖️',
+      badgeHi: 'PDF + 🎖️',
+      badgeEn: 'PDF + 🎖️',
     },
     {
       id: 'about' as ActiveTab,
@@ -399,13 +414,13 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                 >
                   <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-amber-300' : 'text-slate-500'}`} />
                   <span>{language === 'hi' ? link.labelHi : link.labelEn}</span>
-                  {link.badge && (
+                  {(link.badgeHi || (link as any).badge) && (
                     <span
                       className={`text-[9px] px-1.5 py-0.2 rounded-full font-extrabold border ${
                         isActive ? 'bg-amber-800 text-amber-200 border-amber-700' : link.badgeColor
                       }`}
                     >
-                      {link.badge}
+                      {link.badgeHi ? (language === 'hi' ? link.badgeHi : link.badgeEn) : (link as any).badge}
                     </span>
                   )}
                 </button>
@@ -548,7 +563,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                         </div>
 
                         <span className="text-[10px] font-black text-red-600 flex items-center gap-0.5 shrink-0">
-                          <span>देखें</span>
+                          <span>{language === 'hi' ? 'देखें' : 'Watch'}</span>
                           <ExternalLink className="w-2.5 h-2.5" />
                         </span>
                       </div>
@@ -765,7 +780,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                         <span>{language === 'hi' ? 'बालवार्ता संपूर्ण मेनू' : 'All Sections'}</span>
                       </span>
                       <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">
-                        13 हब्स
+                        {language === 'hi' ? '13 हब्स' : '13 Hubs'}
                       </span>
                     </div>
 
@@ -896,9 +911,9 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                                 </span>
                               </div>
                             </div>
-                            {link.badge && (
+                            {(link.badgeHi || link.badge) && (
                               <span className="text-[10px] px-2 py-0.5 rounded-full font-extrabold bg-amber-100 text-amber-950 shrink-0">
-                                {link.badge}
+                                {link.badgeHi ? (language === 'hi' ? link.badgeHi : link.badgeEn) : link.badge}
                               </span>
                             )}
                           </button>

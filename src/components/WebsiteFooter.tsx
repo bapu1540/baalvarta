@@ -43,33 +43,70 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
   const currentFooterImage = customFooterImage !== undefined ? customFooterImage : getStoredFooterImage();
   return (
     <footer className="mt-2 sm:mt-3 relative bg-slate-950 text-slate-200 border-t-4 border-amber-500 font-sans overflow-hidden w-full max-w-full">
-      {/* Top Banner / Family & Reader Trust Guarantee */}
+      {/* Top Banner / Email on Left + Instagram & YouTube Channel Logos on Right */}
       <div className="relative z-10 bg-amber-600/95 text-white py-2.5 px-3 sm:px-6 border-b border-amber-500/50">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-lg shrink-0 shadow-xs">
-              🛡️
-            </div>
-            <div>
-              <p className="font-extrabold text-xs sm:text-sm">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+          
+          {/* Left Side: Email Address & Safe Guarantee */}
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3.5">
+            <a
+              href="mailto:baalvarta@gmail.com"
+              className="flex items-center gap-2 text-xs sm:text-sm font-extrabold bg-amber-700/90 hover:bg-amber-800 text-white px-3.5 py-1.5 rounded-xl border border-amber-400/60 shadow-xs transition-all hover:scale-102 group cursor-pointer"
+              title={language === 'hi' ? 'बालवार्ता ईमेल करें' : 'Email Baalvarta'}
+            >
+              <Mail className="w-4 h-4 text-amber-200 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="text-amber-100 font-bold hidden xs:inline">{language === 'hi' ? 'ईमेल:' : 'Email:'}</span>
+              <span className="font-black text-white hover:text-amber-200 transition-colors">baalvarta@gmail.com</span>
+            </a>
+
+            <div className="flex items-center gap-1.5 text-xs text-amber-100 font-semibold">
+              <span className="text-base shrink-0">🛡️</span>
+              <span className="hidden sm:inline">
                 {language === 'hi'
-                  ? 'परिवार व सभी उम्र के बच्चों के लिए 100% सुरक्षित, ज्ञानवर्धक व नैतिक मंच'
-                  : 'Family-Friendly, Safe & Moral Storytelling for All Ages'}
-              </p>
-              <p className="text-amber-100 text-[11px] font-medium">
-                {language === 'hi'
-                  ? 'सदाबहार नैतिक कहानियाँ • भारतीय संस्कृति व संस्कार • वैज्ञानिक रोचक तथ्य व ज्ञान'
-                  : 'Timeless Moral Tales • Cultural & Family Values • Science Facts & Early Learning'}
-              </p>
+                  ? 'परिवार व बच्चों के लिए 100% सुरक्षित, ज्ञानवर्धक व नैतिक मंच'
+                  : '100% Kid-Safe & Moral Storytelling Platform'}
+              </span>
+              <span className="sm:hidden">
+                {language === 'hi' ? '100% सुरक्षित मंच' : '100% Kid-Safe'}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] font-bold bg-amber-700/80 px-3 py-1 rounded-xl border border-amber-400/50 shrink-0">
-            <Mail className="w-3.5 h-3.5 text-amber-200" />
-            <a href="mailto:baalvarta@gmail.com" className="hover:text-amber-100 transition-colors">
-              baalvarta@gmail.com
+          {/* Right Side: Instagram & YouTube Official Channel Buttons */}
+          <div className="flex items-center justify-center gap-2 sm:gap-2.5 shrink-0">
+            <span className="text-xs font-black text-amber-100 hidden lg:inline">
+              {language === 'hi' ? 'हमसे जुड़ें:' : 'Follow Us:'}
+            </span>
+
+            {/* 1. Instagram Official Channel */}
+            <a
+              href="https://www.instagram.com/baalvarta?stkn=dmhuNjFoYzNlZ2N2"
+              target="_blank"
+              rel="noopener noreferrer"
+              title={language === 'hi' ? 'बालवार्ता इंस्टाग्राम पेज खोलें' : 'Follow Baalvarta on Instagram'}
+              className="group flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:from-purple-500 hover:via-pink-500 hover:to-amber-400 text-white text-xs font-black shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all border border-white/30 cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+              <span>Instagram</span>
+            </a>
+
+            {/* 2. YouTube Official Channel */}
+            <a
+              href="https://www.youtube.com/@baalvartaofficial"
+              target="_blank"
+              rel="noopener noreferrer"
+              title={language === 'hi' ? 'बालवार्ता यूट्यूब चैनल खोलें' : 'Subscribe to Baalvarta on YouTube'}
+              className="group flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white text-xs font-black shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all border border-white/30 cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+              <span>YouTube</span>
             </a>
           </div>
+
         </div>
       </div>
 
@@ -102,13 +139,13 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
 
               <div className="pt-1 flex flex-wrap gap-2 text-[11px] font-bold">
                 <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-amber-400 border border-slate-700 flex items-center gap-1 shadow-xs">
-                  ⭐ 500+ कहानियाँ
+                  {language === 'hi' ? '⭐ 500+ कहानियाँ' : '⭐ 500+ Stories'}
                 </span>
                 <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 flex items-center gap-1 shadow-xs">
-                  🔤 प्रारंभिक वर्णमाला
+                  {language === 'hi' ? '🔤 प्रारंभिक वर्णमाला' : '🔤 Early Alphabets'}
                 </span>
                 <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-sky-400 border border-slate-700 flex items-center gap-1 shadow-xs">
-                  🎧 ऑडियो बुक्स
+                  {language === 'hi' ? '🎧 ऑडियो बुक्स' : '🎧 Audio Books'}
                 </span>
               </div>
             </div>
@@ -451,16 +488,16 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
             <div className="pt-3 sm:pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 text-center sm:text-left">
               <div>
                 <div className="font-medium text-slate-300 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span>© {new Date().getFullYear()} बालवार्ता (Baalvarta) • ऑल राइट्स रिसर्व्ड।</span>
+                  <span>© {new Date().getFullYear()} बालवार्ता (Baalvarta) • {language === 'hi' ? 'सर्वाधिकार सुरक्षित।' : 'All Rights Reserved.'}</span>
                   <button
                     onClick={() => {
                       if (onOpenAdmin) onOpenAdmin();
                     }}
                     className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-amber-400 transition-colors cursor-pointer py-0.5 px-2 rounded-md hover:bg-slate-800 border border-transparent hover:border-slate-700"
-                    title="व्यवस्थापक (Admin CMS) लॉगिन"
+                    title={language === 'hi' ? 'व्यवस्थापक (Admin CMS) लॉगिन' : 'Admin CMS Login'}
                   >
                     <Lock className="w-3 h-3 text-slate-500 hover:text-amber-400" />
-                    <span>व्यवस्थापक</span>
+                    <span>{language === 'hi' ? 'व्यवस्थापक' : 'Admin'}</span>
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">

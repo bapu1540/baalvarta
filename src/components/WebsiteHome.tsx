@@ -29,6 +29,11 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { playPopSound, playSuccessSound, speakText } from '../utils/soundEffects';
+import {
+  getDisplayStoryTitle,
+  getDisplayStorySummary,
+  getDisplayStoryMoral,
+} from '../utils/storyLanguageHelper';
 import { AdBannerSlot } from './AdBannerSlot';
 import { UserReviewsSection } from './UserReviewsSection';
 
@@ -462,7 +467,7 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                 <div className="relative md:w-5/12 aspect-video md:aspect-auto overflow-hidden bg-slate-100 min-h-[160px]">
                   <img
                     src={singleStory.coverImage}
-                    alt={singleStory.titleHi}
+                    alt={getDisplayStoryTitle(singleStory, language)}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-2 left-2 flex items-center gap-1.5">
@@ -470,7 +475,7 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                       #{singleStory.number}
                     </span>
                     <span className="px-2 py-0.5 rounded-md bg-rose-500 text-white text-[10px] font-black shadow-xs">
-                      🌟 नई कहानी
+                      {language === 'hi' ? '🌟 नई कहानी' : '🌟 New Story'}
                     </span>
                   </div>
                   <div className="absolute top-2 right-2">
@@ -486,22 +491,22 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px] uppercase">
                         {singleStory.category}
                       </span>
-                      <span className="text-slate-400 font-bold">आयु: {singleStory.recommendedAge}</span>
+                      <span className="text-slate-400 font-bold">{language === 'hi' ? 'आयु:' : 'Age:'} {singleStory.recommendedAge}</span>
                     </div>
 
                     <h3 className="font-black text-base sm:text-xl text-slate-900 group-hover:text-amber-600 transition-colors">
-                      {language === 'hi' ? singleStory.titleHi : singleStory.titleEn}
+                      {getDisplayStoryTitle(singleStory, language)}
                     </h3>
 
                     <p className="text-xs sm:text-sm text-slate-600 font-serif leading-relaxed line-clamp-2">
-                      {language === 'hi' ? singleStory.summaryHi : singleStory.summaryEn}
+                      {getDisplayStorySummary(singleStory, language)}
                     </p>
                   </div>
 
                   <div className="pt-2.5 border-t border-amber-100 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 truncate">
-                      <span>💡 सीख:</span>
-                      <span className="truncate">{language === 'hi' ? singleStory.moralHi : singleStory.moralEn}</span>
+                      <span>💡 {language === 'hi' ? 'सीख:' : 'Moral:'}</span>
+                      <span className="truncate">{getDisplayStoryMoral(singleStory, language)}</span>
                     </div>
 
                     <span className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-1.5 shrink-0 shadow-xs group-hover:scale-105 transition-all">
@@ -525,7 +530,7 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                 >
                   <img
                     src={recentStory.coverImage}
-                    alt={recentStory.titleHi}
+                    alt={getDisplayStoryTitle(recentStory, language)}
                     className="w-14 h-11 rounded-xl object-cover shrink-0 group-hover:scale-105 transition-transform bg-slate-100"
                   />
                   <div className="min-w-0 flex-1">
@@ -536,10 +541,10 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                       <span className="text-slate-400 font-semibold truncate">{recentStory.category}</span>
                     </div>
                     <h4 className="font-black text-xs text-slate-900 group-hover:text-amber-600 transition-colors truncate">
-                      {language === 'hi' ? recentStory.titleHi : recentStory.titleEn}
+                      {getDisplayStoryTitle(recentStory, language)}
                     </h4>
                     <p className="text-[10px] text-slate-500 font-serif truncate">
-                      {language === 'hi' ? recentStory.summaryHi : recentStory.summaryEn}
+                      {getDisplayStorySummary(recentStory, language)}
                     </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -711,9 +716,15 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-1 text-xs font-bold text-amber-950">
               <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">🚫 100% Ad-Free</span>
-              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">📥 असीमित PDF</span>
-              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">🎧 ऑडियो बुक्स</span>
-              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">🤖 AI बालमित्र</span>
+              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">
+                {language === 'hi' ? '📥 असीमित PDF' : '📥 Unlimited PDF'}
+              </span>
+              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">
+                {language === 'hi' ? '🎧 ऑडियो बुक्स' : '🎧 Audio Books'}
+              </span>
+              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">
+                {language === 'hi' ? '🤖 AI बालमित्र' : '🤖 AI Baalmitra'}
+              </span>
             </div>
           </div>
 
