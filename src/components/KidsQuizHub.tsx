@@ -30,7 +30,7 @@ interface KidsQuizHubProps {
   language: Language;
   soundEnabled: boolean;
   onSelectQuiz?: (quiz: QuizSet) => void;
-  onNavigateTab?: (tab: any) => void;
+  onNavigateTab?: (tab: any, category?: string, certType?: string) => void;
 }
 
 export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
@@ -152,19 +152,37 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
     return (
       <div className="space-y-4">
         {/* Sleek Top Header */}
-        <div className="flex items-center justify-between gap-3 bg-white rounded-2xl p-2.5 sm:p-3 border border-rose-200/80 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white rounded-2xl p-2.5 sm:p-3 border border-rose-200/80 shadow-xs">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0">
               🏆
             </div>
-            <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
-              {isHi ? '8. बाल क्विज़ (5-Q Kids Quiz)' : '8. Kids Quiz Games'}
-            </h1>
+            <div>
+              <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
+                {isHi ? '8. बाल क्विज़ (5-Q Kids Quiz)' : '8. Kids Quiz Games'}
+              </h1>
+              <p className="text-[11px] text-slate-500 font-medium">
+                {isHi ? 'प्रश्नों के उत्तर दें और अपना स्टार प्रमाण पत्र प्राप्त करें' : 'Answer questions & earn official Star Certificates'}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <button
+              type="button"
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                if (onNavigateTab) {
+                  onNavigateTab('worksheets', 'certificates', 'quiz_champion');
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>{isHi ? 'स्टार सर्टिफिकेट्स' : 'Star Certificates'}</span>
+            </button>
             <span className="px-2.5 py-1 rounded-xl bg-rose-50 text-rose-900 border border-rose-200 text-xs font-black whitespace-nowrap">
-              {isHi ? `${quizSets.length} क्विज़ सेट्स` : `${quizSets.length} Quiz Sets`}
+              {isHi ? `${quizSets.length} सेट्स` : `${quizSets.length} Sets`}
             </span>
           </div>
         </div>
@@ -290,17 +308,18 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
             <div className="text-xs font-medium max-w-sm mx-auto leading-relaxed">{badgeDesc}</div>
           </div>
 
-          {/* Single Patti Certificate Banner (Download your certificate -> Main Certificate Hub) */}
+          {/* Single Patti Certificate Banner (Download your certificate -> Free Download Star Certificate) */}
           <div
+            id="quiz-download-certificate-btn"
             onClick={() => {
               if (soundEnabled) playPopSound();
               if (onNavigateTab) {
-                onNavigateTab('certificates');
+                onNavigateTab('worksheets', 'certificates', 'quiz_champion');
               } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }
             }}
-            className="my-6 p-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white rounded-2xl sm:rounded-3xl shadow-lg border-2 border-amber-300 cursor-pointer transition-all hover:scale-[1.01] flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left group"
+            className="my-6 p-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white rounded-2xl sm:rounded-3xl shadow-lg border-2 border-amber-300 cursor-pointer transition-all hover:scale-[1.01] flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left group active:scale-[0.99]"
           >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl shrink-0 shadow-xs group-hover:scale-110 transition-transform">
@@ -315,7 +334,17 @@ export const KidsQuizHub: React.FC<KidsQuizHubProps> = ({
                 </p>
               </div>
             </div>
-            <button className="px-4 py-2 bg-white text-amber-950 hover:bg-amber-100 rounded-xl text-xs font-black shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (soundEnabled) playPopSound();
+                if (onNavigateTab) {
+                  onNavigateTab('worksheets', 'certificates', 'quiz_champion');
+                }
+              }}
+              className="px-4 py-2 bg-white text-amber-950 hover:bg-amber-100 rounded-xl text-xs font-black shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+            >
               <Award className="w-4 h-4 text-amber-600" />
               <span>{isHi ? 'प्रमाण पत्र डाउनलोड करें ➔' : 'Download Certificate ➔'}</span>
             </button>

@@ -100,6 +100,8 @@ export default function App() {
   const [showBookmarksOnly, setShowBookmarksOnly] = useState<boolean>(false);
   const [selectedStoryForReader, setSelectedStoryForReader] = useState<Story | null>(null);
   const [storiesInitialFormat, setStoriesInitialFormat] = useState<'all' | 'picture_book' | 'single_image'>('all');
+  const [worksheetCategory, setWorksheetCategory] = useState<string>('all');
+  const [worksheetCertificateType, setWorksheetCertificateType] = useState<string>('super_reader');
 
   // Global Search State
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
@@ -493,10 +495,21 @@ export default function App() {
     }
   };
 
-  const handleNavigateTab = (tab: ActiveTab, format?: 'all' | 'picture_book' | 'single_image') => {
+  const handleNavigateTab = (
+    tab: ActiveTab,
+    format?: 'all' | 'picture_book' | 'single_image',
+    category?: string,
+    certType?: string
+  ) => {
     stopSpeech();
     if (format) {
       setStoriesInitialFormat(format);
+    }
+    if (category) {
+      setWorksheetCategory(category);
+    }
+    if (certType) {
+      setWorksheetCertificateType(certType);
     }
     if (tab !== activeTab) {
       setTabHistory((prev) => [...prev, tab]);
@@ -755,6 +768,9 @@ export default function App() {
             quizSets={quizSets}
             language={language}
             soundEnabled={soundEnabled}
+            onNavigateTab={(tab, cat, certType) =>
+              handleNavigateTab(tab || 'worksheets', undefined, cat || 'certificates', certType || 'quiz_champion')
+            }
           />
         )}
 
@@ -797,6 +813,8 @@ export default function App() {
             worksheets={worksheets}
             language={language}
             soundEnabled={soundEnabled}
+            initialCategory={worksheetCategory}
+            initialCertificateType={worksheetCertificateType}
             onBackToHome={handleBackToHome}
             onOpenProModal={() => setIsProModalOpen(true)}
           />

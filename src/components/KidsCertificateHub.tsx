@@ -26,20 +26,28 @@ interface KidsCertificateHubProps {
   language: Language;
   soundEnabled: boolean;
   onBackToHome?: () => void;
+  initialAchievementType?: string;
 }
 
 export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
   language,
   soundEnabled,
+  initialAchievementType,
 }) => {
   const isHi = language === 'hi';
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [childName, setChildName] = useState<string>('आरव चौहान');
   const [childPhoto, setChildPhoto] = useState<string | null>(null);
-  const [achievementType, setAchievementType] = useState<string>('super_reader');
+  const [achievementType, setAchievementType] = useState<string>(initialAchievementType || 'super_reader');
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (initialAchievementType) {
+      setAchievementType(initialAchievementType);
+    }
+  }, [initialAchievementType]);
 
   const achievementOptions = [
     {

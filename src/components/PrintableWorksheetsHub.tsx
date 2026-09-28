@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Printer,
   Download,
@@ -29,6 +29,7 @@ interface PrintableWorksheetsHubProps {
   soundEnabled: boolean;
   onBackToHome?: () => void;
   initialCategory?: string;
+  initialCertificateType?: string;
   onOpenProModal?: () => void;
 }
 
@@ -106,12 +107,20 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
   language,
   soundEnabled,
   initialCategory,
+  initialCertificateType,
+  onBackToHome,
   onOpenProModal,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'all');
   const [activePreviewSheet, setActivePreviewSheet] = useState<PrintableWorksheet | null>(null);
   const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
   const [downloadCount, setDownloadCount] = useState<number>(() => getDailyDownloadCount());
+
+  useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
 
   const isHi = language === 'hi';
   const isPro = getProSubscription().isPro;
@@ -345,7 +354,12 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
 
       {/* VIEW: Reader Star Certificate Generator */}
       {selectedCategory === 'certificates' ? (
-        <KidsCertificateHub language={language} soundEnabled={soundEnabled} />
+        <KidsCertificateHub
+          language={language}
+          soundEnabled={soundEnabled}
+          initialAchievementType={initialCertificateType}
+          onBackToHome={onBackToHome}
+        />
       ) : (
         /* Worksheets Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
