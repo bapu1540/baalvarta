@@ -29,6 +29,7 @@ import {
   deleteStoredReview,
   loadPersistentData,
   mergeWithInitialStories,
+  recordSiteVisit,
 } from './utils/storage';
 import { saveToServerDatabase } from './utils/dbStorage';
 import { WebsiteHeader } from './components/WebsiteHeader';
@@ -158,6 +159,9 @@ export default function App() {
 
   // Asynchronously sync with persistent Server Database and IndexedDB
   useEffect(() => {
+    // Record page visit for total visitors counter
+    recordSiteVisit();
+
     loadPersistentData().then((persistent) => {
       if (!persistent) return;
       if (persistent.stories && persistent.stories.length > 0) {
@@ -745,6 +749,15 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'quizzes' && (
+          <KidsQuizHub
+            language={language}
+            soundEnabled={soundEnabled}
+            onNavigateTab={(tab) => handleNavigateTab(tab || 'home')}
+            onBackToHome={handleBackToHome}
+          />
+        )}
+
         {activeTab === 'audio' && (
           <AudioStoryPlayer
             audioStories={audioStories}
@@ -760,17 +773,6 @@ export default function App() {
             language={language}
             soundEnabled={soundEnabled}
             onBackToHome={handleBackToHome}
-          />
-        )}
-
-        {activeTab === 'quizzes' && (
-          <KidsQuizHub
-            quizSets={quizSets}
-            language={language}
-            soundEnabled={soundEnabled}
-            onNavigateTab={(tab, cat, certType) =>
-              handleNavigateTab(tab || 'worksheets', undefined, cat || 'certificates', certType || 'quiz_champion')
-            }
           />
         )}
 

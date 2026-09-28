@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   Palette,
   RotateCcw,
@@ -12,11 +12,14 @@ import {
   CheckCircle2,
   Trash2,
   Undo2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Scissors
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Language } from '../types';
+import { Language, ColoringTemplateItem } from '../types';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
+import { getStoredColoringTemplates } from '../utils/storage';
+import { KidsOrigamiCraftSection } from './KidsOrigamiCraftSection';
 
 interface KidsColoringBookProps {
   language: Language;
@@ -29,7 +32,8 @@ interface TemplateItem {
   nameHi: string;
   nameEn: string;
   emoji: string;
-  renderLines: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  imageUrl?: string;
+  renderLines: (ctx: CanvasRenderingContext2D, width: number, height: number, callback?: () => void) => void;
 }
 
 export const KidsColoringBook: React.FC<KidsColoringBookProps> = ({
@@ -46,6 +50,7 @@ export const KidsColoringBook: React.FC<KidsColoringBookProps> = ({
   const [history, setHistory] = useState<ImageData[]>([]);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState<'coloring' | 'craft'>('coloring');
 
   // Palette colors for kids
   const colors = [
@@ -64,7 +69,7 @@ export const KidsColoringBook: React.FC<KidsColoringBookProps> = ({
   ];
 
   // SVG-based line art drawings rendered directly onto canvas
-  const templates: TemplateItem[] = [
+  const builtInTemplates = useMemo<TemplateItem[]>(() => [
     {
       id: 'lion',
       nameHi: 'बब्बर शेर (Lion)',
@@ -334,12 +339,65 @@ export const KidsColoringBook: React.FC<KidsColoringBookProps> = ({
       emoji: '🎨',
       renderLines: () => {},
     },
-  ];
+  ], []);
+
+  // Merge with custom templates from storage
+  const [storedTemplates, setStoredTemplates] = useState<ColoringTemplateItem[]>(() => getStoredColoringTemplates());
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setStoredTemplates(getStoredColoringTemplates());
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const templates = useMemo<TemplateItem[]>(() => {
+    const customItems: TemplateItem[] = storedTemplates
+      .filter((st) => !builtInTemplates.some((bt) => bt.id === st.id))
+      .map((st) => ({
+        id: st.id,
+        nameHi: st.nameHi,
+        nameEn: st.nameEn || st.nameHi,
+        emoji: st.emoji || '🎨',
+        imageUrl: st.imageUrl || st.image,
+        renderLines: (ctx, w, h, onDone) => {
+          const imgUrl = st.imageUrl || st.image;
+          if (imgUrl) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              const maxW = w * 0.85;
+              const maxH = h * 0.85;
+              const ratio = Math.min(maxW / img.width, maxH / img.height);
+              const drawW = img.width * ratio;
+              const drawH = img.height * ratio;
+              const drawX = (w - drawW) / 2;
+              const drawY = (h - drawH) / 2;
+              ctx.drawImage(img, drawX, drawY, drawW, drawH);
+              if (onDone) onDone();
+            };
+            img.src = imgUrl;
+          } else {
+            // Draw large emoji if no image URL
+            ctx.save();
+            ctx.font = '140px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(st.emoji || '🎨', w / 2, h / 2 - 20);
+            ctx.restore();
+            if (onDone) onDone();
+          }
+        },
+      }));
+
+    return [...builtInTemplates, ...customItems];
+  }, [builtInTemplates, storedTemplates]);
 
   // Initialize canvas
   useEffect(() => {
     loadTemplate(selectedTemplateId);
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, templates]);
 
   const loadTemplate = (templateId: string) => {
     const canvas = canvasRef.current;
@@ -354,7 +412,10 @@ export const KidsColoringBook: React.FC<KidsColoringBookProps> = ({
     // Draw template lines
     const template = templates.find((t) => t.id === templateId);
     if (template) {
-      template.renderLines(ctx, canvas.width, canvas.height);
+      template.renderLines(ctx, canvas.width, canvas.height, () => {
+        // Save initial state after image loads
+        setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
+      });
     }
 
     // Save initial state to history
@@ -499,21 +560,66 @@ export const KidsColoringBook: React.FC<KidsColoringBookProps> = ({
   };
 
   return (
-    <div className="space-y-4 pb-12 font-kids">
+    <div className="space-y-3 sm:space-y-4 pb-12 font-kids max-w-7xl mx-auto px-1 sm:px-3">
       
-      {/* Sleek Top Header */}
-      <div className="flex items-center justify-between gap-3 bg-white rounded-2xl p-2.5 sm:p-3 border border-orange-200/80 shadow-xs">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0">
-            🎨
-          </div>
-          <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
-            {isHi ? '9. कलरिंग बुक (Digital Coloring Book)' : '9. Digital Kids Coloring Book'}
+      {/* 1. Category Header Bar */}
+      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white rounded-2xl px-3.5 py-2.5 sm:px-5 sm:py-3 shadow-sm flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-lg sm:text-2xl shrink-0">🎨</span>
+          <h1 className="font-black text-xs sm:text-base md:text-lg tracking-tight truncate">
+            {isHi ? 'कला, कलरिंग व पेपर क्राफ्ट (Art, Colouring & Craft)' : 'Art, Colouring & Paper Craft'}
           </h1>
         </div>
+        <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-amber-100 text-[10px] sm:text-xs font-black shrink-0 border border-white/20">
+          Art Zone ✂️
+        </span>
       </div>
 
-      {/* Main Drawing Studio Layout */}
+      {/* 2. SUB-MENU TABS: 1. Digital Coloring Book, 2. Paper Craft & Origami */}
+      <div className="bg-white rounded-2xl p-1 sm:p-1.5 border-2 border-slate-900 shadow-xs grid grid-cols-2 gap-1.5 sm:gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (soundEnabled) playPopSound();
+            setActiveSubTab('coloring');
+          }}
+          className={`py-2 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            activeSubTab === 'coloring'
+              ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs scale-[1.01]'
+              : 'text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          <span className="text-base sm:text-lg shrink-0">🎨</span>
+          <span>{isHi ? '1. कलरिंग बुक (Coloring Book)' : '1. Digital Coloring'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (soundEnabled) playPopSound();
+            setActiveSubTab('craft');
+          }}
+          className={`py-2 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            activeSubTab === 'craft'
+              ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-xs scale-[1.01]'
+              : 'text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          <span className="text-base sm:text-lg shrink-0">✂️</span>
+          <span>{isHi ? '2. पेपर क्राफ्ट व ओरिगेमी (Origami)' : '2. Paper Craft & Origami'}</span>
+        </button>
+      </div>
+
+      {/* 3. CONDITIONAL RENDERING: SUB TAB 2 (ORIGAMI CRAFT) */}
+      {activeSubTab === 'craft' && (
+        <KidsOrigamiCraftSection
+          language={language}
+          soundEnabled={soundEnabled}
+        />
+      )}
+
+      {/* 4. CONDITIONAL RENDERING: SUB TAB 1 (DIGITAL COLORING STUDIO) */}
+      {activeSubTab === 'coloring' && (
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         
         {/* Left Toolbar (Templates & Tools) */}
@@ -710,6 +816,7 @@ export const KidsColoringBook: React.FC<KidsColoringBookProps> = ({
         </div>
 
       </div>
+      )}
     </div>
   );
 };

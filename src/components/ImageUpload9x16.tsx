@@ -40,9 +40,14 @@ export const ImageUpload9x16: React.FC<ImageUpload9x16Props> = ({
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        // Target 9:16 portrait dimensions (405x720 for crisp portrait and ultra-lightweight storage)
-        const targetWidth = 405;
-        const targetHeight = 720;
+        // High-Definition 9:16 portrait dimensions for crystal clear display on PC, Tablets & Phones
+        let targetWidth = 900;
+        let targetHeight = 1600;
+
+        if (img.width < 720) {
+          targetWidth = 720;
+          targetHeight = 1280;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = targetWidth;
@@ -53,6 +58,10 @@ export const ImageUpload9x16: React.FC<ImageUpload9x16Props> = ({
           setIsProcessing(false);
           return;
         }
+
+        // Enable high quality bicubic/bilinear smoothing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
         // Calculate aspect-ratio cover crop
         const srcAspect = img.width / img.height;
@@ -77,8 +86,8 @@ export const ImageUpload9x16: React.FC<ImageUpload9x16Props> = ({
         ctx.fillRect(0, 0, targetWidth, targetHeight);
         ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
 
-        // Convert to optimized JPEG base64 (0.75 quality for 25KB footprint)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        // Convert to high-definition JPEG base64 (0.88 quality for crystal clarity on large screens)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
         onChange(dataUrl);
         setIsProcessing(false);
         if (soundEnabled) playPopSound();

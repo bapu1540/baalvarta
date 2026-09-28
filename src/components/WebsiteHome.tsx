@@ -21,9 +21,7 @@ import {
   Heart,
   Volume2,
   Users,
-  CheckCircle2,
   Download,
-  Send,
   ChevronRight,
   X,
 } from 'lucide-react';
@@ -69,8 +67,6 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
   onAddReview,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [activeInteractiveLetter, setActiveInteractiveLetter] = useState<string>('A');
 
   // Featured Storybooks Sorting: Ensure newly uploaded stories appear at the very top (beginning)
@@ -134,9 +130,9 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       id: 'gk',
       titleHi: '4. सामान्य ज्ञान',
       titleEn: '4. General Knowledge',
-      badgeHi: 'GK 🧠',
-      badgeEn: 'GK 🧠',
-      emoji: '🌍',
+      badgeHi: '💡 ज्ञान कार्ड्स',
+      badgeEn: '💡 GK Cards',
+      emoji: '🧠',
       gradient: 'from-indigo-500 via-blue-600 to-purple-700',
       border: 'border-indigo-300',
       tab: 'gk' as ActiveTab,
@@ -178,8 +174,8 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       id: 'quizzes',
       titleHi: '8. बाल क्विज़',
       titleEn: '8. Kids Quiz',
-      badgeHi: '🎯 खेलें व सीखें',
-      badgeEn: '🎯 5-Q Games',
+      badgeHi: '🎯 क्विज़ ज़ोन',
+      badgeEn: '🎯 Quiz Zone',
       emoji: '🏆',
       gradient: 'from-rose-500 via-pink-500 to-rose-600',
       border: 'border-rose-300',
@@ -187,10 +183,10 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
     },
     {
       id: 'coloring',
-      titleHi: '9. कलरिंग बुक',
-      titleEn: '9. Colouring Books',
-      badgeHi: '🎨 डिजिटल आर्ट',
-      badgeEn: '🎨 Digital Art',
+      titleHi: '9. आर्ट व पेपर क्राफ्ट',
+      titleEn: '9. Art & Paper Craft',
+      badgeHi: '🎨 कलर + ✂️ क्राफ्ट',
+      badgeEn: '🎨 Paint + ✂️ Craft',
       emoji: '🎨',
       gradient: 'from-amber-400 via-orange-400 to-rose-500',
       border: 'border-orange-300',
@@ -208,13 +204,6 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       tab: 'worksheets' as ActiveTab,
     },
   ];
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newsletterEmail.trim()) return;
-    if (soundEnabled) playSuccessSound();
-    setIsSubscribed(true);
-  };
 
   const handleStoryCardClick = (story: Story) => {
     if (soundEnabled) playPopSound();
@@ -693,58 +682,58 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
 
       </section>
 
-      {/* 6.5 BAALVARTA PRO VIP MEMBERSHIP SHOWCASE SECTION */}
-      <section className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-3xl p-5 sm:p-7 text-white shadow-lg border-3 border-amber-300 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">
-          <div className="space-y-2.5 text-center lg:text-left max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-amber-200 text-xs font-black border border-white/30">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-spin" />
+      {/* 6.5 BAALVARTA PRO VIP MEMBERSHIP SHOWCASE SECTION (Medium Sized) */}
+      <section className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-2xl p-4 sm:p-5 text-white shadow-md border-2 border-amber-300 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6">
+          <div className="space-y-2 text-center lg:text-left max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-amber-200 text-[11px] font-black border border-white/30">
+              <Sparkles className="w-3 h-3 text-yellow-300 animate-spin" />
               <span>{language === 'hi' ? 'विशेष बालवार्ता प्रो सदस्यता' : 'Special Baalvarta Pro VIP Pass'}</span>
             </div>
 
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">
+            <h2 className="text-base sm:text-xl font-black text-white tracking-tight leading-snug">
               {language === 'hi'
                 ? 'रोजाना ₹1 से भी कम में — 100% Ad-Free व असीमित ज्ञान!'
                 : '100% Ad-Free, Unlimited Worksheets & AI — Under ₹1/day!'}
             </h2>
 
-            <p className="text-xs sm:text-sm text-amber-100 font-medium leading-relaxed">
+            <p className="text-xs text-amber-100 font-medium leading-relaxed">
               {language === 'hi'
-                ? 'अपने बच्चे को दें बिना विज्ञापन का सुरक्षित माहौल, असीमित प्रिंटेबल वर्कशीट्स, ऑडियो कहानियाँ और AI बालमित्र का व्यक्तिगत साथ।'
-                : 'Give your child safe ad-free learning, unlimited printable PDF worksheets, audio storybooks, and unlimited AI Baalmitra.'}
+                ? 'अपने बच्चे को दें बिना विज्ञापन का सुरक्षित माहौल, असीमित प्रिंटेबल वर्कशीट्स, ऑडियो कहानियाँ और AI बालमित्र।'
+                : 'Safe ad-free learning, unlimited printable worksheets, audio storybooks, and AI Baalmitra.'}
             </p>
 
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-1 text-xs font-bold text-amber-950">
-              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">🚫 100% Ad-Free</span>
-              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5 pt-0.5 text-[11px] font-bold text-amber-950">
+              <span className="px-2.5 py-0.5 rounded-lg bg-white/90 shadow-2xs">🚫 100% Ad-Free</span>
+              <span className="px-2.5 py-0.5 rounded-lg bg-white/90 shadow-2xs">
                 {language === 'hi' ? '📥 असीमित PDF' : '📥 Unlimited PDF'}
               </span>
-              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">
+              <span className="px-2.5 py-0.5 rounded-lg bg-white/90 shadow-2xs">
                 {language === 'hi' ? '🎧 ऑडियो बुक्स' : '🎧 Audio Books'}
               </span>
-              <span className="px-3 py-1 rounded-xl bg-white/90 shadow-2xs">
+              <span className="px-2.5 py-0.5 rounded-lg bg-white/90 shadow-2xs">
                 {language === 'hi' ? '🤖 AI बालमित्र' : '🤖 AI Baalmitra'}
               </span>
             </div>
           </div>
 
           {/* Pricing & CTA Card */}
-          <div className="bg-white text-slate-900 rounded-2xl p-4 sm:p-5 border-2 border-slate-900 shadow-xl flex flex-col items-center text-center space-y-3 shrink-0 w-full sm:w-80">
-            <div className="px-3 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+          <div className="bg-white text-slate-900 rounded-xl p-3.5 sm:p-4 border-2 border-slate-900 shadow-md flex flex-col items-center text-center space-y-2 shrink-0 w-full sm:w-72">
+            <div className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider">
               {language === 'hi' ? '👑 सबसे पसंदीदा योजना' : '👑 Most Popular Plan'}
             </div>
 
             <div>
-              <div className="text-xs font-bold text-slate-500 uppercase">
+              <div className="text-[11px] font-bold text-slate-500 uppercase">
                 {language === 'hi' ? 'वार्षिक VIP पास' : 'Annual VIP Pass'}
               </div>
               <div className="flex items-baseline justify-center gap-1.5 mt-0.5">
-                <span className="text-3xl font-black text-amber-600">₹299</span>
-                <span className="text-sm font-bold text-slate-400 line-through">₹499</span>
+                <span className="text-2xl font-black text-amber-600">₹299</span>
+                <span className="text-xs font-bold text-slate-400 line-through">₹499</span>
                 <span className="text-xs font-bold text-slate-600">/ {language === 'hi' ? 'साल' : 'year'}</span>
               </div>
-              <div className="text-[11px] font-bold text-emerald-600">
-                {language === 'hi' ? 'केवल ₹24/माह (या ₹29/माह प्लान भी उपलब्ध)' : 'Only ~₹24/mo (₹29/mo also available)'}
+              <div className="text-[10px] font-bold text-emerald-600">
+                {language === 'hi' ? 'केवल ₹24/माह (या ₹29/माह प्लान भी)' : 'Only ~₹24/mo (₹29/mo available)'}
               </div>
             </div>
 
@@ -753,10 +742,10 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                 if (soundEnabled) playPopSound();
                 if (onOpenProModal) onOpenProModal();
               }}
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-xs shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
             >
               <span>{language === 'hi' ? 'अभी प्रो लें (₹29 से शुरू) 👑' : 'Get Pro (From ₹29) 👑'}</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -772,49 +761,32 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
         />
       )}
 
-      {/* NEWSLETTER SUBSCRIPTION */}
-      <section className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-5 sm:p-6 text-white shadow-sm relative overflow-hidden">
-        <div className="max-w-xl mx-auto text-center space-y-2 relative z-10">
-          <h2 className="text-base sm:text-lg font-black text-white">
-            {language === 'hi'
-              ? '📬 हर रविवार बच्चों के लिए नई नैतिक कहानी!'
-              : '📬 Get Weekly Moral Stories & Activity Sheets'}
-          </h2>
-
-          <p className="text-xs text-amber-100">
-            {language === 'hi'
-              ? 'बालवार्ता न्यूज़लेटर से जुड़ें। सीधे अपने ईमेल पर नई कहानियाँ और प्रिंटेबल शीट्स प्राप्त करें।'
-              : 'Join parents receiving fresh illustrated stories, parenting tips, and weekend coloring pages.'}
-          </p>
-
-          {isSubscribed ? (
-            <div className="p-2.5 rounded-xl bg-white text-emerald-900 font-black text-xs shadow-xs flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>
-                {language === 'hi'
-                  ? '🎉 बधाई! आप बालवार्ता परिवार से जुड़ चुके हैं।'
-                  : '🎉 Thank you for subscribing to Baalvarta!'}
-              </span>
-            </div>
-          ) : (
-            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto pt-0.5">
-              <input
-                type="email"
-                required
-                value={newsletterEmail}
-                onChange={(e) => setNewsletterEmail(e.target.value)}
-                placeholder={language === 'hi' ? 'अपना ईमेल दर्ज करें...' : 'Enter parent email address...'}
-                className="flex-1 px-3 py-2 rounded-xl bg-white text-slate-800 text-xs font-semibold focus:outline-none shadow-xs"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-extrabold text-xs transition-colors shadow-xs shrink-0 flex items-center justify-center gap-1"
-              >
-                <span>{language === 'hi' ? 'सब्सक्राइब करें' : 'Subscribe Free'}</span>
-                <Send className="w-3 h-3" />
-              </button>
-            </form>
-          )}
+      {/* 8. OFFICIAL WHATSAPP CHANNEL JOIN CARD */}
+      <section className="max-w-2xl mx-auto w-full bg-gradient-to-r from-emerald-950/95 via-slate-900 to-emerald-950/95 p-4 sm:p-5 rounded-2xl border-2 border-emerald-500/50 text-center space-y-2.5 shadow-lg">
+        <div className="flex items-center justify-center gap-1.5 text-emerald-400 text-xs font-black">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>{language === 'hi' ? '🟢 बालवार्ता आधिकारिक व्हाट्सएप चैनल से जुड़ें' : '🟢 Join Baalvarta Official WhatsApp Channel'}</span>
+        </div>
+        <p className="text-[11px] sm:text-xs text-slate-300 max-w-lg mx-auto leading-relaxed">
+          {language === 'hi'
+            ? 'हर रविवार नई सचित्र नैतिक कहानियाँ, प्रिंटेबल PDF वर्कशीट्स और नए वीडियो के तुरंत नोटिफिकेशन व्हाट्सएप पर सीधे प्राप्त करें।'
+            : 'Get fresh weekly illustrated moral stories, printable PDF sheets, and new video notifications directly on WhatsApp!'}
+        </p>
+        <div className="pt-1 flex items-center justify-center">
+          <a
+            href="https://whatsapp.com/channel/0029VbD1k2lDJ6Gyz6uimY1w"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              if (soundEnabled) playSuccessSound();
+            }}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-slate-950 font-black text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer border border-emerald-300"
+          >
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.983.54 1.776.78 2.791.78h.001c3.182 0 5.768-2.587 5.768-5.766.001-3.182-2.585-5.766-5.769-5.766zm3.376 8.21c-.144.405-.837.774-1.17.824-.312.045-.698.075-2.021-.476-1.572-.656-2.584-2.253-2.663-2.357-.078-.104-.639-.851-.639-1.624 0-.773.405-1.155.549-1.311.144-.156.312-.195.416-.195.104 0 .208.001.299.006.096.005.225-.036.351.268.13.312.442 1.077.481 1.155.039.078.065.169.013.273-.052.104-.078.169-.156.26-.078.091-.164.203-.234.273-.078.078-.16.162-.069.318.091.156.403.666.865 1.078.594.529 1.096.693 1.252.771.156.078.247.065.338-.039.091-.104.39-.455.494-.611.104-.156.208-.13.351-.078.143.052.91.429 1.066.507.156.078.26.117.299.182.039.065.039.377-.105.782z"/>
+            </svg>
+            <span>{language === 'hi' ? 'व्हाट्सएप चैनल से जुड़ें (Join WhatsApp Channel)' : 'Join WhatsApp Channel'}</span>
+          </a>
         </div>
       </section>
 

@@ -105,6 +105,24 @@ export interface PrintableWorksheet {
   createdAt?: number;
 }
 
+export interface PaymentSettings {
+  upiId: string;
+  upiName: string;
+  upiQrCodeUrl?: string;
+  bankName: string;
+  accountHolderName: string;
+  accountNumber: string;
+  ifscCode: string;
+  branchName?: string;
+  whatsappNumber: string;
+  instructionsHi?: string;
+  instructionsEn?: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  lifetimePrice?: number;
+  isPaymentEnabled: boolean;
+}
+
 export interface FirebaseConfig {
   apiKey: string;
   authDomain: string;
@@ -186,6 +204,8 @@ export interface ColoringTemplateItem {
   nameHi: string;
   nameEn: string;
   emoji: string;
+  imageUrl?: string;
+  image?: string;
   category?: string;
   svgPathData?: string;
   builtInKey?: string;
@@ -236,6 +256,14 @@ export interface StreakMilestone {
   flameLevel: 'spark' | 'flame' | 'blaze' | 'cosmic';
   descriptionHi: string;
   descriptionEn: string;
+}
+
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  subscribedAt: string;
+  active: boolean;
+  source?: string;
 }
 
 export interface UserProfile {

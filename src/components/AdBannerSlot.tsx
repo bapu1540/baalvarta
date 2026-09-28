@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, ExternalLink, Settings, X, Sparkles } from 'lucide-react';
 import { AdConfig } from '../types';
+import { getProSubscription } from '../utils/proManager';
 
 interface AdBannerSlotProps {
   format?: 'leaderboard' | 'card' | 'banner';
@@ -41,17 +42,28 @@ export const AdBannerSlot: React.FC<AdBannerSlotProps> = ({
   label,
 }) => {
   const [adConfig, setAdConfig] = useState<AdConfig>(() => getStoredAdConfig());
+  const [isPro, setIsPro] = useState<boolean>(() => getProSubscription().isPro);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [clientInput, setClientInput] = useState(adConfig.adSenseClientId || '');
   const [snippetInput, setSnippetInput] = useState(adConfig.customCodeSnippet || '');
 
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleStatusChange = () => {
       setAdConfig(getStoredAdConfig());
+      setIsPro(getProSubscription().isPro);
     };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('storage', handleStatusChange);
+    window.addEventListener('baalvarta_pro_status_change', handleStatusChange);
+    return () => {
+      window.removeEventListener('storage', handleStatusChange);
+      window.removeEventListener('baalvarta_pro_status_change', handleStatusChange);
+    };
   }, []);
+
+  // 100% Ad-Free Experience for Pro / VIP Members
+  if (isPro) {
+    return null;
+  }
 
   if (!adConfig.enabled) {
     return null;

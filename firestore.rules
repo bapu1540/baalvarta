@@ -53,6 +53,16 @@ service cloud.firestore {
       allow write: if isValidId(contentId);
     }
 
+    match /newsletter_subscribers/{subscriberId} {
+      allow read: if true;
+      allow write: if isValidId(subscriberId);
+    }
+
+    match /site_stats/{statId} {
+      allow read: if true;
+      allow write: if isValidId(statId);
+    }
+
     match /analytics_events/{eventId} {
       allow read: if true;
       allow write: if isValidId(eventId);

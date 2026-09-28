@@ -134,6 +134,28 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["id"]
+    },
+    "NewsletterSubscriber": {
+      "title": "NewsletterSubscriber",
+      "description": "Parent email subscriber for weekly moral story updates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "subscribedAt": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "email"]
+    },
+    "SiteStats": {
+      "title": "SiteStats",
+      "description": "Aggregated site visitor and impression counters",
+      "type": "object",
+      "properties": {
+        "totalVisits": { "type": "number" },
+        "lastVisitedAt": { "type": "string" }
+      },
+      "required": ["totalVisits"]
     }
   },
   "firestore": {
@@ -168,6 +190,14 @@
     "/site_content/{contentId}": {
       "schema": "SiteContent",
       "description": "Site content and branding collection"
+    },
+    "/newsletter_subscribers/{subscriberId}": {
+      "schema": "NewsletterSubscriber",
+      "description": "Newsletter email subscribers collection"
+    },
+    "/site_stats/{statId}": {
+      "schema": "SiteStats",
+      "description": "Website visitor analytics and counters"
     },
     "/analytics_events/{eventId}": {
       "schema": "AnalyticsEvent",

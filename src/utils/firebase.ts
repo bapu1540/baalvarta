@@ -27,6 +27,8 @@ import {
   AudioStory,
   QuizSet,
   FirebaseConfig,
+  PaymentSettings,
+  NewsletterSubscriber,
 } from '../types';
 import appletConfig from '../../firebase-applet-config.json';
 
@@ -968,6 +970,191 @@ export async function fetchSiteContentFromFirestore(contentId: string): Promise<
     return docSnap ? docSnap.data()?.data : null;
   } catch (err: any) {
     console.warn('Failed to fetch site content from Firestore:', contentId, err?.message || err);
+    return null;
+  }
+}
+
+export async function syncPaymentSettingsToFirestore(settings: PaymentSettings): Promise<boolean> {
+  return syncSiteContentToFirestore('payment_settings', settings);
+}
+
+export async function fetchPaymentSettingsFromFirestore(): Promise<PaymentSettings | null> {
+  return fetchSiteContentFromFirestore('payment_settings');
+}
+
+export function subscribeToFirestorePaymentSettings(callback: (settings: PaymentSettings) => void): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const docRef = doc(db, 'site_content', 'payment_settings');
+    return onSnapshot(
+      docRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data && data.data) {
+            callback(data.data as PaymentSettings);
+          }
+        }
+      },
+      (err: any) => {
+        console.warn('Firestore payment settings subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore payment settings:', err);
+    return null;
+  }
+}
+
+// ==========================================
+// 8.5 NEWSLETTER SUBSCRIBERS & VISITOR STATS
+// ==========================================
+
+export async function syncNewsletterSubscriberToFirestore(subscriber: NewsletterSubscriber): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docId = subscriber.id || subscriber.email.replace(/[^a-zA-Z0-9]/g, '_');
+    const docRef = doc(db, 'newsletter_subscribers', docId);
+    await setDoc(
+      docRef,
+      {
+        ...subscriber,
+        id: docId,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+    return true;
+  } catch (err: any) {
+    console.warn('Firestore newsletter subscriber sync error:', err?.message || err);
+    return false;
+  }
+}
+
+export async function fetchNewsletterSubscribersFromFirestore(): Promise<NewsletterSubscriber[]> {
+  const db = getFirestoreDb();
+  if (!db) return [];
+
+  try {
+    const querySnapshot = await getDocs(collection(db, 'newsletter_subscribers'));
+    const subscribers: NewsletterSubscriber[] = [];
+    querySnapshot.forEach((docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        subscribers.push({
+          id: docSnap.id,
+          email: data.email,
+          subscribedAt: data.subscribedAt || new Date().toISOString(),
+          active: data.active !== false,
+          source: data.source || 'website_footer',
+        });
+      }
+    });
+    return subscribers;
+  } catch (err: any) {
+    console.warn('Firestore fetch subscribers error:', err?.message || err);
+    return [];
+  }
+}
+
+export function subscribeToFirestoreNewsletterSubscribers(
+  callback: (subscribers: NewsletterSubscriber[]) => void
+): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const colRef = collection(db, 'newsletter_subscribers');
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const subscribers: NewsletterSubscriber[] = [];
+        snapshot.forEach((docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            subscribers.push({
+              id: docSnap.id,
+              email: data.email,
+              subscribedAt: data.subscribedAt || new Date().toISOString(),
+              active: data.active !== false,
+              source: data.source || 'website_footer',
+            });
+          }
+        });
+        callback(subscribers);
+      },
+      (err: any) => {
+        console.warn('Firestore newsletter subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore newsletter subscribers:', err);
+    return null;
+  }
+}
+
+export async function incrementFirestoreVisitorCount(): Promise<number | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const docRef = doc(db, 'site_stats', 'visitors');
+    let currentTotal = 18450;
+    try {
+      const snap = await getDocs(collection(db, 'site_stats'));
+      const found = snap.docs.find((d) => d.id === 'visitors');
+      if (found && found.exists()) {
+        const data = found.data();
+        if (typeof data.totalVisits === 'number') {
+          currentTotal = Math.max(currentTotal, data.totalVisits);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    const nextTotal = currentTotal + 1;
+    await setDoc(
+      docRef,
+      {
+        totalVisits: nextTotal,
+        lastVisitedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+    return nextTotal;
+  } catch (err: any) {
+    console.warn('Firestore visitor count error:', err?.message || err);
+    return null;
+  }
+}
+
+export function subscribeToFirestoreVisitorCount(callback: (count: number) => void): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const docRef = doc(db, 'site_stats', 'visitors');
+    return onSnapshot(
+      docRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (typeof data.totalVisits === 'number') {
+            callback(data.totalVisits);
+          }
+        }
+      },
+      (err: any) => {
+        console.warn('Firestore visitor count subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore visitor count:', err);
     return null;
   }
 }

@@ -40,9 +40,19 @@ export const ImageUpload16x9: React.FC<ImageUpload16x9Props> = ({
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        // Target 16:9 dimensions (640x360 for crisp mobile HD view and ultra-lightweight ~22KB cloud footprint)
-        const targetWidth = 640;
-        const targetHeight = 360;
+        // High-Definition 16:9 dimensions for crystal clear display on Computer & Tablet screens
+        // 1600x900 Full HD with high quality smoothing
+        let targetWidth = 1600;
+        let targetHeight = 900;
+
+        // If source image is smaller than 1280, adapt cleanly without artificial over-stretching
+        if (img.width < 1280 && img.width > 640) {
+          targetWidth = 1280;
+          targetHeight = 720;
+        } else if (img.width <= 640) {
+          targetWidth = 960;
+          targetHeight = 540;
+        }
 
         const canvas = document.createElement('canvas');
         canvas.width = targetWidth;
@@ -53,6 +63,10 @@ export const ImageUpload16x9: React.FC<ImageUpload16x9Props> = ({
           setIsProcessing(false);
           return;
         }
+
+        // Enable high quality bicubic/bilinear smoothing for retina & 4K PC/Tablet monitors
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
         // Calculate aspect-ratio cover crop (centered)
         const srcAspect = img.width / img.height;
@@ -73,13 +87,13 @@ export const ImageUpload16x9: React.FC<ImageUpload16x9Props> = ({
           offsetY = (targetHeight - renderHeight) / 2;
         }
 
-        // Draw clean cropped 16:9 image
-        ctx.fillStyle = '#f8fafc';
+        // Draw clean cropped 16:9 image with background fill
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, targetWidth, targetHeight);
         ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
 
-        // Convert to optimized data URL (quality 0.68 for ~22KB footprint)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.68);
+        // Convert to ultra-crisp HD image (quality 0.88 gives crystal-clear sharpness for PC/iPad while keeping cloud payload light)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
         onChange(dataUrl);
         setIsProcessing(false);
         if (soundEnabled) playPopSound();
@@ -154,16 +168,17 @@ export const ImageUpload16x9: React.FC<ImageUpload16x9Props> = ({
         </label>
 
         <div className="flex items-center gap-1.5">
-          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[10px] border border-amber-300">
-            16:9 Format
+          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[10px] border border-emerald-300 flex items-center gap-1">
+            <span>✨</span>
+            <span>Ultra HD 16:9 (PC & Tablet)</span>
           </span>
           <button
             type="button"
             onClick={() => setShowUrlInput(!showUrlInput)}
-            className="text-[11px] text-amber-700 hover:text-amber-900 font-bold underline flex items-center gap-1"
+            className="text-[11px] text-amber-700 hover:text-amber-900 font-bold underline flex items-center gap-1 cursor-pointer"
           >
             <LinkIcon className="w-3 h-3" />
-            <span>{showUrlInput ? 'अपलोड बॉक्स' : 'या URL'}</span>
+            <span>{showUrlInput ? 'अपलोड बॉक्स' : 'या HD URL'}</span>
           </button>
         </div>
       </div>

@@ -12,7 +12,9 @@ import {
   CertificateAwardItem,
   DailyTaskItem,
   UserProfile,
-  StreakMilestone
+  StreakMilestone,
+  PaymentSettings,
+  NewsletterSubscriber,
 } from '../types';
 import {
   INITIAL_STORIES,
@@ -46,6 +48,8 @@ import {
   fetchAudioStoriesFromFirestore,
   fetchQuizSetsFromFirestore,
   isFirebaseConfigured,
+  syncNewsletterSubscriberToFirestore,
+  incrementFirestoreVisitorCount,
 } from './firebase';
 
 export const KEYS = {
@@ -69,6 +73,9 @@ export const KEYS = {
   REVIEWS: 'baalvarta_user_reviews_v1',
   CUSTOM_FOOTER_IMG: 'baalvarta_custom_footer_img',
   ADMIN_PASSWORDS: 'baalvarta_admin_passwords_v2',
+  PAYMENT_SETTINGS: 'baalvarta_payment_settings_v1',
+  NEWSLETTER_SUBSCRIBERS: 'baalvarta_newsletter_subscribers_v1',
+  VISITOR_COUNT: 'baalvarta_visitor_count_v1',
 };
 
 export const INITIAL_DAILY_TASKS: DailyTaskItem[] = [
@@ -1278,3 +1285,178 @@ export function importFullDatabaseJson(jsonString: string): {
     };
   }
 }
+
+// ==========================================
+// PAYMENT & VIP SUBSCRIPTION SETTINGS
+// ==========================================
+
+export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
+  upiId: 'chauhansanjay932@okhdfcbank',
+  upiName: 'Baalvarta Kids Portal',
+  upiQrCodeUrl: '',
+  bankName: 'State Bank of India (SBI)',
+  accountHolderName: 'Sanjay Chauhan (Baalvarta)',
+  accountNumber: '394857201948',
+  ifscCode: 'SBIN0001234',
+  branchName: 'Main City Branch',
+  whatsappNumber: '919876543210',
+  instructionsHi: '1. ऊपर दिए गए UPI ID, QR कोड या बैंक खाते में भुगतान करें।\n2. भुगतान के बाद स्क्रीनशॉट (Payment Screenshot) व्हाट्सएप पर भेजें।\n3. आपका VIP पास 5 मिनट में 100% एक्टिवेट हो जाएगा!',
+  instructionsEn: '1. Pay via UPI ID, QR code, or Bank transfer.\n2. Send the payment screenshot on WhatsApp.\n3. Your VIP pass will be activated within 5 minutes!',
+  monthlyPrice: 29,
+  annualPrice: 299,
+  lifetimePrice: 599,
+  isPaymentEnabled: true,
+};
+
+export function getStoredPaymentSettings(): PaymentSettings {
+  try {
+    const raw = localStorage.getItem(KEYS.PAYMENT_SETTINGS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_PAYMENT_SETTINGS, ...parsed };
+    }
+  } catch (e) {
+    console.warn('Error reading payment settings from storage:', e);
+  }
+  return DEFAULT_PAYMENT_SETTINGS;
+}
+
+export function saveStoredPaymentSettings(settings: PaymentSettings): void {
+  try {
+    localStorage.setItem(KEYS.PAYMENT_SETTINGS, JSON.stringify(settings));
+    window.dispatchEvent(new Event('baalvarta_payment_settings_change'));
+  } catch (e) {
+    console.error('Error saving payment settings:', e);
+  }
+}
+
+// ==========================================
+// NEWSLETTER SUBSCRIBERS & VISITOR COUNTER
+// ==========================================
+
+export const BASELINE_SUBSCRIBERS_COUNT = 1250;
+export const BASELINE_VISITOR_COUNT = 18450;
+
+export function getStoredNewsletterSubscribers(): NewsletterSubscriber[] {
+  try {
+    const raw = localStorage.getItem(KEYS.NEWSLETTER_SUBSCRIBERS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn('Error reading newsletter subscribers from storage:', e);
+  }
+  return [];
+}
+
+export function saveStoredNewsletterSubscribers(subscribers: NewsletterSubscriber[]): void {
+  try {
+    localStorage.setItem(KEYS.NEWSLETTER_SUBSCRIBERS, JSON.stringify(subscribers));
+    window.dispatchEvent(new Event('baalvarta_subscribers_updated'));
+  } catch (e) {
+    console.error('Error saving newsletter subscribers:', e);
+  }
+}
+
+export function getTotalSubscriberCount(): number {
+  const subscribers = getStoredNewsletterSubscribers();
+  return BASELINE_SUBSCRIBERS_COUNT + subscribers.length;
+}
+
+export function addNewsletterSubscriber(email: string, source: string = 'website'): {
+  success: boolean;
+  isNew: boolean;
+  total: number;
+  message: string;
+} {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+    return {
+      success: false,
+      isNew: false,
+      total: getTotalSubscriberCount(),
+      message: 'कृपया एक मान्य ईमेल पता दर्ज करें। (Please enter a valid email)',
+    };
+  }
+
+  const existing = getStoredNewsletterSubscribers();
+  const alreadySubscribed = existing.find((s) => s.email.toLowerCase() === cleanEmail);
+
+  if (alreadySubscribed) {
+    return {
+      success: true,
+      isNew: false,
+      total: BASELINE_SUBSCRIBERS_COUNT + existing.length,
+      message: 'यह ईमेल पहले से ही बालवार्ता न्यूज़लेटर पर सब्सक्राइब है!',
+    };
+  }
+
+  const newSub: NewsletterSubscriber = {
+    id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    email: cleanEmail,
+    subscribedAt: new Date().toISOString(),
+    active: true,
+    source,
+  };
+
+  const updated = [newSub, ...existing];
+  saveStoredNewsletterSubscribers(updated);
+
+  // Sync to Firestore in the background
+  try {
+    syncNewsletterSubscriberToFirestore(newSub);
+  } catch (err) {
+    console.warn('Failed to sync newsletter subscriber to Firestore:', err);
+  }
+
+  return {
+    success: true,
+    isNew: true,
+    total: BASELINE_SUBSCRIBERS_COUNT + updated.length,
+    message: '🎉 बहुत-बहुत धन्यवाद! आप बालवार्ता परिवार से सफलतापूर्वक जुड़ गए हैं। नई कहानियाँ व अपडेट्स सीधे आपके ईमेल पर भेजे जाएँगे!',
+  };
+}
+
+export function deleteStoredNewsletterSubscriber(idOrEmail: string): NewsletterSubscriber[] {
+  const current = getStoredNewsletterSubscribers();
+  const updated = current.filter((s) => s.id !== idOrEmail && s.email.toLowerCase() !== idOrEmail.toLowerCase());
+  saveStoredNewsletterSubscribers(updated);
+  return updated;
+}
+
+export function getStoredVisitorCount(): number {
+  try {
+    const raw = localStorage.getItem(KEYS.VISITOR_COUNT);
+    if (raw) {
+      const num = parseInt(raw, 10);
+      if (!isNaN(num) && num > 0) {
+        return Math.max(BASELINE_VISITOR_COUNT, num);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return BASELINE_VISITOR_COUNT;
+}
+
+export function recordSiteVisit(): number {
+  const current = getStoredVisitorCount();
+  const sessionRecorded = sessionStorage.getItem('baalvarta_visit_recorded');
+  
+  let nextCount = current;
+  if (!sessionRecorded) {
+    nextCount = current + 1;
+    try {
+      localStorage.setItem(KEYS.VISITOR_COUNT, nextCount.toString());
+      sessionStorage.setItem('baalvarta_visit_recorded', '1');
+      window.dispatchEvent(new Event('baalvarta_visitor_count_updated'));
+      // Sync to Firestore in background
+      incrementFirestoreVisitorCount();
+    } catch {
+      // ignore
+    }
+  }
+  return nextCount;
+}
+

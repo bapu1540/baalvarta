@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Sparkles,
@@ -16,9 +16,14 @@ import {
   Heart,
   ArrowRight,
   CheckCircle2,
-  Clock
+  Clock,
+  Copy,
+  Building2,
+  MessageCircle,
+  ExternalLink,
+  Lock
 } from 'lucide-react';
-import { Language } from '../types';
+import { Language, PaymentSettings } from '../types';
 import {
   PRO_PLANS,
   getProSubscription,
@@ -26,7 +31,10 @@ import {
   cancelProPlan,
   ProSubscription
 } from '../utils/proManager';
-import { playPopSound } from '../utils/soundEffects';
+import { playPopSound, playSuccessSound } from '../utils/soundEffects';
+import { safeCopyToClipboard } from '../utils/clipboard';
+import { getStoredPaymentSettings } from '../utils/storage';
+import { subscribeToFirestorePaymentSettings, fetchPaymentSettingsFromFirestore } from '../utils/firebase';
 
 interface BaalvartaProModalProps {
   isOpen: boolean;
@@ -45,11 +53,43 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [subscription, setSubscription] = useState<ProSubscription>(() => getProSubscription());
   const [paymentStep, setPaymentStep] = useState<'plans' | 'checkout' | 'success'>('plans');
-  const [upiId, setUpiId] = useState<string>('');
+  const [activePaymentTab, setActivePaymentTab] = useState<'upi' | 'bank' | 'whatsapp'>('upi');
+  const [transactionRef, setTransactionRef] = useState<string>('');
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  // Live Payment Settings (Admin Configured Bank, UPI, QR Code, WhatsApp)
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(() => getStoredPaymentSettings());
+
+  useEffect(() => {
+    // Initial fetch from Firestore
+    fetchPaymentSettingsFromFirestore().then((remote) => {
+      if (remote) setPaymentSettings(remote);
+    });
+
+    // Real-time listener
+    const unsub = subscribeToFirestorePaymentSettings((remote) => {
+      if (remote) setPaymentSettings(remote);
+    });
+
+    const handleLocalChange = () => {
+      setPaymentSettings(getStoredPaymentSettings());
+      setSubscription(getProSubscription());
+    };
+    window.addEventListener('baalvarta_payment_settings_change', handleLocalChange);
+    window.addEventListener('baalvarta_pro_status_change', handleLocalChange);
+
+    return () => {
+      if (unsub) unsub();
+      window.removeEventListener('baalvarta_payment_settings_change', handleLocalChange);
+      window.removeEventListener('baalvarta_pro_status_change', handleLocalChange);
+    };
+  }, []);
 
   if (!isOpen) return null;
 
-  const currentPlanDetails = PRO_PLANS[selectedPlan];
+  const activePrice = selectedPlan === 'annual'
+    ? (paymentSettings.annualPrice || PRO_PLANS.annual.price)
+    : (paymentSettings.monthlyPrice || PRO_PLANS.monthly.price);
 
   const handleSelectPlan = (plan: 'monthly' | 'annual') => {
     if (soundEnabled) playPopSound();
@@ -61,8 +101,15 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
     setPaymentStep('checkout');
   };
 
-  const handleCompleteActivation = () => {
+  const handleCopy = async (text: string, label: string) => {
     if (soundEnabled) playPopSound();
+    await safeCopyToClipboard(text);
+    setCopyFeedback(label);
+    setTimeout(() => setCopyFeedback(null), 2500);
+  };
+
+  const handleCompleteActivation = () => {
+    if (soundEnabled) playSuccessSound();
     const newSub = activateProPlan(selectedPlan);
     setSubscription(newSub);
     setPaymentStep('success');
@@ -74,6 +121,24 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
     setSubscription(getProSubscription());
     setPaymentStep('plans');
   };
+
+  const planName = selectedPlan === 'annual'
+    ? (isHi ? 'वार्षिक VIP पास (12 महीने)' : 'Annual VIP Pass (12 Months)')
+    : (isHi ? 'मासिक पास (1 महीना)' : 'Monthly Pass (1 Month)');
+
+  const handleOpenWhatsAppProof = () => {
+    if (soundEnabled) playPopSound();
+    const cleanPhone = (paymentSettings.whatsappNumber || '919876543210').replace(/\D/g, '');
+    const message = isHi
+      ? `नमस्ते! मैंने बालवार्ता वीआईपी (${planName} - ₹${activePrice}) के लिए भुगतान कर दिया है।\nमेरा यूटीआर / ट्रांजेक्शन आईडी: ${transactionRef.trim() || '[कृपया यहाँ भरें]'}\nकृपया मेरा खाता वीआईपी में अपग्रेड कर दें। धन्यवाद!`
+      : `Hello! I have completed payment for Baalvarta VIP (${planName} - ₹${activePrice}).\nMy Transaction Ref/UTR: ${transactionRef.trim() || '[Please check attached screenshot]'}\nPlease activate my VIP pass. Thank you!`;
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  // UPI Payment URL
+  const upiPayUrl = `upi://pay?pa=${encodeURIComponent(paymentSettings.upiId || 'chauhansanjay932@okhdfcbank')}&pn=${encodeURIComponent(paymentSettings.upiName || 'Baalvarta')}&am=${activePrice}&cu=INR&tn=${encodeURIComponent(`Baalvarta VIP ${selectedPlan}`)}`;
+  const dynamicQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiPayUrl)}`;
 
   return (
     <div className="fixed inset-0 z-[105] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn font-sans pb-safe">
@@ -98,7 +163,7 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
               if (soundEnabled) playPopSound();
               onClose();
             }}
-            className="absolute right-3.5 top-3.5 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all border border-white/20 active:scale-95"
+            className="absolute right-3.5 top-3.5 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all border border-white/20 active:scale-95 cursor-pointer"
             title={isHi ? 'बंद करें (Esc)' : 'Close'}
           >
             <X className="w-4 h-4" />
@@ -111,16 +176,16 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-1.5">
-                  <span>{isHi ? 'बालवार्ता प्रो (Baalvarta Pro)' : 'Baalvarta Pro'}</span>
+                  <span>{isHi ? 'बालवार्ता वीआईपी व प्रो सदस्यता' : 'Baalvarta VIP & Pro'}</span>
                 </h2>
-                <span className="px-2 py-0.5 rounded-full bg-white text-slate-950 text-[10px] sm:text-xs font-black uppercase tracking-wider">
-                  VIP Pass
+                <span className="px-2 py-0.5 rounded-full bg-white text-slate-950 text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-xs">
+                  100% Ad-Free
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-amber-100 font-bold mt-0.5">
                 {isHi
-                  ? 'रोजाना ₹1 से भी कम में अपने बच्चे को दें सुरक्षित व असीमित ज्ञान!'
-                  : 'Empower your child with 100% ad-free & unlimited learning for less than ₹1/day!'}
+                  ? 'बिना किसी विज्ञापन के असीमित कहानियाँ, वर्कशीट्स और सुरक्षित वातावरण!'
+                  : '100% ad-free stories, unlimited worksheets, and safe kids learning!'}
               </p>
             </div>
           </div>
@@ -128,6 +193,15 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
 
         {/* 2. BODY CONTENT */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-slate-300">
+          
+          {/* Toast / Copy Feedback Alert */}
+          {copyFeedback && (
+            <div className="p-2.5 rounded-xl bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{copyFeedback} क्लिपबोर्ड में कॉपी हो गया!</span>
+            </div>
+          )}
+
           {/* A. IF ALREADY PRO SUBSCRIBER */}
           {subscription.isPro && paymentStep !== 'success' ? (
             <div className="space-y-4">
@@ -139,12 +213,12 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                   <div>
                     <div className="text-xs font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>{isHi ? 'सक्रिय प्रो सदस्य (Active VIP Member)' : 'Active Pro Member'}</span>
+                      <span>{isHi ? 'सक्रिय वीआईपी प्रो सदस्य (100% विज्ञापन-मुक्त)' : 'Active VIP Member (100% Ad-Free)'}</span>
                     </div>
                     <div className="text-sm font-black text-slate-900 mt-0.5">
                       {subscription.plan === 'annual'
-                        ? isHi ? 'वार्षिक वीआईपी पास (₹299/वर्ष)' : 'Annual VIP Pass (₹299/year)'
-                        : isHi ? 'मासिक पास (₹29/माह)' : 'Monthly Pass (₹29/month)'}
+                        ? isHi ? `वार्षिक वीआईपी पास (₹${paymentSettings.annualPrice}/वर्ष)` : `Annual VIP Pass (₹${paymentSettings.annualPrice}/year)`
+                        : isHi ? `मासिक पास (₹${paymentSettings.monthlyPrice}/माह)` : `Monthly Pass (₹${paymentSettings.monthlyPrice}/month)`}
                     </div>
                     {subscription.expiryDate && (
                       <div className="text-[11px] text-slate-600 font-semibold mt-0.5 flex items-center gap-1">
@@ -160,7 +234,7 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
 
                 <button
                   onClick={handleCancelSubscription}
-                  className="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all"
+                  className="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all cursor-pointer"
                 >
                   {isHi ? 'रद्द करें' : 'Cancel'}
                 </button>
@@ -170,20 +244,20 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
               <div className="bg-slate-50 rounded-2xl p-4 border-2 border-slate-200 space-y-2.5">
                 <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>{isHi ? 'आपकी सक्रिय प्रो सुविधाएं:' : 'Your Active Pro Benefits:'}</span>
+                  <span>{isHi ? 'आपकी सक्रिय वीआईपी प्रो सुविधाएं:' : 'Your Active VIP Pro Benefits:'}</span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700">
-                  <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200">
-                    <span className="text-emerald-500">✓</span> 100% Ad-Free Experience
+                  <div className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="text-emerald-500 font-black">✓</span> 🚫 100% विज्ञापन-मुक्त (No Ads Anywhere)
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200">
-                    <span className="text-emerald-500">✓</span> Unlimited Printable Worksheets
+                  <div className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="text-emerald-500 font-black">✓</span> 📥 असीमित HD प्रिंटेबल वर्कशीट्स
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200">
-                    <span className="text-emerald-500">✓</span> Unlimited Audio Stories
+                  <div className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="text-emerald-500 font-black">✓</span> 🎧 असीमित ऑडियो कहानियाँ
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200">
-                    <span className="text-emerald-500">✓</span> Unlimited AI Baalmitra
+                  <div className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="text-emerald-500 font-black">✓</span> 🤖 असीमित AI बालमित्र प्रश्न
                   </div>
                 </div>
               </div>
@@ -191,9 +265,9 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
           ) : paymentStep === 'plans' ? (
             /* B. PLAN SELECTION STEP */
             <div className="space-y-4">
-              {/* PLAN SELECTION CARDS (₹29 vs ₹299) */}
+              {/* PLAN SELECTION CARDS (Monthly vs Annual) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {/* 1. Monthly Plan (₹29) */}
+                {/* 1. Monthly Plan */}
                 <div
                   onClick={() => handleSelectPlan('monthly')}
                   className={`relative p-4 sm:p-5 rounded-2xl border-2 sm:border-3 cursor-pointer transition-all flex flex-col justify-between gap-3 ${
@@ -222,17 +296,21 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                       {isHi ? 'मासिक पास (Monthly)' : 'Monthly Pass'}
                     </h3>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl sm:text-3xl font-black text-blue-600">₹29</span>
+                      <span className="text-2xl sm:text-3xl font-black text-blue-600">₹{paymentSettings.monthlyPrice || 29}</span>
                       <span className="text-xs text-slate-400 line-through font-bold">₹49</span>
                       <span className="text-xs text-slate-600 font-bold">/ {isHi ? 'माह' : 'month'}</span>
                     </div>
                     <div className="text-[11px] font-bold text-emerald-600 mt-0.5">
-                      {isHi ? PRO_PLANS.monthly.dailyCostHi : PRO_PLANS.monthly.dailyCostEn}
+                      {isHi ? 'रोजाना ₹1 से भी कम' : 'Less than ₹1/day'}
                     </div>
                   </div>
 
                   <ul className="text-xs space-y-1.5 text-slate-700 font-semibold border-t border-slate-200/80 pt-2.5">
-                    {(isHi ? PRO_PLANS.monthly.featuresHi : PRO_PLANS.monthly.featuresEn).map((f, i) => (
+                    <li className="flex items-start gap-1.5 leading-tight font-black text-emerald-700">
+                      <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                      <span>🚫 100% विज्ञापन-मुक्त अनुभव (Ad-Free)</span>
+                    </li>
+                    {(isHi ? PRO_PLANS.monthly.featuresHi : PRO_PLANS.monthly.featuresEn).slice(1).map((f, i) => (
                       <li key={i} className="flex items-start gap-1.5 leading-tight">
                         <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
                         <span>{f}</span>
@@ -241,7 +319,7 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                   </ul>
                 </div>
 
-                {/* 2. Annual VIP Plan (₹299) - BEST VALUE */}
+                {/* 2. Annual VIP Plan - BEST VALUE */}
                 <div
                   onClick={() => handleSelectPlan('annual')}
                   className={`relative p-4 sm:p-5 rounded-2xl border-2 sm:border-3 cursor-pointer transition-all flex flex-col justify-between gap-3 ${
@@ -252,7 +330,7 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                 >
                   {/* Best Value Badge */}
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 text-white text-[10px] font-black uppercase tracking-wider shadow-xs whitespace-nowrap">
-                    👑 {isHi ? 'सबसे लोकप्रिय • 15% बचत' : 'Best Value • Save 15%'}
+                    👑 {isHi ? 'सबसे लोकप्रिय • पूरे साल VIP' : 'Most Popular • Full Year VIP'}
                   </div>
 
                   <div>
@@ -276,16 +354,20 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                       <span className="text-xs">🌟</span>
                     </h3>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl sm:text-3xl font-black text-amber-600">₹299</span>
+                      <span className="text-2xl sm:text-3xl font-black text-amber-600">₹{paymentSettings.annualPrice || 299}</span>
                       <span className="text-xs text-slate-400 line-through font-bold">₹499</span>
                       <span className="text-xs text-slate-600 font-bold">/ {isHi ? 'वर्ष' : 'year'}</span>
                     </div>
                     <div className="text-[11px] font-bold text-emerald-600 mt-0.5">
-                      {isHi ? PRO_PLANS.annual.dailyCostHi : PRO_PLANS.annual.dailyCostEn} (~₹24/माह)
+                      {isHi ? `केवल ~₹${Math.round((paymentSettings.annualPrice || 299) / 12)}/माह (80 पैसे/दिन)` : 'Only ~80 paise/day'}
                     </div>
                   </div>
 
                   <ul className="text-xs space-y-1.5 text-slate-700 font-semibold border-t border-amber-200/80 pt-2.5">
+                    <li className="flex items-start gap-1.5 leading-tight font-black text-emerald-700">
+                      <Check className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <span>🚫 पूरे 12 महीने 100% विज्ञापन-मुक्त (No Ads)</span>
+                    </li>
                     {(isHi ? PRO_PLANS.annual.featuresHi : PRO_PLANS.annual.featuresEn).map((f, i) => (
                       <li key={i} className="flex items-start gap-1.5 leading-tight">
                         <Check className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
@@ -296,11 +378,11 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                 </div>
               </div>
 
-              {/* FEATURES COMPARISON TABLE (FREE VS PRO) */}
+              {/* FEATURES COMPARISON TABLE */}
               <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 sm:p-4 space-y-2">
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>{isHi ? 'मुफ़्त बनाम बालवार्ता प्रो तुलना' : 'Free vs Baalvarta Pro Comparison'}</span>
+                  <span>{isHi ? 'मुफ़्त बनाम बालवार्ता VIP तुलना' : 'Free vs Baalvarta VIP Comparison'}</span>
                 </h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
@@ -308,20 +390,20 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                       <tr className="border-b border-slate-200 text-slate-500 font-bold">
                         <th className="py-1.5">{isHi ? 'सुविधाएं' : 'Feature'}</th>
                         <th className="py-1.5 text-center">{isHi ? 'मुफ़्त (Free)' : 'Free'}</th>
-                        <th className="py-1.5 text-center text-amber-700 font-black">{isHi ? 'प्रो (VIP)' : 'Pro VIP'}</th>
+                        <th className="py-1.5 text-center text-amber-700 font-black">{isHi ? 'VIP प्रो सदस्य' : 'VIP Pro'}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 font-medium text-slate-700">
-                      <tr>
-                        <td className="py-1.5 flex items-center gap-1.5">
-                          <span>🚫</span> {isHi ? 'विज्ञापन-मुक्त अनुभव' : 'Ad-Free Website'}
+                      <tr className="bg-emerald-50/50">
+                        <td className="py-2 font-black text-emerald-950 flex items-center gap-1.5">
+                          <span>🚫</span> {isHi ? 'विज्ञापन-मुक्त अनुभव (Ad-Free)' : 'Ad-Free Website'}
                         </td>
-                        <td className="text-center text-slate-500">{isHi ? 'विज्ञापन सहित' : 'With Ads'}</td>
-                        <td className="text-center font-bold text-emerald-600">100% Ad-Free ✓</td>
+                        <td className="text-center text-rose-600 font-bold">{isHi ? 'विज्ञापन दिखाई देंगे' : 'With Ads'}</td>
+                        <td className="text-center font-black text-emerald-700">100% Ad-Free (कोई Ad नहीं) ✓</td>
                       </tr>
                       <tr>
                         <td className="py-1.5">
-                          <span>📥</span> {isHi ? 'प्रिंटेबल वर्कशीट्स' : 'Worksheets PDF'}
+                          <span>📥</span> {isHi ? 'प्रिंटेबल वर्कशीट्स व कलरिंग' : 'Worksheets PDF'}
                         </td>
                         <td className="text-center text-slate-500">{isHi ? '2 / दिन' : '2 / day'}</td>
                         <td className="text-center font-bold text-emerald-600">{isHi ? 'असीमित (Unlimited)' : 'Unlimited'} ✓</td>
@@ -346,55 +428,238 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
               </div>
             </div>
           ) : paymentStep === 'checkout' ? (
-            /* C. CHECKOUT & PAYMENT STEP */
+            /* C. FULL PAYMENT GATEWAY STEP (UPI, QR CODE, BANK ACCOUNT, WHATSAPP) */
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 flex items-center justify-between">
+              {/* Selected Plan Summary Banner */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-bold text-amber-800 uppercase">
-                    {isHi ? 'चयनित सदस्यता:' : 'Selected Plan:'}
+                  <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">
+                    {isHi ? 'चयनित वीआईपी सदस्यता:' : 'Selected VIP Membership:'}
                   </div>
-                  <div className="text-base font-black text-slate-900">
-                    {selectedPlan === 'annual'
-                      ? isHi ? 'वार्षिक VIP पास (12 महीने)' : 'Annual VIP Pass (12 Months)'
-                      : isHi ? 'मासिक पास (1 महीना)' : 'Monthly Pass (1 Month)'}
+                  <div className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5">
+                    <span>👑 {planName}</span>
                   </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                    100% Ad-Free Active
+                  </span>
                 </div>
-                <div className="text-2xl font-black text-amber-600">
-                  ₹{selectedPlan === 'annual' ? '299' : '29'}
+                <div className="text-2xl sm:text-3xl font-black text-amber-600">
+                  ₹{activePrice}
                 </div>
               </div>
 
-              {/* UPI & Payment Options */}
-              <div className="space-y-3">
-                <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                  <Smartphone className="w-4 h-4 text-purple-600" />
-                  <span>{isHi ? 'UPI / PhonePe / Google Pay / Paytm' : 'Pay via UPI / GPay / PhonePe'}</span>
-                </label>
+              {/* Payment Method Tabs */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (soundEnabled) playPopSound();
+                    setActivePaymentTab('upi');
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activePaymentTab === 'upi'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>1. UPI / QR कोड</span>
+                </button>
 
-                {/* Simulated QR Code / Instant Pay */}
-                <div className="p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                  <div className="w-24 h-24 bg-white p-2 rounded-xl border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-xs">
-                    <QrCode className="w-20 h-20 text-slate-900" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-xs font-black text-slate-900">
-                      {isHi ? 'स्कैन करें या UPI आईडी दर्ज करें' : 'Scan QR or Enter UPI ID'}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (soundEnabled) playPopSound();
+                    setActivePaymentTab('bank');
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activePaymentTab === 'bank'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>2. बैंक खाता (NEFT/IMPS)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (soundEnabled) playPopSound();
+                    setActivePaymentTab('whatsapp');
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activePaymentTab === 'whatsapp'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>3. व्हाट्सएप सहायता</span>
+                </button>
+              </div>
+
+              {/* TAB 1: UPI & QR CODE */}
+              {activePaymentTab === 'upi' && (
+                <div className="p-4 bg-slate-50 border-2 border-purple-200 rounded-2xl space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                    {/* QR Code */}
+                    <div className="relative p-2 bg-white rounded-2xl border-2 border-slate-900 shadow-sm shrink-0 group">
+                      <img
+                        src={paymentSettings.upiQrCodeUrl || dynamicQrUrl}
+                        alt="UPI Payment QR Code"
+                        className="w-36 h-36 object-contain rounded-lg"
+                      />
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-xs whitespace-nowrap">
+                        स्कैन करें ₹{activePrice}
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                      {isHi
-                        ? 'सुरक्षित UPI गेटवे द्वारा तत्काल एक्टिवेशन। कोई अतिरिक्त शुल्क नहीं।'
-                        : 'Instant instant activation via secure UPI gateway. No hidden fees.'}
-                    </p>
-                    <input
-                      type="text"
-                      value={upiId}
-                      onChange={(e) => setUpiId(e.target.value)}
-                      placeholder="e.g. yourname@oksbi / mobile@upi"
-                      className="w-full px-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-semibold focus:outline-none focus:border-purple-600 bg-white"
-                    />
+
+                    <div className="space-y-2 flex-1">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase text-purple-700 tracking-wider">
+                          Google Pay • PhonePe • Paytm • BHIM
+                        </span>
+                        <h4 className="text-sm font-black text-slate-900">
+                          {paymentSettings.upiName || 'Baalvarta Kids Portal'}
+                        </h4>
+                      </div>
+
+                      {/* UPI ID Box with 1-click Copy */}
+                      <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-purple-300">
+                        <span className="text-xs font-mono font-black text-purple-950 flex-1 truncate">
+                          {paymentSettings.upiId || 'chauhansanjay932@okhdfcbank'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(paymentSettings.upiId || 'chauhansanjay932@okhdfcbank', 'UPI ID')}
+                          className="px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-black flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>कॉपी</span>
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        {isHi
+                          ? 'ऊपर दिए गए QR कोड को किसी भी UPI ऐप से स्कैन करें या UPI ID कॉपी करके भुगतान करें।'
+                          : 'Scan the QR code with any UPI app or copy the UPI ID to pay.'}
+                      </p>
+                    </div>
                   </div>
                 </div>
+              )}
+
+              {/* TAB 2: BANK TRANSFER DETAILS */}
+              {activePaymentTab === 'bank' && (
+                <div className="p-4 bg-slate-50 border-2 border-blue-200 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-black text-blue-900 border-b border-blue-200 pb-2">
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <span>सीधे बैंक खाते में ट्रांसफर (Direct Bank Transfer):</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    {/* Bank Name */}
+                    <div className="p-2.5 bg-white rounded-xl border border-slate-200">
+                      <span className="text-[10px] text-slate-500 font-bold block">बैंक का नाम (Bank Name):</span>
+                      <span className="font-black text-slate-900">{paymentSettings.bankName || 'State Bank of India (SBI)'}</span>
+                    </div>
+
+                    {/* Account Holder */}
+                    <div className="p-2.5 bg-white rounded-xl border border-slate-200">
+                      <span className="text-[10px] text-slate-500 font-bold block">खाता धारक (Account Holder):</span>
+                      <span className="font-black text-slate-900">{paymentSettings.accountHolderName || 'Sanjay Chauhan'}</span>
+                    </div>
+
+                    {/* Account Number with 1-click Copy */}
+                    <div className="p-2.5 bg-white rounded-xl border border-blue-300 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] text-blue-700 font-bold block">खाता संख्या (Account Number):</span>
+                        <span className="font-mono font-black text-slate-900 text-sm tracking-wider">
+                          {paymentSettings.accountNumber || '394857201948'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(paymentSettings.accountNumber || '394857201948', 'Account Number')}
+                        className="px-2.5 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-black flex items-center gap-1 cursor-pointer shrink-0"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>कॉपी</span>
+                      </button>
+                    </div>
+
+                    {/* IFSC Code with 1-click Copy */}
+                    <div className="p-2.5 bg-white rounded-xl border border-blue-300 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] text-blue-700 font-bold block">IFSC कोड:</span>
+                        <span className="font-mono font-black text-slate-900 text-sm tracking-wider">
+                          {paymentSettings.ifscCode || 'SBIN0001234'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(paymentSettings.ifscCode || 'SBIN0001234', 'IFSC Code')}
+                        className="px-2.5 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-black flex items-center gap-1 cursor-pointer shrink-0"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>कॉपी</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {paymentSettings.branchName && (
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      शाखा (Branch): {paymentSettings.branchName}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 3: WHATSAPP ASSISTANCE & SCREENSHOT */}
+              {activePaymentTab === 'whatsapp' && (
+                <div className="p-4 bg-emerald-50/70 border-2 border-emerald-300 rounded-2xl space-y-3 text-center sm:text-left">
+                  <div className="flex items-center gap-2 text-xs font-black text-emerald-950">
+                    <MessageCircle className="w-4 h-4 text-emerald-600" />
+                    <span>व्हाट्सएप भुगतान सत्यापन (Instant WhatsApp Proof Submission):</span>
+                  </div>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    {isHi
+                      ? 'यदि आपने भुगतान कर दिया है, तो उसका स्क्रीनशॉट नीचे दिए गए बटन से सीधे हमें व्हाट्सएप पर भेजें। हमारी टीम 5 मिनट में आपका VIP पास सक्रिय कर देगी!'
+                      : 'After payment, send the screenshot to our official WhatsApp support for instant 5-minute activation.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOpenWhatsAppProof}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>📲 व्हाट्सएप पर स्क्रीनशॉट भेजें (+{paymentSettings.whatsappNumber || '919876543210'})</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* UTR / Transaction ID Input Box */}
+              <div className="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <label className="text-xs font-black text-slate-800 flex items-center justify-between">
+                  <span>भुगतान का UTR / Transaction No. (वैकल्पिक):</span>
+                  <span className="text-[10px] text-slate-500 font-normal">12-अंकों का UPI Ref No.</span>
+                </label>
+                <input
+                  type="text"
+                  value={transactionRef}
+                  onChange={(e) => setTransactionRef(e.target.value)}
+                  placeholder="e.g. 423984729184"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-amber-400 focus:outline-none bg-white"
+                />
               </div>
+
+              {/* Instructions text */}
+              {paymentSettings.instructionsHi && (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-950 whitespace-pre-line font-medium leading-relaxed">
+                  {isHi ? paymentSettings.instructionsHi : (paymentSettings.instructionsEn || paymentSettings.instructionsHi)}
+                </div>
+              )}
             </div>
           ) : (
             /* D. SUCCESS CONFIRMATION STEP */
@@ -404,18 +669,17 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
               </div>
               <div>
                 <h3 className="text-xl font-black text-slate-900">
-                  {isHi ? 'बधाई हो! बालवार्ता प्रो सक्रिय हो गया है!' : 'Congratulations! Baalvarta Pro is Active!'}
+                  {isHi ? 'बधाई हो! बालवार्ता VIP प्रो सक्रिय हो गया है!' : 'Congratulations! Baalvarta VIP Pro is Active!'}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto font-medium mt-1">
                   {isHi
-                    ? 'अब आप और आपके बच्चे 100% विज्ञापन-मुक्त, असीमित वर्कशीट्स, ऑडियो कहानियों और AI बालमित्र का आनंद ले सकते हैं।'
-                    : 'You and your child now have 100% ad-free and unlimited access to all worksheets, audio stories, and AI Baalmitra!'}
+                    ? 'आपकी सदस्यता 100% विज्ञापन-मुक्त हो गई है! अब आप असीमित कहानियों, वर्कशीट्स और ऑडियो का आनंद ले सकते हैं।'
+                    : 'Your account is now 100% ad-free! Enjoy unlimited stories, worksheets, and audio.'}
                 </p>
               </div>
 
-              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 inline-block text-xs font-bold text-amber-900">
-                👑 {isHi ? 'प्लान:' : 'Plan:'}{' '}
-                {selectedPlan === 'annual' ? 'Annual VIP (₹299/year)' : 'Monthly Pass (₹29/month)'}
+              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 inline-block text-xs font-black text-amber-900">
+                👑 {isHi ? 'प्लान:' : 'Plan:'} {planName} (₹{activePrice}) • 100% Ad-Free
               </div>
             </div>
           )}
@@ -426,29 +690,43 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
           {paymentStep === 'checkout' ? (
             <>
               <button
+                type="button"
                 onClick={() => setPaymentStep('plans')}
-                className="px-4 py-2 rounded-xl bg-white border-2 border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100"
+                className="px-4 py-2 rounded-xl bg-white border-2 border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100 cursor-pointer"
               >
-                {isHi ? 'वापस' : 'Back'}
+                {isHi ? '← प्लान बदलें' : 'Back'}
               </button>
 
-              <button
-                onClick={handleCompleteActivation}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-              >
-                <span>{isHi ? `भुगतान पूरा करें (₹${selectedPlan === 'annual' ? '299' : '29'})` : `Pay ₹${selectedPlan === 'annual' ? '299' : '29'} & Activate`}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenWhatsAppProof}
+                  className="hidden xs:flex px-3 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-black items-center gap-1 cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>व्हाट्सएप</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCompleteActivation}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>{isHi ? `भुगतान हो गया • VIP शुरू करें (₹${activePrice})` : `Payment Done • Start VIP (₹${activePrice})`}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </>
           ) : paymentStep === 'success' || subscription.isPro ? (
             <button
+              type="button"
               onClick={() => {
                 if (soundEnabled) playPopSound();
                 onClose();
               }}
-              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm transition-all shadow-xs"
+              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm transition-all shadow-xs cursor-pointer"
             >
-              {isHi ? 'आनंद लें (Continue Reading)' : 'Continue to Baalvarta'}
+              {isHi ? 'आनंद लें (Continue to Baalvarta)' : 'Continue to Baalvarta'}
             </button>
           ) : (
             <div className="w-full flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-2.5 sm:gap-3">
@@ -457,16 +735,17 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                   {isHi ? 'चयनित प्लान:' : 'Selected:'}
                 </div>
                 <div className="text-sm font-black text-slate-900">
-                  ₹{selectedPlan === 'annual' ? '299 / वर्ष' : '29 / माह'}
+                  ₹{activePrice} {selectedPlan === 'annual' ? (isHi ? '/ वर्ष' : '/ yr') : (isHi ? '/ माह' : '/ mo')}
                 </div>
               </div>
 
               <button
+                type="button"
                 onClick={handleProceedToPayment}
                 className="w-full xs:w-auto px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
               >
                 <Zap className="w-4 h-4 text-amber-200 fill-amber-200" />
-                <span>{isHi ? 'अभी प्रो अपग्रेड करें 👑' : 'Upgrade to Pro Now 👑'}</span>
+                <span>{isHi ? 'अभी VIP प्रो अपग्रेड करें 👑' : 'Upgrade to VIP Pro Now 👑'}</span>
               </button>
             </div>
           )}

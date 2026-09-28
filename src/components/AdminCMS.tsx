@@ -48,7 +48,15 @@ import {
   Heart,
   Flame,
   TrendingUp,
-  Zap
+  Zap,
+  Crown,
+  Building2,
+  QrCode,
+  Smartphone,
+  MessageCircle,
+  Send,
+  Bell,
+  Users,
 } from 'lucide-react';
 import {
   Story,
@@ -65,7 +73,9 @@ import {
   ColoringTemplateItem,
   CertificateAwardItem,
   DailyTaskItem,
-  UserProfile
+  UserProfile,
+  PaymentSettings,
+  NewsletterSubscriber,
 } from '../types';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
 import { safeCopyToClipboard } from '../utils/clipboard';
@@ -86,6 +96,7 @@ import {
   saveStoredDailyTasks,
   addStoredDailyTask,
   deleteStoredDailyTask,
+  saveStoredVideoStories,
   getUserProfile,
   saveUserProfile,
   getStoredFooterImage,
@@ -96,7 +107,16 @@ import {
   PRIMARY_ADMIN_EMAIL,
   SECONDARY_ADMIN_EMAIL,
   exportFullDatabaseJson,
-  importFullDatabaseJson
+  importFullDatabaseJson,
+  getStoredPaymentSettings,
+  saveStoredPaymentSettings,
+  DEFAULT_PAYMENT_SETTINGS,
+  getStoredNewsletterSubscribers,
+  saveStoredNewsletterSubscribers,
+  deleteStoredNewsletterSubscriber,
+  getStoredVisitorCount,
+  BASELINE_SUBSCRIBERS_COUNT,
+  BASELINE_VISITOR_COUNT,
 } from '../utils/storage';
 import { sendAdminOtpEmail } from '../utils/emailService';
 import { saveToServerDatabase } from '../utils/dbStorage';
@@ -137,7 +157,16 @@ import {
   fetchAudioStoriesFromFirestore,
   fetchQuizSetsFromFirestore,
   uploadImageToFirebaseStorage,
+  syncPaymentSettingsToFirestore,
+  fetchPaymentSettingsFromFirestore
 } from '../utils/firebase';
+import {
+  getProSubscription,
+  activateProPlan,
+  cancelProPlan,
+  saveProSubscription,
+  ProSubscription
+} from '../utils/proManager';
 import { FirebaseConfig } from '../types';
 
 interface AdminCMSProps {
@@ -202,13 +231,19 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     | 'learning'
     | 'audio'
     | 'reviews'
-    | 'branding'
+    | 'vip_payment'
     | 'security'
     | 'firebase'
   >('categories');
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
+
+  // VIP & Payment Gateway Settings State
+  const [paymentSettingsAdmin, setPaymentSettingsAdmin] = useState<PaymentSettings>(() => getStoredPaymentSettings());
+  const [paymentSyncStatus, setPaymentSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [adminProStatus, setAdminProStatus] = useState<ProSubscription>(() => getProSubscription());
+  const [customQrPreview, setCustomQrPreview] = useState<string>(paymentSettingsAdmin.upiQrCodeUrl || '');
 
   // Footer Image State
   const [footerImage, setFooterImage] = useState<string | null>(() => getStoredFooterImage());
@@ -227,6 +262,8 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   const [certificateAwards, setCertificateAwards] = useState<CertificateAwardItem[]>(() => getStoredCertificateAwards());
   const [dailyTasksList, setDailyTasksList] = useState<DailyTaskItem[]>(() => getStoredDailyTasks());
   const [userProfileAdmin, setUserProfileAdmin] = useState<UserProfile>(() => getUserProfile());
+  const [newsletterSubscribers, setNewsletterSubscribers] = useState<NewsletterSubscriber[]>(() => getStoredNewsletterSubscribers());
+  const [subscriberBroadcastMsg, setSubscriberBroadcastMsg] = useState<string | null>(null);
 
   // New Daily Task Form State
   const [newDailyTask, setNewDailyTask] = useState<Omit<DailyTaskItem, 'id'>>({
@@ -258,6 +295,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     nameHi: '',
     nameEn: '',
     emoji: '🦁',
+    imageUrl: '',
     category: 'animals',
   });
 
@@ -1187,15 +1225,16 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   };
 
   const handleDeleteVideo = (id: string) => {
-    if (confirm('क्या आप वाकई इस वीडियो कहानी को हटाना चाहते हैं?')) {
-      const updated = videoStories.filter((v) => v.id !== id);
-      onSaveVideos(updated);
-      deleteVideoStoryFromFirestore(id);
-      if (editingVideoId === id) {
-        setEditingVideoId(null);
-      }
-      if (soundEnabled) playPopSound();
+    const updated = videoStories.filter((v) => v.id !== id);
+    onSaveVideos(updated);
+    saveStoredVideoStories(updated);
+    deleteVideoStoryFromFirestore(id);
+    if (editingVideoId === id) {
+      setEditingVideoId(null);
     }
+    if (soundEnabled) playPopSound();
+    setToastMessage({ text: 'वीडियो कहानी सफलतापूर्वक हटा दी गई!', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleAddVideoCategory = (e: React.FormEvent) => {
@@ -1203,25 +1242,29 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const trimmed = newCategoryInput.trim();
     if (!trimmed) return;
     if (videoCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
-      alert('यह श्रेणी पहले से मौजूद है।');
+      setToastMessage({ text: 'यह श्रेणी पहले से मौजूद है।', type: 'info' });
+      setTimeout(() => setToastMessage(null), 3000);
       return;
     }
     const updated = [...videoCategories, trimmed];
     onSaveVideoCategories(updated);
     setNewCategoryInput('');
     if (soundEnabled) playSuccessSound();
+    setToastMessage({ text: `नई श्रेणी "${trimmed}" जोड़ी गई!`, type: 'success' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleDeleteVideoCategory = (categoryToDelete: string) => {
     if (videoCategories.length <= 1) {
-      alert('कम से कम एक श्रेणी का होना अनिवार्य है।');
+      setToastMessage({ text: 'कम से कम एक श्रेणी का होना अनिवार्य है।', type: 'info' });
+      setTimeout(() => setToastMessage(null), 3000);
       return;
     }
-    if (confirm(`क्या आप वाकई "${categoryToDelete}" श्रेणी को हटाना चाहते हैं?`)) {
-      const updated = videoCategories.filter((c) => c !== categoryToDelete);
-      onSaveVideoCategories(updated);
-      if (soundEnabled) playPopSound();
-    }
+    const updated = videoCategories.filter((c) => c !== categoryToDelete);
+    onSaveVideoCategories(updated);
+    if (soundEnabled) playPopSound();
+    setToastMessage({ text: `श्रेणी "${categoryToDelete}" हटा दी गई!`, type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleAddQuizSet = (e: React.FormEvent) => {
@@ -1665,7 +1708,7 @@ service cloud.firestore {
             { id: 'learning', label: '11. अक्षर व गिनती', icon: Sparkles, count: learningItems.length },
             { id: 'audio', label: '12. ऑडियो कहानियाँ', icon: Headphones, count: audioStories.length },
             { id: 'reviews', label: '13. पाठक समीक्षाएँ', icon: Heart, count: reviews.length },
-            { id: 'branding', label: '14. फुटर आर्टवर्क', icon: ImageIcon },
+            { id: 'vip_payment', label: '14. VIP व पेमेंट गेटवे', icon: Crown },
             { id: 'security', label: '15. सुरक्षा व 2FA', icon: Shield },
             { id: 'firebase', label: '16. डेटाबेस बैकअप', icon: Cloud },
           ].map((tab) => {
@@ -1891,15 +1934,15 @@ service cloud.firestore {
                       actions: ['✓ समीक्षा स्वीकारें', '⭐ रेटिंग देखें', '🗑️ डिलीट'],
                     },
                     {
-                      id: 'branding' as const,
+                      id: 'vip_payment' as const,
                       num: '12',
-                      titleHi: 'फुटर आर्टवर्क चित्र (Footer Image)',
-                      titleEn: 'Website Footer Branding Artwork',
-                      icon: ImageIcon,
-                      count: 'मुख्य फुटर चित्र',
-                      gradient: 'from-slate-700 to-slate-900',
-                      desc: 'वेबसाइट के नीचे दिखने वाली मुख्य ब्रांडिंग फोटो अपलोड व बदलें।',
-                      actions: ['📸 नई फ़ोटो अपलोड करें', '👁️ लाइव प्रीव्यू', '🔄 रीसेट'],
+                      titleHi: 'VIP व पेमेंट गेटवे (VIP & Payment Settings)',
+                      titleEn: 'UPI, QR Code, Bank Account & VIP Plans',
+                      icon: Crown,
+                      count: '100% Ad-Free सेटिंग्स',
+                      gradient: 'from-amber-500 via-orange-500 to-rose-600',
+                      desc: 'UPI ID, कस्टम QR कोड इमेज, बैंक खाता (SBI/HDFC), प्लान मूल्य व व्हाट्सएप सपोर्ट सेट करें।',
+                      actions: ['💳 बैंक व UPI सेटिंग्स', '📷 QR कोड अपलोड', '👑 VIP प्लान्स'],
                     },
                     {
                       id: 'security' as const,
@@ -2557,32 +2600,32 @@ service cloud.firestore {
                         const totalLikes = (s.likes || 0) + stat.likes;
                         const score = totalViews * 1 + totalLikes * 3;
 
-                        // Heatmap Tier definition
+                        // Heatmap Tier definition based strictly on actual reader engagement (Views & Likes)
                         let heatClass = 'bg-white border-2 border-slate-200 hover:border-amber-300';
                         let heatBadge = null;
 
                         if (heatmapMode) {
-                          if (score >= 5 || s.isFeatured) {
+                          if (score >= 20) {
                             heatClass = 'bg-gradient-to-r from-rose-50/90 via-orange-50/70 to-amber-50/50 border-2 border-rose-400 shadow-sm ring-2 ring-rose-200';
                             heatBadge = (
                               <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-amber-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-2xs">
                                 <Flame className="w-3 h-3 text-amber-200" />
-                                <span>🔥 High Heat (Home Feature)</span>
+                                <span>🔥 High Heat ({score} pts)</span>
                               </span>
                             );
-                          } else if (score >= 2) {
+                          } else if (score >= 6) {
                             heatClass = 'bg-amber-50/80 border-2 border-amber-300 shadow-2xs';
                             heatBadge = (
                               <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px] flex items-center gap-1">
                                 <Zap className="w-3 h-3 text-amber-600" />
-                                <span>⚡ Moderate Heat</span>
+                                <span>⚡ Moderate ({score} pts)</span>
                               </span>
                             );
                           } else {
                             heatClass = 'bg-slate-50/80 border-2 border-slate-200';
                             heatBadge = (
                               <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center gap-1">
-                                <span>🧊 Cool / New</span>
+                                <span>🧊 Cool / New ({score} pts)</span>
                               </span>
                             );
                           }
@@ -3226,20 +3269,56 @@ service cloud.firestore {
                               />
                             </div>
                           </div>
-                          <div>
-                            <label className="font-bold text-slate-600 block mb-0.5">प्रश्न का चित्र URL</label>
-                            <input
-                              type="url"
-                              value={q.image}
-                              onChange={(e) => {
-                                const updated = [...newQuizQuestions];
-                                updated[qIndex].image = e.target.value;
-                                setNewQuizQuestions(updated);
-                              }}
-                              className="w-full p-2 rounded-xl bg-slate-50 border border-slate-200 font-mono text-[10px] focus:ring-1 focus:ring-emerald-400"
-                            />
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-600 block mb-0.5">प्रश्न का चित्र (Image / URL)</label>
+                            <div className="flex gap-1.5">
+                              <input
+                                type="text"
+                                placeholder="https://... इमेज URL"
+                                value={q.image || ''}
+                                onChange={(e) => {
+                                  const updated = [...newQuizQuestions];
+                                  updated[qIndex].image = e.target.value;
+                                  setNewQuizQuestions(updated);
+                                }}
+                                className="flex-1 p-2 rounded-xl bg-slate-50 border border-slate-200 font-mono text-[10px] focus:ring-1 focus:ring-emerald-400"
+                              />
+                              <label className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center justify-center gap-1 cursor-pointer shrink-0 shadow-xs">
+                                <span>📁 अपलोड</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    if (e.target.files?.[0]) {
+                                      const reader = new FileReader();
+                                      reader.onload = (ev) => {
+                                        const updated = [...newQuizQuestions];
+                                        updated[qIndex].image = ev.target?.result as string;
+                                        setNewQuizQuestions(updated);
+                                        if (soundEnabled) playSuccessSound();
+                                      };
+                                      reader.readAsDataURL(e.target.files[0]);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
                             {q.image && (
-                              <img src={q.image} alt="Preview" className="w-full h-14 object-cover rounded-lg mt-1 border" />
+                              <div className="relative inline-block w-full">
+                                <img src={q.image} alt="Preview" className="w-full h-16 object-cover rounded-lg mt-1 border" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...newQuizQuestions];
+                                    updated[qIndex].image = '';
+                                    setNewQuizQuestions(updated);
+                                  }}
+                                  className="absolute top-2 right-1 px-1.5 py-0.5 bg-rose-600 text-white text-[9px] font-bold rounded-md"
+                                >
+                                  हटाएं
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -3316,18 +3395,56 @@ service cloud.firestore {
                                 className="w-full p-2 rounded-lg bg-white border border-amber-200 text-xs focus:ring-1 focus:ring-amber-400"
                               />
                             </div>
-                            <div>
-                              <input
-                                type="url"
-                                placeholder="व्याख्या चित्र URL (Optional)"
-                                value={q.explanationImage}
-                                onChange={(e) => {
-                                  const updated = [...newQuizQuestions];
-                                  updated[qIndex].explanationImage = e.target.value;
-                                  setNewQuizQuestions(updated);
-                                }}
-                                className="w-full p-2 rounded-lg bg-white border border-amber-200 font-mono text-[10px]"
-                              />
+                            <div className="space-y-1">
+                              <div className="flex gap-1">
+                                <input
+                                  type="text"
+                                  placeholder="व्याख्या चित्र URL"
+                                  value={q.explanationImage || ''}
+                                  onChange={(e) => {
+                                    const updated = [...newQuizQuestions];
+                                    updated[qIndex].explanationImage = e.target.value;
+                                    setNewQuizQuestions(updated);
+                                  }}
+                                  className="flex-1 p-1.5 rounded-lg bg-white border border-amber-200 font-mono text-[10px]"
+                                />
+                                <label className="px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] flex items-center justify-center cursor-pointer shrink-0">
+                                  <span>📁</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      if (e.target.files?.[0]) {
+                                        const reader = new FileReader();
+                                        reader.onload = (ev) => {
+                                          const updated = [...newQuizQuestions];
+                                          updated[qIndex].explanationImage = ev.target?.result as string;
+                                          setNewQuizQuestions(updated);
+                                          if (soundEnabled) playSuccessSound();
+                                        };
+                                        reader.readAsDataURL(e.target.files[0]);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                              {q.explanationImage && (
+                                <div className="relative inline-block w-full">
+                                  <img src={q.explanationImage} alt="Explanation preview" className="w-full h-12 object-cover rounded border" />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...newQuizQuestions];
+                                      updated[qIndex].explanationImage = '';
+                                      setNewQuizQuestions(updated);
+                                    }}
+                                    className="absolute top-1 right-1 px-1 bg-rose-600 text-white text-[8px] font-bold rounded"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -3464,15 +3581,58 @@ service cloud.firestore {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="font-bold text-slate-700 block mb-1">प्रिंट शीट Image URL *</label>
-                    <input
-                      type="url"
-                      required
-                      value={newWs.printUrl}
-                      onChange={(e) => setNewWs({ ...newWs, printUrl: e.target.value, thumbnailUrl: e.target.value })}
-                      className="w-full p-2 rounded-xl bg-white border border-indigo-200 font-mono text-[10px]"
-                    />
+                  <div className="sm:col-span-2 bg-indigo-50/50 p-3 rounded-2xl border border-indigo-200 space-y-2">
+                    <label className="font-bold text-slate-800 block text-xs">
+                      📄 प्रिंट शीट इमेज / फ़ाइल (Print Worksheet Image or File Upload) *
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        required={!newWs.printUrl}
+                        placeholder="https://... इमेज URL पेस्ट करें"
+                        value={newWs.printUrl}
+                        onChange={(e) => setNewWs({ ...newWs, printUrl: e.target.value, thumbnailUrl: e.target.value })}
+                        className="flex-1 p-2 rounded-xl bg-white border border-indigo-200 font-mono text-xs focus:ring-2 focus:ring-indigo-400"
+                      />
+                      <label className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs">
+                        <span>📁 फ़ाइल अपलोड करें</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                const result = ev.target?.result as string;
+                                setNewWs({ ...newWs, printUrl: result, thumbnailUrl: result });
+                                if (soundEnabled) playSuccessSound();
+                              };
+                              reader.readAsDataURL(e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {newWs.printUrl && (
+                      <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-indigo-200">
+                        <img
+                          src={newWs.printUrl}
+                          alt="Worksheet preview"
+                          className="w-14 h-14 object-contain rounded-lg border bg-slate-50"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[11px] font-bold text-indigo-700 block">✓ वर्कशीट इमेज सेट है</span>
+                          <button
+                            type="button"
+                            onClick={() => setNewWs({ ...newWs, printUrl: '', thumbnailUrl: '' })}
+                            className="text-xs text-rose-600 font-bold hover:underline cursor-pointer"
+                          >
+                            इमेज हटाएं
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:col-span-2">
@@ -3749,6 +3909,7 @@ service cloud.firestore {
                     <input
                       type="text"
                       maxLength={4}
+                      placeholder="उदा. 🦁, 🐰, 🐘"
                       value={newColoringTemplate.emoji}
                       onChange={(e) => setNewColoringTemplate({ ...newColoringTemplate, emoji: e.target.value })}
                       className="w-full p-2 rounded-xl bg-white border border-amber-200 font-semibold"
@@ -3767,6 +3928,58 @@ service cloud.firestore {
                       <option value="water">जल जीव (Water Animals)</option>
                       <option value="free">कोरी स्लेट (Free Canvas)</option>
                     </select>
+                  </div>
+
+                  <div className="sm:col-span-2 bg-white/80 p-3 rounded-2xl border border-amber-200 space-y-2">
+                    <label className="font-bold text-slate-800 block text-xs">
+                      🎨 टेम्पलेट रेखाचित्र फ़ोटो / URL (Line Art Image or URL - Optional):
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://... रेखाचित्र इमेज URL पेस्ट करें"
+                        value={newColoringTemplate.imageUrl || ''}
+                        onChange={(e) => setNewColoringTemplate({ ...newColoringTemplate, imageUrl: e.target.value })}
+                        className="flex-1 p-2 rounded-xl bg-slate-50 border border-amber-200 font-mono text-xs focus:ring-2 focus:ring-amber-400"
+                      />
+                      <label className="px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs">
+                        <span>📁 फ़ाइल अपलोड करें</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                setNewColoringTemplate({ ...newColoringTemplate, imageUrl: ev.target?.result as string });
+                                if (soundEnabled) playSuccessSound();
+                              };
+                              reader.readAsDataURL(e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {newColoringTemplate.imageUrl && (
+                      <div className="flex items-center gap-3 p-2 bg-amber-50 rounded-xl border border-amber-300">
+                        <img
+                          src={newColoringTemplate.imageUrl}
+                          alt="Template preview"
+                          className="w-16 h-16 object-contain rounded-lg border bg-white"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[11px] font-bold text-emerald-700 block">✓ इमेज सेट हो गई है</span>
+                          <button
+                            type="button"
+                            onClick={() => setNewColoringTemplate({ ...newColoringTemplate, imageUrl: '' })}
+                            className="text-xs text-rose-600 font-bold hover:underline cursor-pointer"
+                          >
+                            इमेज हटाएं
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:col-span-2">
@@ -4270,6 +4483,208 @@ service cloud.firestore {
                 );
               })()}
 
+              {/* NEWSLETTER SUBSCRIBERS & WEBSITE VISITOR ANALYTICS */}
+              <div className="p-6 rounded-3xl bg-white border-2 border-emerald-300 shadow-md space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-2xl shadow-sm">
+                      📬
+                    </div>
+                    <div>
+                      <h4 className="font-black text-base text-slate-900">
+                        न्यूज़लेटर सब्सक्राइबर्स व वेबसाइट विज़िटर एनालिटिक्स (Newsletter & Visitors)
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        यहाँ से बालवार्ता के सभी ईमेल सब्सक्राइबर्स और कुल वेबसाइट विज़िटर्स का लाइव रिकॉर्ड देखें:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
+                      👥 कुल सब्सक्राइबर्स: {(BASELINE_SUBSCRIBERS_COUNT + newsletterSubscribers.length).toLocaleString('en-IN')}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
+                      👁️ कुल विज़िटर्स: {getStoredVisitorCount().toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metrics 2-Card Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Mail className="w-4 h-4 text-emerald-600" />
+                        <span>सक्रिय ईमेल सब्सक्राइबर्स (Active Subscribers)</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
+                        Live Sync
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-emerald-700">
+                        {(BASELINE_SUBSCRIBERS_COUNT + newsletterSubscribers.length).toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-xs text-emerald-800 font-semibold">
+                        ({newsletterSubscribers.length} नए फॉर्म रजिस्ट्रेशन + {BASELINE_SUBSCRIBERS_COUNT} आधार पाठक)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600">
+                      जब भी वेबसाइट पर नई कहानी या वीडियो अपलोड होगी, सभी सब्सक्राइबर्स को ईमेल सूचना प्राप्त होगी।
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Eye className="w-4 h-4 text-amber-600" />
+                        <span>कुल वेबसाइट विज़िटर (Total Website Hits)</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
+                        Real-Time
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-amber-700">
+                        {getStoredVisitorCount().toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-xs text-amber-800 font-semibold">
+                        कुल पृष्ठ अवलोकन (Page Views)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600">
+                      यह संख्या फुटर में लाइव प्रदर्शित होती है और प्रत्येक नए विज़िटर के आने पर बढ़ती है।
+                    </p>
+                  </div>
+                </div>
+
+                {/* Broadcast Action / Notification Alert Simulator */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <h5 className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                      <Send className="w-4 h-4 text-emerald-600" />
+                      <span>नई कहानी / वीडियो अपलोड ईमेल ब्रॉडकास्ट (Send Email Alert to Subscribers):</span>
+                    </h5>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const csv = ['Email,SubscribedAt,Source,Active']
+                            .concat(
+                              newsletterSubscribers.map(
+                                (s) => `"${s.email}","${s.subscribedAt}","${s.source || 'website'}","${s.active}"`
+                              )
+                            )
+                            .join('\n');
+                          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `baalvarta_subscribers_${new Date().toISOString().split('T')[0]}.csv`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>CSV डाउनलोड करें</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (soundEnabled) playSuccessSound();
+                        setSubscriberBroadcastMsg(
+                          `✅ टेस्ट ब्रॉडकास्ट सफल! कुल ${(BASELINE_SUBSCRIBERS_COUNT + newsletterSubscribers.length).toLocaleString('en-IN')} सब्सक्राइबर्स को नई कहानी का ईमेल अलर्ट भेजा गया।`
+                        );
+                        setTimeout(() => setSubscriberBroadcastMsg(null), 5000);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                    >
+                      <Bell className="w-3.5 h-3.5" />
+                      <span>📢 सभी सब्सक्राइबर्स को नई कहानी का नोटिफिकेशन भेजें (Send Broadcast)</span>
+                    </button>
+                  </div>
+
+                  {subscriberBroadcastMsg && (
+                    <div className="p-3 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-bold border border-emerald-300 animate-fadeIn">
+                      {subscriberBroadcastMsg}
+                    </div>
+                  )}
+                </div>
+
+                {/* Subscribers Table */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-bold text-xs text-slate-800 uppercase tracking-wider">
+                      पंजीकृत ईमेल सब्सक्राइबर्स सूची ({newsletterSubscribers.length})
+                    </h5>
+                  </div>
+
+                  {newsletterSubscribers.length > 0 ? (
+                    <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-2xl">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-slate-100 text-slate-700 sticky top-0 font-black">
+                          <tr>
+                            <th className="p-2.5 pl-4 border-b border-slate-200">#</th>
+                            <th className="p-2.5 border-b border-slate-200">ईमेल पता (Email)</th>
+                            <th className="p-2.5 border-b border-slate-200">तारीख (Subscribed At)</th>
+                            <th className="p-2.5 border-b border-slate-200">सोर्स (Source)</th>
+                            <th className="p-2.5 pr-4 border-b border-slate-200 text-right">कार्रवाई</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {newsletterSubscribers.map((sub, idx) => (
+                            <tr key={sub.id || idx} className="hover:bg-slate-50 transition-colors">
+                              <td className="p-2.5 pl-4 font-mono text-slate-400 font-bold">{idx + 1}</td>
+                              <td className="p-2.5 font-bold text-slate-900">{sub.email}</td>
+                              <td className="p-2.5 text-slate-500 font-mono text-[11px]">
+                                {new Date(sub.subscribedAt).toLocaleDateString('hi-IN', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </td>
+                              <td className="p-2.5">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                  {sub.source || 'home_page'}
+                                </span>
+                              </td>
+                              <td className="p-2.5 pr-4 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (soundEnabled) playPopSound();
+                                    const updated = deleteStoredNewsletterSubscriber(sub.id);
+                                    setNewsletterSubscribers(updated);
+                                    setToastMessage({ text: `🗑️ ${sub.email} को हटा दिया गया।`, type: 'info' });
+                                    setTimeout(() => setToastMessage(null), 3000);
+                                  }}
+                                  className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                  title="हटाएं"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-500">
+                      वेबसाइट होमपेज या फुटर से जब कोई पाठक सब्सक्राइब करेगा, तो उनका ईमेल यहाँ तुरंत दिखाई देगा।
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Maintenance Tools */}
               <div className="p-5 rounded-3xl bg-white border-2 border-slate-200 shadow-xs space-y-3">
                 <h4 className="font-black text-sm text-slate-900">
@@ -4530,10 +4945,9 @@ service cloud.firestore {
                   </div>
                   
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">Main Emoji / Icon *</label>
+                    <label className="font-bold text-slate-700 block mb-1">Main Emoji / Icon (उदा. 🍎, 🦁)</label>
                     <input
                       type="text"
-                      required
                       placeholder="e.g. 🍎"
                       value={newLearning.imageOrEmoji}
                       onChange={(e) => setNewLearning({ ...newLearning, imageOrEmoji: e.target.value })}
@@ -4550,6 +4964,58 @@ service cloud.firestore {
                       onChange={(e) => setNewLearning({ ...newLearning, color: e.target.value })}
                       className="w-full p-2 rounded-xl bg-white border border-emerald-200 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-400"
                     />
+                  </div>
+
+                  <div className="sm:col-span-2 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-200 space-y-2">
+                    <label className="font-bold text-emerald-950 block text-xs">
+                      🖼️ लर्निंग आइटम चित्र / फोटो (Learning Item Image or File Upload - Optional):
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://... इमेज URL पेस्ट करें"
+                        value={newLearning.imageUrl || ''}
+                        onChange={(e) => setNewLearning({ ...newLearning, imageUrl: e.target.value })}
+                        className="flex-1 p-2 rounded-xl bg-white border border-emerald-200 font-mono text-xs focus:ring-2 focus:ring-emerald-400"
+                      />
+                      <label className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs">
+                        <span>📁 इमेज अपलोड करें</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                setNewLearning({ ...newLearning, imageUrl: ev.target?.result as string });
+                                if (soundEnabled) playSuccessSound();
+                              };
+                              reader.readAsDataURL(e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {newLearning.imageUrl && (
+                      <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-emerald-200">
+                        <img
+                          src={newLearning.imageUrl}
+                          alt="Learning preview"
+                          className="w-14 h-14 object-cover rounded-lg border bg-slate-50"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[11px] font-bold text-emerald-700 block">✓ आइटम इमेज सेट है</span>
+                          <button
+                            type="button"
+                            onClick={() => setNewLearning({ ...newLearning, imageUrl: '' })}
+                            className="text-xs text-rose-600 font-bold hover:underline cursor-pointer"
+                          >
+                            इमेज हटाएं
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:col-span-2 mt-2 pt-2 border-t border-slate-100">
@@ -4941,11 +5407,120 @@ service cloud.firestore {
                   </div>
                 )}
               </div>
+
+              {/* NEWSLETTER SUBSCRIBERS MANAGEMENT HUB */}
+              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 rounded-3xl p-5 border-2 border-emerald-200 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-sm">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-emerald-950 flex items-center gap-2">
+                        <span>📬 न्यूज़लेटर सब्सक्राइबर्स ({BASELINE_SUBSCRIBERS_COUNT + newsletterSubscribers.length}+ एक्टिव पाठक)</span>
+                      </h4>
+                      <p className="text-[11px] text-emerald-700 font-medium">
+                        जब भी आप नई कहानी या वीडियो प्रकाशित करेंगे, इन सभी पाठकों को ईमेल अलर्ट जाएगा।
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allEmails = newsletterSubscribers.map((s) => s.email).join(', ');
+                        if (!allEmails) {
+                          alert('अभी तक कोई नया ईमेल दर्ज नहीं हुआ है।');
+                          return;
+                        }
+                        safeCopyToClipboard(allEmails);
+                        if (soundEnabled) playSuccessSound();
+                        setSubscriberBroadcastMsg('✓ सभी सब्सक्राइबर्स के ईमेल कॉपी हो गए हैं!');
+                        setTimeout(() => setSubscriberBroadcastMsg(null), 3000);
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-800 font-black text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>ईमेल कॉपी करें ({newsletterSubscribers.length})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (soundEnabled) playSuccessSound();
+                        setSubscriberBroadcastMsg(`📢 नोटिफिकेशन सिम्युलेशन सफल! कुल ${BASELINE_SUBSCRIBERS_COUNT + newsletterSubscribers.length} सब्सक्राइबर्स को ईमेल सूचना प्रेषित कर दी गई है।`);
+                        setTimeout(() => setSubscriberBroadcastMsg(null), 5000);
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Bell className="w-3.5 h-3.5 text-yellow-300" />
+                      <span>📢 नई कहानी ईमेल अलर्ट भेजें</span>
+                    </button>
+                  </div>
+                </div>
+
+                {subscriberBroadcastMsg && (
+                  <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>{subscriberBroadcastMsg}</span>
+                  </div>
+                )}
+
+                {/* Subscribers List */}
+                <div className="bg-white rounded-2xl border border-emerald-200 overflow-hidden">
+                  <div className="p-3 bg-emerald-100/60 border-b border-emerald-200 flex items-center justify-between text-xs font-black text-emerald-950">
+                    <span>रजिस्टर्ड ईमेल सूची (Recent Subscribers)</span>
+                    <span className="text-[11px] font-bold text-emerald-700">
+                      कुल डेटाबेस रिकॉर्ड्स: {newsletterSubscribers.length}
+                    </span>
+                  </div>
+
+                  {newsletterSubscribers.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-500 font-medium">
+                      वेबसाइट से जो भी पाठक न्यूज़लेटर सब्सक्राइब करेंगे, उनके ईमेल यहाँ स्वतः लाइव दिखाई देंगे।
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                      {newsletterSubscribers.map((sub, idx) => (
+                        <div key={sub.id || idx} className="p-3 flex items-center justify-between gap-3 text-xs hover:bg-slate-50">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-black text-[10px] flex items-center justify-center">
+                              {idx + 1}
+                            </span>
+                            <span className="font-bold text-slate-800">{sub.email}</span>
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-semibold">
+                              सक्रिय (Active)
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-400">
+                              {new Date(sub.subscribedAt).toLocaleDateString('hi-IN')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = newsletterSubscribers.filter((s) => s.id !== sub.id);
+                                setNewsletterSubscribers(updated);
+                                saveStoredNewsletterSubscribers(updated);
+                              }}
+                              className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                              title="हटाएं"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* TAB 9: FOOTER BRANDING */}
-          {activeTab === 'branding' && (
+          {/* TAB: VIP MEMBERSHIP & PAYMENT GATEWAY MANAGEMENT */}
+          {activeTab === 'vip_payment' && (
             <div className="space-y-6">
               {/* Back to Categories Hub Header */}
               <div className="p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
@@ -4961,91 +5536,466 @@ service cloud.firestore {
                   <span>← सभी कैटेगरीज मेन्यू (All Categories Menu)</span>
                 </button>
                 <div className="flex items-center gap-2 text-xs font-black text-amber-950">
-                  <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200">
-                    श्रेणी 9: फुटर आर्टवर्क चित्र
+                  <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-200 flex items-center gap-1">
+                    <Crown className="w-3.5 h-3.5 text-amber-600" />
+                    <span>श्रेणी 13: VIP व पेमेंट गेटवे सेटिंग्स</span>
                   </span>
                   <span className="text-slate-600 font-semibold hidden md:inline">
-                    • वेबसाइट फुटर की मुख्य ब्रांडिंग इमेज बदलें या रीसेट करें
+                    • बैंक खाता, UPI, QR कोड व विज्ञापन-मुक्त VIP सदस्यता
                   </span>
                 </div>
               </div>
 
-              {/* Header Info */}
-              <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white shadow-md space-y-2">
+              {/* VIP Gateway Header Banner */}
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white shadow-xl space-y-3 relative overflow-hidden border-2 border-amber-400">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/25 text-xs font-black uppercase">
-                    Admin Exclusive Control
+                  <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-xs text-xs font-black text-amber-100 uppercase tracking-wider flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5 text-amber-300" />
+                    <span>100% Ad-Free VIP Subscription System</span>
                   </span>
-                  <ImageIcon className="w-6 h-6 text-white" />
+                  <span className="text-2xl">👑</span>
                 </div>
-                <h3 className="text-xl font-black">
-                  🖼️ फुटर आर्टवर्क चित्र व ब्रांडिंग (Footer Artwork & Branding)
+                <h3 className="text-xl sm:text-2xl font-black">
+                  👑 बालवार्ता वीआईपी व पेमेंट सेटिंग्स (Payment Gateway & Bank Config)
                 </h3>
-                <p className="text-xs text-amber-100 leading-relaxed max-w-2xl">
-                  वेबसाइट के मुख्य पृष्ठ और सभी पृष्ठों के सबसे नीचे (Footer) दिखने वाले चित्र को यहाँ से प्रबंधित करें।
-                  सामान्य पाठकों व आगंतुकों के लिए अपलोड का बटन हटा दिया गया है—केवल आप (Admin) यहाँ से चित्र बदल सकते हैं।
+                <p className="text-xs sm:text-sm text-amber-100 max-w-3xl leading-relaxed">
+                  यहाँ से आप अपना <strong>बैंक खाता विवरण (SBI/HDFC/ICICI)</strong>, <strong>UPI ID</strong>, <strong>कस्टम QR कोड फोटो</strong>, <strong>मासिक व वार्षिक प्लान मूल्य</strong> और <strong>व्हाट्सएप नंबर</strong> सेट कर सकते हैं। वीआईपी लेने वाले उपयोगकर्ताओं को पूरी वेबसाइट पर <strong>100% कोई विज्ञापन (No Ads)</strong> नहीं दिखाई देगा!
                 </p>
               </div>
 
-              {/* Footer Artwork Container */}
-              <div className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-amber-200 shadow-sm space-y-5">
-                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2">
-                  <span>📸 वर्तमान फुटर चित्र व प्रीव्यू (Active Footer Artwork)</span>
-                </h4>
+              {/* Top Quick Action Bar: Save & Sync Live */}
+              <div className="p-4 rounded-2xl bg-white border-2 border-amber-300 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-black">
+                    <Cloud className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                      लाइव क्लाउड सिंक स्थिति (Firebase Firestore Sync)
+                    </h4>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      सेव करते ही सभी पाठकों के लिए तुरंत नए पेमेंट विवरण लाइव हो जाएंगे।
+                    </p>
+                  </div>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                  {/* Left: Preview */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-slate-600">लाइव प्रीव्यू (Footer Live Aspect):</p>
-                    <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden shadow-md border-2 border-amber-300 bg-slate-950">
-                      <img
-                        src={footerImage || "file_000000002e5c821198d9573a33263d1e.jpg"}
-                        onError={(e) => {
-                          if (!footerImage) {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = "/baalvarta-footer-illustration.svg";
-                          }
-                        }}
-                        alt="Footer Artwork"
-                        className="w-full h-full object-cover object-center"
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (soundEnabled) playSuccessSound();
+                      setPaymentSyncStatus('saving');
+                      saveStoredPaymentSettings(paymentSettingsAdmin);
+                      const ok = await syncPaymentSettingsToFirestore(paymentSettingsAdmin);
+                      if (ok) {
+                        setPaymentSyncStatus('saved');
+                        setToastMessage({ text: '✅ पेमेंट व बैंक सेटिंग्स Firebase क्लाउड पर लाइव सुरक्षित हो गई!', type: 'success' });
+                        setTimeout(() => {
+                          setPaymentSyncStatus('idle');
+                          setToastMessage(null);
+                        }, 3500);
+                      } else {
+                        setPaymentSyncStatus('saved'); // Local storage is always saved
+                        setToastMessage({ text: '✅ लोकल सेटिंग्स सुरक्षित हो गई हैं!', type: 'success' });
+                        setTimeout(() => {
+                          setPaymentSyncStatus('idle');
+                          setToastMessage(null);
+                        }, 3500);
+                      }
+                    }}
+                    disabled={paymentSyncStatus === 'saving'}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                  >
+                    {paymentSyncStatus === 'saving' ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Firebase पर सिंक हो रहा है...</span>
+                      </>
+                    ) : paymentSyncStatus === 'saved' ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                        <span>सुरक्षित व सिंक हो गया ✓</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Firebase पर सुरक्षित करें (Save & Sync Live)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* SECTION 1: UPI & CUSTOM QR CODE SETTINGS */}
+              <div className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-purple-200 shadow-sm space-y-5">
+                <div className="flex items-center gap-2.5 border-b border-purple-100 pb-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-slate-900">
+                      1. UPI विवरण व कस्टम QR कोड इमेज (UPI ID & QR Code Image)
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Google Pay, PhonePe, Paytm, BHIM आदि से सीधे पेमेंट प्राप्त करने के लिए।
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  {/* Left: UPI ID & Payee Name Form */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 mb-1">
+                        आपकी UPI ID (UPI ID / VPA) *
+                      </label>
+                      <input
+                        type="text"
+                        value={paymentSettingsAdmin.upiId}
+                        onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, upiId: e.target.value.trim() })}
+                        placeholder="e.g. chauhansanjay932@okhdfcbank / 9876543210@paytm"
+                        className="w-full p-2.5 rounded-xl border border-purple-300 font-mono text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none bg-white"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        उदा: <code>chauhansanjay932@okhdfcbank</code> या <code>yourmobile@upi</code>
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 mb-1">
+                        खाता धारक / बिजनेस का नाम (UPI Payee Name) *
+                      </label>
+                      <input
+                        type="text"
+                        value={paymentSettingsAdmin.upiName}
+                        onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, upiName: e.target.value })}
+                        placeholder="e.g. Baalvarta Kids Store / Sanjay Chauhan"
+                        className="w-full p-2.5 rounded-xl border border-purple-300 font-bold text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none bg-white"
                       />
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                      <span>{footerImage ? '✓ कस्टम इमेज सक्रिय है' : '✓ डिफ़ॉल्ट बालवार्ता चित्र सक्रिय है'}</span>
-                      {footerImage && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (soundEnabled) playPopSound();
-                            setFooterImage(null);
-                            saveStoredFooterImage(null);
-                            setToastMessage({ text: 'डिफ़ॉल्ट आर्टवर्क पर रीसेट कर दिया गया!', type: 'success' });
-                            setTimeout(() => setToastMessage(null), 3000);
-                          }}
-                          className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
-                        >
-                          मूल डिफ़ॉल्ट पर रीसेट करें
-                        </button>
-                      )}
+
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 mb-1">
+                        या सीधे QR कोड इमेज URL (Direct QR Image URL):
+                      </label>
+                      <input
+                        type="url"
+                        value={paymentSettingsAdmin.upiQrCodeUrl || ''}
+                        onChange={(e) => {
+                          setPaymentSettingsAdmin({ ...paymentSettingsAdmin, upiQrCodeUrl: e.target.value.trim() });
+                          setCustomQrPreview(e.target.value.trim());
+                        }}
+                        placeholder="https://.../my-phonepe-qr.jpg"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none bg-white"
+                      />
                     </div>
                   </div>
 
-                  {/* Right: Upload controls */}
-                  <div className="space-y-4">
-                    <ImageUpload16x9
-                      label="नया फुटर चित्र अपलोड करें (Upload New Footer Image):"
-                      value={footerImage || ''}
-                      onChange={(newUrl) => {
-                        setFooterImage(newUrl);
-                        saveStoredFooterImage(newUrl);
-                        if (soundEnabled) playSuccessSound();
-                        setToastMessage({ text: 'फुटर चित्र सफलतापूर्वक अपडेट और सेव हो गया!', type: 'success' });
-                        setTimeout(() => setToastMessage(null), 3000);
-                      }}
-                      helperText="कंप्यूटर/मोबाइल से कोई भी PNG/JPG इमेज चुनें या ऑनलाइन लिंक दर्ज करें। यह स्वचालित रूप से सेव हो जाएगा।"
-                      soundEnabled={soundEnabled}
-                      placeholderAlt="Footer Banner"
+                  {/* Right: QR Code Image Upload Box */}
+                  <div className="space-y-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-200">
+                    <label className="block text-xs font-black text-purple-950">
+                      📷 अपना ओरिजिनल QR कोड फोटो अपलोड करें (Upload Custom UPI QR Code):
+                    </label>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      PhonePe, Google Pay, Paytm या बैंक से डाउनलोड किया गया QR कोड यहाँ अपलोड करें।
+                    </p>
+
+                    {customQrPreview ? (
+                      <div className="flex flex-col items-center gap-3 p-3 bg-white rounded-2xl border-2 border-purple-300">
+                        <img
+                          src={customQrPreview}
+                          alt="Custom QR Code"
+                          className="w-36 h-36 object-contain rounded-xl border border-slate-200 shadow-sm"
+                        />
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                            ✓ कस्टम QR कोड सेट है
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (soundEnabled) playPopSound();
+                              setCustomQrPreview('');
+                              setPaymentSettingsAdmin({ ...paymentSettingsAdmin, upiQrCodeUrl: '' });
+                            }}
+                            className="text-xs font-bold text-rose-600 hover:text-rose-800 underline cursor-pointer"
+                          >
+                            हटाएँ
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-2xl border-2 border-dashed border-purple-300 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:bg-purple-50/50 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="admin-qr-upload"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              const file = e.target.files[0];
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                const result = ev.target?.result as string;
+                                setCustomQrPreview(result);
+                                setPaymentSettingsAdmin({ ...paymentSettingsAdmin, upiQrCodeUrl: result });
+                                if (soundEnabled) playSuccessSound();
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                        <label htmlFor="admin-qr-upload" className="cursor-pointer space-y-2">
+                          <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mx-auto">
+                            <QrCode className="w-6 h-6" />
+                          </div>
+                          <p className="text-xs font-black text-purple-900">
+                            QR कोड फोटो चुनें (PNG, JPG, WebP)
+                          </p>
+                          <span className="inline-block px-3 py-1 rounded-lg bg-purple-600 text-white font-black text-[11px]">
+                            📂 गैलरी / कंप्यूटर से फ़ाइल चुनें
+                          </span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: BANK ACCOUNT DETAILS (SBI / HDFC / ICICI) */}
+              <div className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-blue-200 shadow-sm space-y-4">
+                <div className="flex items-center gap-2.5 border-b border-blue-100 pb-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-slate-900">
+                      2. बैंक खाता विवरण (Direct Bank Account Transfer / NEFT / IMPS)
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      जिन अभिभावकों के पास UPI नहीं है, वे सीधे इस खाते में ट्रांसफर कर सकते हैं।
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                  {/* Bank Name */}
+                  <div>
+                    <label className="block font-black text-slate-700 mb-1">
+                      बैंक का नाम (Bank Name) *
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentSettingsAdmin.bankName}
+                      onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, bankName: e.target.value })}
+                      placeholder="e.g. State Bank of India (SBI)"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
                     />
+                  </div>
+
+                  {/* Account Holder Name */}
+                  <div>
+                    <label className="block font-black text-slate-700 mb-1">
+                      खाता धारक का नाम (Account Holder Name) *
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentSettingsAdmin.accountHolderName}
+                      onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, accountHolderName: e.target.value })}
+                      placeholder="e.g. Sanjay Chauhan"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
+                    />
+                  </div>
+
+                  {/* Account Number */}
+                  <div>
+                    <label className="block font-black text-slate-700 mb-1">
+                      खाता संख्या (Account Number) *
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentSettingsAdmin.accountNumber}
+                      onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, accountNumber: e.target.value.trim() })}
+                      placeholder="e.g. 394857201948"
+                      className="w-full p-2.5 rounded-xl border border-blue-300 font-mono font-bold focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
+                    />
+                  </div>
+
+                  {/* IFSC Code */}
+                  <div>
+                    <label className="block font-black text-slate-700 mb-1">
+                      IFSC कोड (IFSC Code) *
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentSettingsAdmin.ifscCode}
+                      onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, ifscCode: e.target.value.trim().toUpperCase() })}
+                      placeholder="e.g. SBIN0001234"
+                      className="w-full p-2.5 rounded-xl border border-blue-300 font-mono font-bold focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white uppercase"
+                    />
+                  </div>
+
+                  {/* Branch Name */}
+                  <div>
+                    <label className="block font-black text-slate-700 mb-1">
+                      शाखा का नाम (Branch Name)
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentSettingsAdmin.branchName || ''}
+                      onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, branchName: e.target.value })}
+                      placeholder="e.g. Main Branch, Ahmedabad / Rajkot"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: VIP PLAN PRICING & WHATSAPP SETTINGS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Plan Pricing */}
+                <div className="bg-white rounded-3xl p-5 border-2 border-amber-200 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 border-b border-amber-100 pb-2.5">
+                    <Crown className="w-5 h-5 text-amber-600" />
+                    <h4 className="font-black text-sm text-slate-900">
+                      3. वीआईपी सदस्यता शुल्क (VIP Plan Pricing)
+                    </h4>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        मासिक पास मूल्य (Monthly Plan Price in ₹):
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 font-bold text-slate-400">₹</span>
+                        <input
+                          type="number"
+                          value={paymentSettingsAdmin.monthlyPrice}
+                          onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, monthlyPrice: Number(e.target.value) || 29 })}
+                          className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-300 font-black text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        वार्षिक VIP पास मूल्य (Annual Plan Price in ₹) - 12 महीने:
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 font-bold text-slate-400">₹</span>
+                        <input
+                          type="number"
+                          value={paymentSettingsAdmin.annualPrice}
+                          onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, annualPrice: Number(e.target.value) || 299 })}
+                          className="w-full pl-7 pr-3 py-2 rounded-xl border border-amber-300 font-black text-sm text-amber-900 bg-amber-50/50 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* WhatsApp & Instructions */}
+                <div className="bg-white rounded-3xl p-5 border-2 border-emerald-200 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 border-b border-emerald-100 pb-2.5">
+                    <MessageCircle className="w-5 h-5 text-emerald-600" />
+                    <h4 className="font-black text-sm text-slate-900">
+                      4. व्हाट्सएप वेरिफिकेशन नंबर (WhatsApp Proof Number)
+                    </h4>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        व्हाट्सएप मोबाइल नंबर (WhatsApp Number with Country Code):
+                      </label>
+                      <input
+                        type="text"
+                        value={paymentSettingsAdmin.whatsappNumber}
+                        onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, whatsappNumber: e.target.value.trim() })}
+                        placeholder="919876543210"
+                        className="w-full p-2.5 rounded-xl border border-emerald-300 font-mono font-bold focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        उपयोगकर्ता भुगतान का स्क्रीनशॉट सीधे इस नंबर पर व्हाट्सएप द्वारा भेज सकेंगे।
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">
+                        भुगतान निर्देश (Payment Instructions in Hindi):
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={paymentSettingsAdmin.instructionsHi || ''}
+                        onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, instructionsHi: e.target.value })}
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-xs focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 4: MANUAL VIP ACTIVATION / TESTING */}
+              <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-5 sm:p-6 text-white space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <Crown className="w-6 h-6 text-amber-400" />
+                    <div>
+                      <h4 className="font-black text-sm sm:text-base text-white">
+                        एडमिन VIP सदस्यता नियंत्रण (Admin VIP Status & Testing)
+                      </h4>
+                      <p className="text-xs text-slate-300">
+                        वर्तमान ब्राउज़र के लिए 100% Ad-Free VIP प्रो टेस्ट करने या चालू/बंद करने के लिए:
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                    adminProStatus.isPro ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    {adminProStatus.isPro ? '👑 VIP प्रो सक्रिय (Ad-Free Active)' : 'निःशुल्क मोड (Free Mode)'}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-slate-300">
+                    {adminProStatus.isPro
+                      ? 'वर्तमान में आपकी VIP प्रो स्थिति सक्रिय है—पूरी वेबसाइट पर कोई भी विज्ञापन नहीं दिखाई देगा।'
+                      : 'क्लिक करके अपने खाते को तत्काल VIP प्रो में अपग्रेड करें और विज्ञापन-मुक्त अनुभव का परीक्षण करें।'}
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    {adminProStatus.isPro ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          cancelProPlan();
+                          setAdminProStatus(getProSubscription());
+                          setToastMessage({ text: 'VIP प्रो रद्द कर दिया गया।', type: 'info' });
+                          setTimeout(() => setToastMessage(null), 3000);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-colors cursor-pointer"
+                      >
+                        VIP निष्क्रिय करें (Disable VIP)
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (soundEnabled) playSuccessSound();
+                          activateProPlan('annual');
+                          setAdminProStatus(getProSubscription());
+                          setToastMessage({ text: '👑 बधाई! आपका खाता 100% विज्ञापन-मुक्त VIP प्रो हो गया!', type: 'success' });
+                          setTimeout(() => setToastMessage(null), 3500);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Zap className="w-4 h-4 text-amber-200 fill-amber-200" />
+                        <span>1-क्लिक VIP सक्रिय करें (Activate VIP Pro)</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -90,7 +90,19 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
   const [headerQuery, setHeaderQuery] = useState('');
   const [isLiveDropdownOpen, setIsLiveDropdownOpen] = useState(false);
   const [downloadingSheetId, setDownloadingSheetId] = useState<string | null>(null);
-  const isPro = getProSubscription().isPro;
+  const [isPro, setIsPro] = useState<boolean>(() => getProSubscription().isPro);
+
+  useEffect(() => {
+    const handleProChange = () => {
+      setIsPro(getProSubscription().isPro);
+    };
+    window.addEventListener('baalvarta_pro_status_change', handleProChange);
+    window.addEventListener('storage', handleProChange);
+    return () => {
+      window.removeEventListener('baalvarta_pro_status_change', handleProChange);
+      window.removeEventListener('storage', handleProChange);
+    };
+  }, []);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -290,12 +302,12 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
     },
     {
       id: 'gk' as ActiveTab,
-      labelHi: '4. सामान्य ज्ञान (General Knowledge)',
-      labelEn: '4. General Knowledge',
+      labelHi: '4. सामान्य ज्ञान व क्विज़ (GK & Quiz)',
+      labelEn: '4. General Knowledge & Quiz',
       icon: Globe,
       color: 'from-indigo-500 to-blue-700',
-      badgeHi: 'GK 🧠',
-      badgeEn: 'GK 🧠',
+      badgeHi: 'GK + 🏆',
+      badgeEn: 'GK + 🏆',
     },
     {
       id: 'audio' as ActiveTab,
@@ -326,8 +338,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
     },
     {
       id: 'quizzes' as ActiveTab,
-      labelHi: '8. बाल क्विज़ (Kids Quiz)',
-      labelEn: '8. Kids Quiz',
+      labelHi: '8. बाल क्विज़ गेम्स (Kids Quiz)',
+      labelEn: '8. Kids Quiz Games',
       icon: Trophy,
       color: 'from-rose-500 to-pink-600',
       badgeHi: '🎯 खेलें',
@@ -335,12 +347,12 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
     },
     {
       id: 'coloring' as ActiveTab,
-      labelHi: '9. कलरिंग बुक (Colouring Books)',
-      labelEn: '9. Colouring Books',
+      labelHi: '9. आर्ट व पेपर क्राफ्ट (Art, Colouring & Origami)',
+      labelEn: '9. Art, Colouring & Origami',
       icon: Palette,
       color: 'from-amber-400 to-orange-500',
-      badgeHi: 'कलरिंग 🎨',
-      badgeEn: 'Colour 🎨',
+      badgeHi: 'कलर + ✂️',
+      badgeEn: 'Art + ✂️',
     },
     {
       id: 'worksheets' as ActiveTab,
