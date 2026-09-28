@@ -40,6 +40,11 @@ import {
   syncAllWorksheetsToFirestore,
   fetchStoriesFromFirestore,
   fetchWorksheetsFromFirestore,
+  fetchVideoStoriesFromFirestore,
+  fetchFunFactsFromFirestore,
+  fetchLearningItemsFromFirestore,
+  fetchAudioStoriesFromFirestore,
+  fetchQuizSetsFromFirestore,
   isFirebaseConfigured,
 } from './firebase';
 
@@ -208,7 +213,26 @@ export function mergeWithInitialStories(stories?: Story[]): Story[] {
       }
     });
   }
-  return Array.from(storyMap.values()).sort((a, b) => (a.number || 0) - (b.number || 0));
+
+  const getStoryTimestamp = (s: Story): number => {
+    if (s.createdAt) return s.createdAt;
+    if (typeof s.id === 'string') {
+      const match = s.id.match(/\d{10,}/);
+      if (match) return parseInt(match[0], 10);
+    }
+    return 0;
+  };
+
+  return Array.from(storyMap.values()).sort((a, b) => {
+    const timeA = getStoryTimestamp(a);
+    const timeB = getStoryTimestamp(b);
+    // Newly uploaded custom stories with timestamps always appear at the very top (newest first)
+    if (timeA > 0 || timeB > 0) {
+      if (timeA > 0 && timeB > 0) return timeB - timeA;
+      return timeA > 0 ? -1 : 1;
+    }
+    return (a.number || 0) - (b.number || 0);
+  });
 }
 
 export function getStoredStories(): Story[] {
@@ -1034,11 +1058,28 @@ export async function loadPersistentData(): Promise<FullDatabaseState | null> {
     // 1. Check Firebase Firestore first (highest priority for multi-device live sync)
     if (isFirebaseConfigured()) {
       try {
-        const [cloudStories, cloudWorksheets] = await Promise.all([
+        const [
+          cloudStories,
+          cloudWorksheets,
+          cloudVideos,
+          cloudFacts,
+          cloudLearning,
+          cloudAudio,
+          cloudQuizzes,
+        ] = await Promise.all([
           fetchStoriesFromFirestore(),
           fetchWorksheetsFromFirestore(),
+          fetchVideoStoriesFromFirestore(),
+          fetchFunFactsFromFirestore(),
+          fetchLearningItemsFromFirestore(),
+          fetchAudioStoriesFromFirestore(),
+          fetchQuizSetsFromFirestore(),
         ]);
-        if ((cloudStories && cloudStories.length > 0) || (cloudWorksheets && cloudWorksheets.length > 0)) {
+        if (
+          (cloudStories && cloudStories.length > 0) ||
+          (cloudWorksheets && cloudWorksheets.length > 0) ||
+          (cloudVideos && cloudVideos.length > 0)
+        ) {
           const cloudResult: FullDatabaseState = {};
           if (cloudStories && cloudStories.length > 0) {
             const mergedCloud = mergeWithInitialStories(cloudStories);
@@ -1050,6 +1091,31 @@ export async function loadPersistentData(): Promise<FullDatabaseState | null> {
             cloudResult.worksheets = cloudWorksheets;
             safeLocalStorageSet(KEYS.WORKSHEETS, JSON.stringify(cloudWorksheets));
             idbSet(KEYS.WORKSHEETS, cloudWorksheets);
+          }
+          if (cloudVideos && cloudVideos.length > 0) {
+            cloudResult.video_stories = cloudVideos;
+            safeLocalStorageSet(KEYS.VIDEOS, JSON.stringify(cloudVideos));
+            idbSet(KEYS.VIDEOS, cloudVideos);
+          }
+          if (cloudFacts && cloudFacts.length > 0) {
+            cloudResult.fun_facts = cloudFacts;
+            safeLocalStorageSet(KEYS.FUN_FACTS, JSON.stringify(cloudFacts));
+            idbSet(KEYS.FUN_FACTS, cloudFacts);
+          }
+          if (cloudLearning && cloudLearning.length > 0) {
+            cloudResult.early_learning = cloudLearning;
+            safeLocalStorageSet(KEYS.LEARNING, JSON.stringify(cloudLearning));
+            idbSet(KEYS.LEARNING, cloudLearning);
+          }
+          if (cloudAudio && cloudAudio.length > 0) {
+            cloudResult.audio_stories = cloudAudio;
+            safeLocalStorageSet(KEYS.AUDIO, JSON.stringify(cloudAudio));
+            idbSet(KEYS.AUDIO, cloudAudio);
+          }
+          if (cloudQuizzes && cloudQuizzes.length > 0) {
+            cloudResult.quizzes = cloudQuizzes;
+            safeLocalStorageSet(KEYS.QUIZZES, JSON.stringify(cloudQuizzes));
+            idbSet(KEYS.QUIZZES, cloudQuizzes);
           }
           return cloudResult;
         }

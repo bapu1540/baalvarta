@@ -68,10 +68,25 @@ import { playPopSound, stopSpeech } from './utils/soundEffects';
 import {
   subscribeToFirestoreStories,
   subscribeToFirestoreWorksheets,
+  subscribeToFirestoreVideoStories,
+  subscribeToFirestoreFunFacts,
+  subscribeToFirestoreLearningItems,
+  subscribeToFirestoreAudioStories,
+  subscribeToFirestoreQuizSets,
   testConnectionOnBoot,
   seedInitialFirestoreDataIfNeeded,
   fetchStoriesFromFirestore,
   fetchWorksheetsFromFirestore,
+  fetchVideoStoriesFromFirestore,
+  fetchFunFactsFromFirestore,
+  fetchLearningItemsFromFirestore,
+  fetchAudioStoriesFromFirestore,
+  fetchQuizSetsFromFirestore,
+  syncAllStoriesToFirestore,
+  syncAllVideoStoriesToFirestore,
+  syncAllFunFactsToFirestore,
+  syncAllLearningItemsToFirestore,
+  syncAllAudioStoriesToFirestore,
 } from './utils/firebase';
 
 export default function App() {
@@ -176,8 +191,17 @@ export default function App() {
     // Validate connection to Firebase and auto-seed initial data if Firestore is empty
     testConnectionOnBoot().then((connected) => {
       if (connected) {
-        seedInitialFirestoreDataIfNeeded(getStoredStories(), getStoredWorksheets());
-        // Directly fetch once to ensure immediate multi-device fresh state
+        seedInitialFirestoreDataIfNeeded(
+          getStoredStories(),
+          getStoredWorksheets(),
+          getStoredVideoStories(),
+          getStoredFunFacts(),
+          getStoredLearningItems(),
+          getStoredAudioStories(),
+          getStoredQuizSets()
+        );
+
+        // Fetch all collections immediately for fresh multi-device state
         fetchStoriesFromFirestore().then((cloudStories) => {
           if (cloudStories && cloudStories.length > 0) {
             const merged = mergeWithInitialStories(cloudStories);
@@ -185,10 +209,40 @@ export default function App() {
             saveStoredStories(merged);
           }
         });
-        fetchWorksheetsFromFirestore().then((cloudWorksheets) => {
-          if (cloudWorksheets && cloudWorksheets.length > 0) {
-            setWorksheets(cloudWorksheets);
-            saveStoredWorksheets(cloudWorksheets);
+        fetchWorksheetsFromFirestore().then((cloudWs) => {
+          if (cloudWs && cloudWs.length > 0) {
+            setWorksheets(cloudWs);
+            saveStoredWorksheets(cloudWs);
+          }
+        });
+        fetchVideoStoriesFromFirestore().then((cloudVids) => {
+          if (cloudVids && cloudVids.length > 0) {
+            setVideoStories(cloudVids);
+            saveStoredVideoStories(cloudVids);
+          }
+        });
+        fetchFunFactsFromFirestore().then((cloudFacts) => {
+          if (cloudFacts && cloudFacts.length > 0) {
+            setFacts(cloudFacts);
+            saveStoredFunFacts(cloudFacts);
+          }
+        });
+        fetchLearningItemsFromFirestore().then((cloudItems) => {
+          if (cloudItems && cloudItems.length > 0) {
+            setLearningItems(cloudItems);
+            saveStoredLearningItems(cloudItems);
+          }
+        });
+        fetchAudioStoriesFromFirestore().then((cloudAudio) => {
+          if (cloudAudio && cloudAudio.length > 0) {
+            setAudioStories(cloudAudio);
+            saveStoredAudioStories(cloudAudio);
+          }
+        });
+        fetchQuizSetsFromFirestore().then((cloudQuizzes) => {
+          if (cloudQuizzes && cloudQuizzes.length > 0) {
+            setQuizSets(cloudQuizzes);
+            saveStoredQuizSets(cloudQuizzes);
           }
         });
       }
@@ -212,9 +266,54 @@ export default function App() {
       }
     });
 
+    const unsubVideos = subscribeToFirestoreVideoStories((cloudVideos) => {
+      if (cloudVideos && cloudVideos.length > 0) {
+        setVideoStories(cloudVideos);
+        saveStoredVideoStories(cloudVideos);
+        saveToServerDatabase({ video_stories: cloudVideos });
+      }
+    });
+
+    const unsubFacts = subscribeToFirestoreFunFacts((cloudFacts) => {
+      if (cloudFacts && cloudFacts.length > 0) {
+        setFacts(cloudFacts);
+        saveStoredFunFacts(cloudFacts);
+        saveToServerDatabase({ fun_facts: cloudFacts });
+      }
+    });
+
+    const unsubLearning = subscribeToFirestoreLearningItems((cloudItems) => {
+      if (cloudItems && cloudItems.length > 0) {
+        setLearningItems(cloudItems);
+        saveStoredLearningItems(cloudItems);
+        saveToServerDatabase({ early_learning: cloudItems });
+      }
+    });
+
+    const unsubAudio = subscribeToFirestoreAudioStories((cloudAudio) => {
+      if (cloudAudio && cloudAudio.length > 0) {
+        setAudioStories(cloudAudio);
+        saveStoredAudioStories(cloudAudio);
+        saveToServerDatabase({ audio_stories: cloudAudio });
+      }
+    });
+
+    const unsubQuizzes = subscribeToFirestoreQuizSets((cloudQuizzes) => {
+      if (cloudQuizzes && cloudQuizzes.length > 0) {
+        setQuizSets(cloudQuizzes);
+        saveStoredQuizSets(cloudQuizzes);
+        saveToServerDatabase({ quizzes: cloudQuizzes });
+      }
+    });
+
     return () => {
       if (unsubStories) unsubStories();
       if (unsubWorksheets) unsubWorksheets();
+      if (unsubVideos) unsubVideos();
+      if (unsubFacts) unsubFacts();
+      if (unsubLearning) unsubLearning();
+      if (unsubAudio) unsubAudio();
+      if (unsubQuizzes) unsubQuizzes();
     };
   }, []);
 
@@ -331,26 +430,35 @@ export default function App() {
     setStories(newStories);
     saveStoredStories(newStories);
     saveToServerDatabase({ stories: newStories });
+    syncAllStoriesToFirestore(newStories);
   };
 
   const handleSaveFacts = (newFacts: FunFact[]) => {
     setFacts(newFacts);
     saveStoredFunFacts(newFacts);
+    saveToServerDatabase({ fun_facts: newFacts });
+    syncAllFunFactsToFirestore(newFacts);
   };
 
   const handleSaveLearning = (newItems: LearningItem[]) => {
     setLearningItems(newItems);
     saveStoredLearningItems(newItems);
+    saveToServerDatabase({ early_learning: newItems });
+    syncAllLearningItemsToFirestore(newItems);
   };
 
   const handleSaveAudio = (newAudio: AudioStory[]) => {
     setAudioStories(newAudio);
     saveStoredAudioStories(newAudio);
+    saveToServerDatabase({ audio_stories: newAudio });
+    syncAllAudioStoriesToFirestore(newAudio);
   };
 
   const handleSaveVideos = (newVideos: VideoStory[]) => {
     setVideoStories(newVideos);
     saveStoredVideoStories(newVideos);
+    saveToServerDatabase({ video_stories: newVideos });
+    syncAllVideoStoriesToFirestore(newVideos);
   };
 
   const handleSaveVideoCategories = (newCategories: string[]) => {

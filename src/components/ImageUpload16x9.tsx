@@ -40,9 +40,9 @@ export const ImageUpload16x9: React.FC<ImageUpload16x9Props> = ({
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        // Target 16:9 dimensions (800x450 for crisp HD view and ultra-lightweight storage)
-        const targetWidth = 800;
-        const targetHeight = 450;
+        // Target 16:9 dimensions (640x360 for crisp mobile HD view and ultra-lightweight ~22KB cloud footprint)
+        const targetWidth = 640;
+        const targetHeight = 360;
 
         const canvas = document.createElement('canvas');
         canvas.width = targetWidth;
@@ -78,8 +78,8 @@ export const ImageUpload16x9: React.FC<ImageUpload16x9Props> = ({
         ctx.fillRect(0, 0, targetWidth, targetHeight);
         ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
 
-        // Convert to optimized data URL (quality 0.76 for 30KB footprint)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.76);
+        // Convert to optimized data URL (quality 0.68 for ~22KB footprint)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.68);
         onChange(dataUrl);
         setIsProcessing(false);
         if (soundEnabled) playPopSound();

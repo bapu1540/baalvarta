@@ -5,7 +5,7 @@
 
 import { Analytics, getAnalytics, logEvent, isSupported } from 'firebase/analytics';
 import { doc, setDoc, increment, collection, addDoc } from 'firebase/firestore';
-import { getFirebaseAppInstance, getFirestoreDb, checkAndSetQuotaExhausted } from './firebase';
+import { getFirebaseAppInstance, getFirestoreDb } from './firebase';
 import { Story } from '../types';
 
 let analyticsInstance: Analytics | null = null;
@@ -145,17 +145,17 @@ async function recordEngagementEvent(
         category,
         timestamp: Date.now(),
         ...extraParams,
-      }).catch((err) => checkAndSetQuotaExhausted(err));
+      }).catch((err) => console.warn('Analytics event record notice:', err?.message || err));
 
       // If story view or like, increment viewsCount/likes on story document
       if (eventType === 'story_view') {
         const storyRef = doc(db, 'stories', targetId);
         setDoc(storyRef, { viewsCount: increment(1) }, { merge: true }).catch((err) =>
-          checkAndSetQuotaExhausted(err)
+          console.warn('Story viewsCount increment notice:', err?.message || err)
         );
       }
     } catch (err: any) {
-      checkAndSetQuotaExhausted(err);
+      console.warn('Analytics firestore record error:', err?.message || err);
     }
   }
 }

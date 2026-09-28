@@ -23,6 +23,36 @@ service cloud.firestore {
       allow write: if isValidId(worksheetId);
     }
 
+    match /video_stories/{videoId} {
+      allow read: if true;
+      allow write: if isValidId(videoId);
+    }
+
+    match /fun_facts/{factId} {
+      allow read: if true;
+      allow write: if isValidId(factId);
+    }
+
+    match /early_learning/{itemId} {
+      allow read: if true;
+      allow write: if isValidId(itemId);
+    }
+
+    match /audio_stories/{audioId} {
+      allow read: if true;
+      allow write: if isValidId(audioId);
+    }
+
+    match /quiz_sets/{quizId} {
+      allow read: if true;
+      allow write: if isValidId(quizId);
+    }
+
+    match /site_content/{contentId} {
+      allow read: if true;
+      allow write: if isValidId(contentId);
+    }
+
     match /analytics_events/{eventId} {
       allow read: if true;
       allow write: if isValidId(eventId);

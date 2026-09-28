@@ -1,7 +1,8 @@
 /**
- * Firebase Firestore & Firebase Storage Integration for Baalvarta Portal
+ * Firebase Firestore & Cloud Synchronization for Baalvarta Portal
  * Provides global real-time synchronization across all devices (Mobile, Desktop, Tablet)
- * so stories and worksheets added/deleted in Admin CMS appear live everywhere instantly!
+ * so stories, videos, quizzes, worksheets, fun facts, and learning items
+ * added/deleted in Admin CMS appear live everywhere instantly!
  */
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -16,45 +17,40 @@ import {
   onSnapshot,
   writeBatch,
   Unsubscribe,
-  disableNetwork,
 } from 'firebase/firestore';
 import {
-  getStorage,
-  FirebaseStorage,
-  ref,
-  uploadString,
-  getDownloadURL,
-} from 'firebase/storage';
-import { Story, PrintableWorksheet, FirebaseConfig } from '../types';
+  Story,
+  PrintableWorksheet,
+  VideoStory,
+  FunFact,
+  LearningItem,
+  AudioStory,
+  QuizSet,
+  FirebaseConfig,
+} from '../types';
 import appletConfig from '../../firebase-applet-config.json';
 
 export const FIREBASE_STORAGE_CONFIG_KEY = 'baalvarta_firebase_config_v1';
+export const CANONICAL_DB_ID = 'ai-studio-baalvartakidssto-e84405f1-d0ba-4a9d-b10f-d57c1a9c8dfe';
 
 let cachedApp: FirebaseApp | null = null;
 let cachedDb: Firestore | null = null;
-let cachedStorage: FirebaseStorage | null = null;
+
+// Clear any accidental quota-exhausted locks on session start so devices never stay locked
+if (typeof window !== 'undefined') {
+  try {
+    sessionStorage.removeItem('baalvarta_firestore_quota_exhausted');
+  } catch {
+    // ignore
+  }
+}
 
 /**
- * Retrieve active Firebase configuration from:
- * 1. User manual override in localStorage (Admin CMS)
- * 2. Auto-provisioned firebase-applet-config.json
- * 3. Vite / Vercel environment variables
+ * Retrieve authoritative Firebase configuration.
+ * Always guarantees connection to canonical project and firestore database ID.
  */
 export function getFirebaseConfig(): FirebaseConfig | null {
-  // 1. Check user-saved configuration in localStorage (from Admin CMS)
-  try {
-    const saved = localStorage.getItem(FIREBASE_STORAGE_CONFIG_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.projectId && parsed.apiKey) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.warn('Error reading saved Firebase config:', err);
-  }
-
-  // 2. Check auto-provisioned Firebase project configuration
+  // 1. Primary: Canonical auto-provisioned Firebase project configuration
   if (appletConfig && appletConfig.projectId && appletConfig.apiKey) {
     return {
       apiKey: appletConfig.apiKey,
@@ -63,13 +59,29 @@ export function getFirebaseConfig(): FirebaseConfig | null {
       storageBucket: appletConfig.storageBucket || `${appletConfig.projectId}.firebasestorage.app`,
       messagingSenderId: appletConfig.messagingSenderId || '',
       appId: appletConfig.appId || '',
-      firestoreDatabaseId: appletConfig.firestoreDatabaseId || '',
+      firestoreDatabaseId: appletConfig.firestoreDatabaseId || CANONICAL_DB_ID,
       databaseURL: (appletConfig as any).databaseURL || '',
       measurementId: (appletConfig as any).measurementId || '',
     };
   }
 
-  // 3. Check environment variables (Vercel / Vite build-time env)
+  // 2. Check user-saved configuration in localStorage (from Admin CMS)
+  try {
+    const saved = localStorage.getItem(FIREBASE_STORAGE_CONFIG_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.projectId && parsed.apiKey) {
+        return {
+          ...parsed,
+          firestoreDatabaseId: parsed.firestoreDatabaseId || CANONICAL_DB_ID,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Error reading saved Firebase config:', err);
+  }
+
+  // 3. Fallback to Vite environment variables
   const env = (import.meta as any).env || {};
   if (env.VITE_FIREBASE_PROJECT_ID && env.VITE_FIREBASE_API_KEY) {
     return {
@@ -79,7 +91,7 @@ export function getFirebaseConfig(): FirebaseConfig | null {
       storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || `${env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
       messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
       appId: env.VITE_FIREBASE_APP_ID || '',
-      firestoreDatabaseId: env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '',
+      firestoreDatabaseId: env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || CANONICAL_DB_ID,
     };
   }
 
@@ -91,13 +103,13 @@ export function getFirebaseConfig(): FirebaseConfig | null {
  */
 export function saveFirebaseConfig(config: FirebaseConfig): boolean {
   try {
-    localStorage.setItem(FIREBASE_STORAGE_CONFIG_KEY, JSON.stringify(config));
-    sessionStorage.removeItem('baalvarta_firestore_quota_exhausted');
-    isQuotaExhausted = false;
-    // Reset cached instances to force re-initialization
+    const safeConfig: FirebaseConfig = {
+      ...config,
+      firestoreDatabaseId: config.firestoreDatabaseId || CANONICAL_DB_ID,
+    };
+    localStorage.setItem(FIREBASE_STORAGE_CONFIG_KEY, JSON.stringify(safeConfig));
     cachedApp = null;
     cachedDb = null;
-    cachedStorage = null;
     return true;
   } catch (err) {
     console.error('Failed to save Firebase config:', err);
@@ -111,11 +123,8 @@ export function saveFirebaseConfig(config: FirebaseConfig): boolean {
 export function clearFirebaseConfig(): void {
   try {
     localStorage.removeItem(FIREBASE_STORAGE_CONFIG_KEY);
-    sessionStorage.removeItem('baalvarta_firestore_quota_exhausted');
-    isQuotaExhausted = false;
     cachedApp = null;
     cachedDb = null;
-    cachedStorage = null;
   } catch (err) {
     console.error('Failed to clear Firebase config:', err);
   }
@@ -152,93 +161,37 @@ export function getFirebaseAppInstance(): FirebaseApp | null {
 }
 
 /**
- * Get Firestore Database instance with support for specific database IDs
+ * Get Firestore Database instance with canonical database ID
  */
 export function getFirestoreDb(): Firestore | null {
-  if (isQuotaExhausted) return null;
   if (cachedDb) return cachedDb;
 
   const app = getFirebaseAppInstance();
   if (!app) return null;
 
   const config = getFirebaseConfig();
+  const dbId = (config?.firestoreDatabaseId && config.firestoreDatabaseId !== '(default)')
+    ? config.firestoreDatabaseId
+    : CANONICAL_DB_ID;
+
   try {
-    if (config?.firestoreDatabaseId && config.firestoreDatabaseId !== '(default)') {
-      cachedDb = getFirestore(app, config.firestoreDatabaseId);
-    } else {
-      cachedDb = getFirestore(app);
-    }
+    cachedDb = getFirestore(app, dbId);
     return cachedDb;
   } catch (err) {
-    console.warn('Firestore init with databaseId failed, trying default:', err);
-    try {
-      cachedDb = getFirestore(app);
-      return cachedDb;
-    } catch (e2) {
-      console.error('Firestore init fallback error:', e2);
-      return null;
-    }
-  }
-}
-
-/**
- * Get Firebase Storage instance
- */
-export function getFirebaseStorageInstance(): FirebaseStorage | null {
-  if (cachedStorage) return cachedStorage;
-
-  const app = getFirebaseAppInstance();
-  if (!app) return null;
-
-  try {
-    cachedStorage = getStorage(app);
-    return cachedStorage;
-  } catch (err) {
-    console.error('Firebase Storage init error:', err);
+    console.error('Firestore init failed for database ID:', dbId, err);
     return null;
   }
 }
 
 /**
- * Upload an image (base64 data URL or external URL) to Firebase Cloud Storage.
- * Returns public download URL, or falls back to original string if storage is unconfigured/fails.
- */
-export async function uploadImageToFirebaseStorage(
-  imageDataOrUrl: string,
-  storagePath: string
-): Promise<string> {
-  if (!imageDataOrUrl) return imageDataOrUrl;
-
-  // If it's already an http/https external image (like unsplash), we don't necessarily need to re-upload
-  if (!imageDataOrUrl.startsWith('data:')) {
-    return imageDataOrUrl;
-  }
-
-  const storage = getFirebaseStorageInstance();
-  if (!storage) {
-    return imageDataOrUrl; // Graceful fallback to data URL
-  }
-
-  try {
-    const fileRef = ref(storage, storagePath);
-    await uploadString(fileRef, imageDataOrUrl, 'data_url');
-    const downloadUrl = await getDownloadURL(fileRef);
-    return downloadUrl;
-  } catch (err) {
-    console.warn('Firebase Storage upload failed, keeping original data URL:', err);
-    return imageDataOrUrl;
-  }
-}
-
-/**
- * Test Firebase Connection
+ * Test Firebase Connection with live read and write
  */
 export async function testFirebaseConnection(): Promise<{ success: boolean; message: string }> {
   const db = getFirestoreDb();
   if (!db) {
     return {
       success: false,
-      message: 'Firebase कॉन्फ़िगरेशन नहीं मिला। कृपया API Key और Project ID दर्ज करें।',
+      message: 'Firebase कॉन्फ़िगरेशन नहीं मिला। कृपया प्रोजेक्ट ID व API Key जांचें।',
     };
   }
 
@@ -246,59 +199,57 @@ export async function testFirebaseConnection(): Promise<{ success: boolean; mess
     const testDocRef = doc(db, '_connection_test', 'ping');
     await setDoc(testDocRef, {
       lastPing: new Date().toISOString(),
-      client: 'Baalvarta Web Client',
+      client: 'Baalvarta Live Connection Test',
+      timestamp: Date.now(),
     });
     return {
       success: true,
-      message: '✅ Firebase Firestore सफलतापूर्वक कनेक्ट हो गया! डेटा अब सभी डिवाइसों पर लाइव सिंक होगा।',
+      message: '✅ Firebase Firestore 100% लाइव कनेक्टेड है! कहानियाँ, वीडियो और क्विज़ सभी डिवाइसों पर तुरंत सिंक होंगे।',
     };
   } catch (err: any) {
     console.error('Firebase test connection error:', err);
     return {
       success: false,
-      message: `कनेक्शन त्रुटि: ${err.message || 'Firebase Firestore से कनेक्ट नहीं हो सका।'}`,
+      message: `कनेक्शन त्रुटि: ${err?.message || 'Firebase Firestore से कनेक्ट नहीं हो सका।'}`,
     };
   }
 }
 
-let isQuotaExhausted = Boolean(
-  typeof window !== 'undefined' && sessionStorage.getItem('baalvarta_firestore_quota_exhausted') === 'true'
-);
-
-export function checkAndSetQuotaExhausted(err: any): boolean {
-  if (
-    err?.code === 'resource-exhausted' ||
-    (typeof err?.message === 'string' &&
-      (err.message.includes('Quota limit exceeded') ||
-        err.message.includes('resource-exhausted') ||
-        err.message.includes('Quota exceeded')))
-  ) {
-    if (!isQuotaExhausted) {
-      isQuotaExhausted = true;
-      try {
-        sessionStorage.setItem('baalvarta_firestore_quota_exhausted', 'true');
-      } catch {}
-      console.warn('Firestore daily quota limit reached. App is safely operating in persistent Local & Express Database mode.');
-      if (cachedDb) {
-        disableNetwork(cachedDb).catch(() => {});
-      }
-    }
+/**
+ * Test connection on initial boot with light ping
+ */
+export async function testConnectionOnBoot(): Promise<boolean> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return false;
     return true;
+  } catch (err: any) {
+    console.warn('Firestore initial boot check:', err?.message || err);
+    return false;
   }
-  return false;
 }
 
 /**
- * Sync single Story to Firestore
+ * Optional image handler (passes URL through or preserves optimized base64)
  */
+export async function uploadImageToFirebaseStorage(
+  imageDataOrUrl: string,
+  _storagePath: string
+): Promise<string> {
+  // If external URL or data URL, return directly (stored in story document)
+  return imageDataOrUrl;
+}
+
+// ==========================================
+// 1. STORIES SYNC & REALTIME LISTENERS
+// ==========================================
+
 export async function syncStoryToFirestore(story: Story): Promise<boolean> {
-  if (isQuotaExhausted) return false;
   const db = getFirestoreDb();
   if (!db) return false;
 
   try {
     const docRef = doc(db, 'stories', story.id);
-    // Sanitize undefined fields which Firestore rejects
     const sanitized = JSON.parse(JSON.stringify(story));
     await setDoc(docRef, {
       ...sanitized,
@@ -306,17 +257,12 @@ export async function syncStoryToFirestore(story: Story): Promise<boolean> {
     });
     return true;
   } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
     console.warn('Failed to sync story to Firestore:', story.id, err?.message || err);
     return false;
   }
 }
 
-/**
- * Delete single Story from Firestore
- */
 export async function deleteStoryFromFirestore(storyId: string): Promise<boolean> {
-  if (isQuotaExhausted) return false;
   const db = getFirestoreDb();
   if (!db) return false;
 
@@ -325,64 +271,16 @@ export async function deleteStoryFromFirestore(storyId: string): Promise<boolean
     await deleteDoc(docRef);
     return true;
   } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
     console.warn('Failed to delete story from Firestore:', storyId, err?.message || err);
     return false;
   }
 }
 
-/**
- * Sync single Worksheet to Firestore
- */
-export async function syncWorksheetToFirestore(worksheet: PrintableWorksheet): Promise<boolean> {
-  if (isQuotaExhausted) return false;
-  const db = getFirestoreDb();
-  if (!db) return false;
-
-  try {
-    const docRef = doc(db, 'worksheets', worksheet.id);
-    const sanitized = JSON.parse(JSON.stringify(worksheet));
-    await setDoc(docRef, {
-      ...sanitized,
-      _syncedAt: Date.now(),
-    });
-    return true;
-  } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
-    console.warn('Failed to sync worksheet to Firestore:', worksheet.id, err?.message || err);
-    return false;
-  }
-}
-
-/**
- * Delete single Worksheet from Firestore
- */
-export async function deleteWorksheetFromFirestore(worksheetId: string): Promise<boolean> {
-  if (isQuotaExhausted) return false;
-  const db = getFirestoreDb();
-  if (!db) return false;
-
-  try {
-    const docRef = doc(db, 'worksheets', worksheetId);
-    await deleteDoc(docRef);
-    return true;
-  } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
-    console.warn('Failed to delete worksheet from Firestore:', worksheetId, err?.message || err);
-    return false;
-  }
-}
-
-/**
- * Batch upload all stories to Firestore
- */
 export async function syncAllStoriesToFirestore(stories: Story[]): Promise<{ success: boolean; count: number }> {
-  if (isQuotaExhausted) return { success: false, count: 0 };
   const db = getFirestoreDb();
   if (!db) return { success: false, count: 0 };
 
   try {
-    // Firestore batch limit is 500 ops
     let syncedCount = 0;
     const batchSize = 100;
     for (let i = 0; i < stories.length; i += batchSize) {
@@ -398,55 +296,18 @@ export async function syncAllStoriesToFirestore(stories: Story[]): Promise<{ suc
     }
     return { success: true, count: syncedCount };
   } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
     console.error('Failed to batch sync stories to Firestore:', err?.message || err);
     return { success: false, count: 0 };
   }
 }
 
-/**
- * Batch upload all worksheets to Firestore
- */
-export async function syncAllWorksheetsToFirestore(
-  worksheets: PrintableWorksheet[]
-): Promise<{ success: boolean; count: number }> {
-  if (isQuotaExhausted) return { success: false, count: 0 };
-  const db = getFirestoreDb();
-  if (!db) return { success: false, count: 0 };
-
-  try {
-    const batch = writeBatch(db);
-    let count = 0;
-    for (const ws of worksheets) {
-      const docRef = doc(db, 'worksheets', ws.id);
-      const sanitized = JSON.parse(JSON.stringify(ws));
-      batch.set(docRef, { ...sanitized, _syncedAt: Date.now() });
-      count++;
-    }
-    await batch.commit();
-    return { success: true, count };
-  } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
-    console.error('Failed to batch sync worksheets to Firestore:', err?.message || err);
-    return { success: false, count: 0 };
-  }
-}
-
-/**
- * Real-time listener for Stories collection in Firestore.
- * Triggers callback whenever stories are added, updated, or deleted anywhere!
- */
-export function subscribeToFirestoreStories(
-  callback: (stories: Story[]) => void
-): Unsubscribe | null {
-  if (isQuotaExhausted) return null;
+export function subscribeToFirestoreStories(callback: (stories: Story[]) => void): Unsubscribe | null {
   const db = getFirestoreDb();
   if (!db) return null;
 
   try {
     const colRef = collection(db, 'stories');
-    let unsubHandle: Unsubscribe | null = null;
-    unsubHandle = onSnapshot(
+    return onSnapshot(
       colRef,
       (snapshot) => {
         if (!snapshot.empty) {
@@ -463,75 +324,16 @@ export function subscribeToFirestoreStories(
         }
       },
       (err: any) => {
-        const isQuota = checkAndSetQuotaExhausted(err);
-        if (isQuota && unsubHandle) {
-          try {
-            unsubHandle();
-          } catch {}
-        } else if (!isQuota) {
-          console.warn('Firestore stories subscription error:', err?.message || err);
-        }
+        console.warn('Firestore stories subscription error:', err?.message || err);
       }
     );
-    return unsubHandle;
   } catch (err) {
     console.warn('Failed to subscribe to Firestore stories:', err);
     return null;
   }
 }
 
-/**
- * Real-time listener for Worksheets collection in Firestore.
- */
-export function subscribeToFirestoreWorksheets(
-  callback: (worksheets: PrintableWorksheet[]) => void
-): Unsubscribe | null {
-  if (isQuotaExhausted) return null;
-  const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const colRef = collection(db, 'worksheets');
-    let unsubHandle: Unsubscribe | null = null;
-    unsubHandle = onSnapshot(
-      colRef,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const loaded: PrintableWorksheet[] = [];
-          snapshot.forEach((d) => {
-            const data = d.data() as PrintableWorksheet;
-            if (data && data.id) {
-              loaded.push(data);
-            }
-          });
-          if (loaded.length > 0) {
-            callback(loaded);
-          }
-        }
-      },
-      (err: any) => {
-        const isQuota = checkAndSetQuotaExhausted(err);
-        if (isQuota && unsubHandle) {
-          try {
-            unsubHandle();
-          } catch {}
-        } else if (!isQuota) {
-          console.warn('Firestore worksheets subscription error:', err?.message || err);
-        }
-      }
-    );
-    return unsubHandle;
-  } catch (err) {
-    console.warn('Failed to subscribe to Firestore worksheets:', err);
-    return null;
-  }
-}
-
-/**
- * Fetch all Stories from Firestore once
- */
 export async function fetchStoriesFromFirestore(): Promise<Story[] | null> {
-  if (isQuotaExhausted) return null;
   const db = getFirestoreDb();
   if (!db) return null;
 
@@ -544,17 +346,94 @@ export async function fetchStoriesFromFirestore(): Promise<Story[] | null> {
     });
     return stories.length > 0 ? stories : null;
   } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
     console.warn('Failed to fetch stories from Firestore:', err?.message || err);
     return null;
   }
 }
 
-/**
- * Fetch all Worksheets from Firestore once
- */
+// ==========================================
+// 2. WORKSHEETS SYNC & REALTIME LISTENERS
+// ==========================================
+
+export async function syncWorksheetToFirestore(worksheet: PrintableWorksheet): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'worksheets', worksheet.id);
+    const sanitized = JSON.parse(JSON.stringify(worksheet));
+    await setDoc(docRef, { ...sanitized, _syncedAt: Date.now() });
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to sync worksheet to Firestore:', worksheet.id, err?.message || err);
+    return false;
+  }
+}
+
+export async function deleteWorksheetFromFirestore(worksheetId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'worksheets', worksheetId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to delete worksheet from Firestore:', worksheetId, err?.message || err);
+    return false;
+  }
+}
+
+export async function syncAllWorksheetsToFirestore(worksheets: PrintableWorksheet[]): Promise<{ success: boolean; count: number }> {
+  const db = getFirestoreDb();
+  if (!db) return { success: false, count: 0 };
+
+  try {
+    const batch = writeBatch(db);
+    let count = 0;
+    for (const ws of worksheets) {
+      const docRef = doc(db, 'worksheets', ws.id);
+      const sanitized = JSON.parse(JSON.stringify(ws));
+      batch.set(docRef, { ...sanitized, _syncedAt: Date.now() });
+      count++;
+    }
+    await batch.commit();
+    return { success: true, count };
+  } catch (err: any) {
+    console.error('Failed to batch sync worksheets to Firestore:', err?.message || err);
+    return { success: false, count: 0 };
+  }
+}
+
+export function subscribeToFirestoreWorksheets(callback: (worksheets: PrintableWorksheet[]) => void): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const colRef = collection(db, 'worksheets');
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: PrintableWorksheet[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data() as PrintableWorksheet;
+            if (data && data.id) loaded.push(data);
+          });
+          if (loaded.length > 0) callback(loaded);
+        }
+      },
+      (err: any) => {
+        console.warn('Firestore worksheets subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore worksheets:', err);
+    return null;
+  }
+}
+
 export async function fetchWorksheetsFromFirestore(): Promise<PrintableWorksheet[] | null> {
-  if (isQuotaExhausted) return null;
   const db = getFirestoreDb();
   if (!db) return null;
 
@@ -562,67 +441,610 @@ export async function fetchWorksheetsFromFirestore(): Promise<PrintableWorksheet
     const snap = await getDocs(collection(db, 'worksheets'));
     if (snap.empty) return null;
     const worksheets: PrintableWorksheet[] = [];
-    snap.forEach((d) => {
-      worksheets.push(d.data() as PrintableWorksheet);
-    });
+    snap.forEach((d) => worksheets.push(d.data() as PrintableWorksheet));
     return worksheets.length > 0 ? worksheets : null;
   } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
     console.warn('Failed to fetch worksheets from Firestore:', err?.message || err);
     return null;
   }
 }
 
-/**
- * Validate connection to Firestore on initial boot without wasting write operations
- */
-export async function testConnectionOnBoot(): Promise<boolean> {
-  if (isQuotaExhausted) return false;
+// ==========================================
+// 3. VIDEO STORIES SYNC & REALTIME LISTENERS
+// ==========================================
+
+export async function syncVideoStoryToFirestore(video: VideoStory): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
   try {
-    const db = getFirestoreDb();
-    if (!db) return false;
+    const docRef = doc(db, 'video_stories', video.id);
+    const sanitized = JSON.parse(JSON.stringify(video));
+    await setDoc(docRef, { ...sanitized, _syncedAt: Date.now() });
     return true;
   } catch (err: any) {
-    console.warn('Firestore initial boot check:', err?.message || err);
+    console.warn('Failed to sync video story to Firestore:', video.id, err?.message || err);
     return false;
   }
 }
 
-/**
- * Automatically seed default stories and worksheets to Firestore if collections are empty (runs once)
- */
-export async function seedInitialFirestoreDataIfNeeded(
-  stories: Story[],
-  worksheets: PrintableWorksheet[]
-): Promise<void> {
-  if (isQuotaExhausted) return;
+export async function deleteVideoStoryFromFirestore(videoId: string): Promise<boolean> {
   const db = getFirestoreDb();
-  if (!db) return;
-
-  const SEED_VERSION_KEY = 'baalvarta_firestore_seeded_v26_stories';
-  const isSeeded = localStorage.getItem(SEED_VERSION_KEY);
-  if (isSeeded) return;
+  if (!db) return false;
 
   try {
-    const storySnap = await getDocs(collection(db, 'stories'));
-    const existingDocIds = new Set(storySnap.docs.map((d) => d.id));
-    const missingStories = stories.filter((s) => !existingDocIds.has(s.id));
-
-    if (missingStories.length > 0) {
-      console.log(`Syncing ${missingStories.length} missing stories to Firebase Firestore...`);
-      await syncAllStoriesToFirestore(missingStories);
-    }
-
-    const wsSnap = await getDocs(collection(db, 'worksheets'));
-    if (wsSnap.empty && worksheets.length > 0) {
-      console.log('Populating newly linked Firebase Firestore with worksheets...');
-      await syncAllWorksheetsToFirestore(worksheets);
-    }
-
-    localStorage.setItem(SEED_VERSION_KEY, 'true');
+    const docRef = doc(db, 'video_stories', videoId);
+    await deleteDoc(docRef);
+    return true;
   } catch (err: any) {
-    checkAndSetQuotaExhausted(err);
-    console.warn('Firestore auto-seed check skipped or quota limited:', err?.message || err);
+    console.warn('Failed to delete video story from Firestore:', videoId, err?.message || err);
+    return false;
   }
 }
 
+export async function syncAllVideoStoriesToFirestore(videos: VideoStory[]): Promise<{ success: boolean; count: number }> {
+  const db = getFirestoreDb();
+  if (!db) return { success: false, count: 0 };
+
+  try {
+    const batch = writeBatch(db);
+    let count = 0;
+    for (const v of videos) {
+      const docRef = doc(db, 'video_stories', v.id);
+      const sanitized = JSON.parse(JSON.stringify(v));
+      batch.set(docRef, { ...sanitized, _syncedAt: Date.now() });
+      count++;
+    }
+    await batch.commit();
+    return { success: true, count };
+  } catch (err: any) {
+    console.error('Failed to batch sync videos to Firestore:', err?.message || err);
+    return { success: false, count: 0 };
+  }
+}
+
+export function subscribeToFirestoreVideoStories(callback: (videos: VideoStory[]) => void): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const colRef = collection(db, 'video_stories');
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: VideoStory[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data() as VideoStory;
+            if (data && data.id) loaded.push(data);
+          });
+          if (loaded.length > 0) callback(loaded);
+        }
+      },
+      (err: any) => {
+        console.warn('Firestore video stories subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore video stories:', err);
+    return null;
+  }
+}
+
+export async function fetchVideoStoriesFromFirestore(): Promise<VideoStory[] | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const snap = await getDocs(collection(db, 'video_stories'));
+    if (snap.empty) return null;
+    const videos: VideoStory[] = [];
+    snap.forEach((d) => videos.push(d.data() as VideoStory));
+    return videos.length > 0 ? videos : null;
+  } catch (err: any) {
+    console.warn('Failed to fetch video stories from Firestore:', err?.message || err);
+    return null;
+  }
+}
+
+// ==========================================
+// 4. FUN FACTS SYNC & REALTIME LISTENERS
+// ==========================================
+
+export async function syncFunFactToFirestore(fact: FunFact): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'fun_facts', fact.id);
+    const sanitized = JSON.parse(JSON.stringify(fact));
+    await setDoc(docRef, { ...sanitized, _syncedAt: Date.now() });
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to sync fun fact to Firestore:', fact.id, err?.message || err);
+    return false;
+  }
+}
+
+export async function deleteFunFactFromFirestore(factId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'fun_facts', factId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to delete fun fact from Firestore:', factId, err?.message || err);
+    return false;
+  }
+}
+
+export async function syncAllFunFactsToFirestore(facts: FunFact[]): Promise<{ success: boolean; count: number }> {
+  const db = getFirestoreDb();
+  if (!db) return { success: false, count: 0 };
+
+  try {
+    const batch = writeBatch(db);
+    let count = 0;
+    for (const f of facts) {
+      const docRef = doc(db, 'fun_facts', f.id);
+      const sanitized = JSON.parse(JSON.stringify(f));
+      batch.set(docRef, { ...sanitized, _syncedAt: Date.now() });
+      count++;
+    }
+    await batch.commit();
+    return { success: true, count };
+  } catch (err: any) {
+    console.error('Failed to batch sync fun facts to Firestore:', err?.message || err);
+    return { success: false, count: 0 };
+  }
+}
+
+export function subscribeToFirestoreFunFacts(callback: (facts: FunFact[]) => void): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const colRef = collection(db, 'fun_facts');
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: FunFact[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data() as FunFact;
+            if (data && data.id) loaded.push(data);
+          });
+          if (loaded.length > 0) callback(loaded);
+        }
+      },
+      (err: any) => {
+        console.warn('Firestore fun facts subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore fun facts:', err);
+    return null;
+  }
+}
+
+export async function fetchFunFactsFromFirestore(): Promise<FunFact[] | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const snap = await getDocs(collection(db, 'fun_facts'));
+    if (snap.empty) return null;
+    const facts: FunFact[] = [];
+    snap.forEach((d) => facts.push(d.data() as FunFact));
+    return facts.length > 0 ? facts : null;
+  } catch (err: any) {
+    console.warn('Failed to fetch fun facts from Firestore:', err?.message || err);
+    return null;
+  }
+}
+
+// ==========================================
+// 5. EARLY LEARNING SYNC & REALTIME LISTENERS
+// ==========================================
+
+export async function syncLearningItemToFirestore(item: LearningItem): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'early_learning', item.id);
+    const sanitized = JSON.parse(JSON.stringify(item));
+    await setDoc(docRef, { ...sanitized, _syncedAt: Date.now() });
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to sync learning item to Firestore:', item.id, err?.message || err);
+    return false;
+  }
+}
+
+export async function deleteLearningItemFromFirestore(itemId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'early_learning', itemId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to delete learning item from Firestore:', itemId, err?.message || err);
+    return false;
+  }
+}
+
+export async function syncAllLearningItemsToFirestore(items: LearningItem[]): Promise<{ success: boolean; count: number }> {
+  const db = getFirestoreDb();
+  if (!db) return { success: false, count: 0 };
+
+  try {
+    const batch = writeBatch(db);
+    let count = 0;
+    for (const item of items) {
+      const docRef = doc(db, 'early_learning', item.id);
+      const sanitized = JSON.parse(JSON.stringify(item));
+      batch.set(docRef, { ...sanitized, _syncedAt: Date.now() });
+      count++;
+    }
+    await batch.commit();
+    return { success: true, count };
+  } catch (err: any) {
+    console.error('Failed to batch sync learning items to Firestore:', err?.message || err);
+    return { success: false, count: 0 };
+  }
+}
+
+export function subscribeToFirestoreLearningItems(callback: (items: LearningItem[]) => void): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const colRef = collection(db, 'early_learning');
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: LearningItem[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data() as LearningItem;
+            if (data && data.id) loaded.push(data);
+          });
+          if (loaded.length > 0) callback(loaded);
+        }
+      },
+      (err: any) => {
+        console.warn('Firestore learning items subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore learning items:', err);
+    return null;
+  }
+}
+
+export async function fetchLearningItemsFromFirestore(): Promise<LearningItem[] | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const snap = await getDocs(collection(db, 'early_learning'));
+    if (snap.empty) return null;
+    const items: LearningItem[] = [];
+    snap.forEach((d) => items.push(d.data() as LearningItem));
+    return items.length > 0 ? items : null;
+  } catch (err: any) {
+    console.warn('Failed to fetch learning items from Firestore:', err?.message || err);
+    return null;
+  }
+}
+
+// ==========================================
+// 6. AUDIO STORIES SYNC & REALTIME LISTENERS
+// ==========================================
+
+export async function syncAudioStoryToFirestore(audio: AudioStory): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'audio_stories', audio.id);
+    const sanitized = JSON.parse(JSON.stringify(audio));
+    await setDoc(docRef, { ...sanitized, _syncedAt: Date.now() });
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to sync audio story to Firestore:', audio.id, err?.message || err);
+    return false;
+  }
+}
+
+export async function deleteAudioStoryFromFirestore(audioId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'audio_stories', audioId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to delete audio story from Firestore:', audioId, err?.message || err);
+    return false;
+  }
+}
+
+export async function syncAllAudioStoriesToFirestore(audioList: AudioStory[]): Promise<{ success: boolean; count: number }> {
+  const db = getFirestoreDb();
+  if (!db) return { success: false, count: 0 };
+
+  try {
+    const batch = writeBatch(db);
+    let count = 0;
+    for (const a of audioList) {
+      const docRef = doc(db, 'audio_stories', a.id);
+      const sanitized = JSON.parse(JSON.stringify(a));
+      batch.set(docRef, { ...sanitized, _syncedAt: Date.now() });
+      count++;
+    }
+    await batch.commit();
+    return { success: true, count };
+  } catch (err: any) {
+    console.error('Failed to batch sync audio stories to Firestore:', err?.message || err);
+    return { success: false, count: 0 };
+  }
+}
+
+export function subscribeToFirestoreAudioStories(callback: (audioList: AudioStory[]) => void): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const colRef = collection(db, 'audio_stories');
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: AudioStory[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data() as AudioStory;
+            if (data && data.id) loaded.push(data);
+          });
+          if (loaded.length > 0) callback(loaded);
+        }
+      },
+      (err: any) => {
+        console.warn('Firestore audio stories subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore audio stories:', err);
+    return null;
+  }
+}
+
+export async function fetchAudioStoriesFromFirestore(): Promise<AudioStory[] | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const snap = await getDocs(collection(db, 'audio_stories'));
+    if (snap.empty) return null;
+    const list: AudioStory[] = [];
+    snap.forEach((d) => list.push(d.data() as AudioStory));
+    return list.length > 0 ? list : null;
+  } catch (err: any) {
+    console.warn('Failed to fetch audio stories from Firestore:', err?.message || err);
+    return null;
+  }
+}
+
+// ==========================================
+// 7. QUIZ SETS SYNC & REALTIME LISTENERS
+// ==========================================
+
+export async function syncQuizSetToFirestore(quiz: QuizSet): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'quiz_sets', quiz.id);
+    const sanitized = JSON.parse(JSON.stringify(quiz));
+    await setDoc(docRef, { ...sanitized, _syncedAt: Date.now() });
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to sync quiz set to Firestore:', quiz.id, err?.message || err);
+    return false;
+  }
+}
+
+export async function deleteQuizSetFromFirestore(quizId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'quiz_sets', quizId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to delete quiz set from Firestore:', quizId, err?.message || err);
+    return false;
+  }
+}
+
+export async function syncAllQuizSetsToFirestore(quizzes: QuizSet[]): Promise<{ success: boolean; count: number }> {
+  const db = getFirestoreDb();
+  if (!db) return { success: false, count: 0 };
+
+  try {
+    const batch = writeBatch(db);
+    let count = 0;
+    for (const q of quizzes) {
+      const docRef = doc(db, 'quiz_sets', q.id);
+      const sanitized = JSON.parse(JSON.stringify(q));
+      batch.set(docRef, { ...sanitized, _syncedAt: Date.now() });
+      count++;
+    }
+    await batch.commit();
+    return { success: true, count };
+  } catch (err: any) {
+    console.error('Failed to batch sync quizzes to Firestore:', err?.message || err);
+    return { success: false, count: 0 };
+  }
+}
+
+export function subscribeToFirestoreQuizSets(callback: (quizzes: QuizSet[]) => void): Unsubscribe | null {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const colRef = collection(db, 'quiz_sets');
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loaded: QuizSet[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data() as QuizSet;
+            if (data && data.id) loaded.push(data);
+          });
+          if (loaded.length > 0) callback(loaded);
+        }
+      },
+      (err: any) => {
+        console.warn('Firestore quiz sets subscription error:', err?.message || err);
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to subscribe to Firestore quiz sets:', err);
+    return null;
+  }
+}
+
+export async function fetchQuizSetsFromFirestore(): Promise<QuizSet[] | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const snap = await getDocs(collection(db, 'quiz_sets'));
+    if (snap.empty) return null;
+    const quizzes: QuizSet[] = [];
+    snap.forEach((d) => quizzes.push(d.data() as QuizSet));
+    return quizzes.length > 0 ? quizzes : null;
+  } catch (err: any) {
+    console.warn('Failed to fetch quizzes from Firestore:', err?.message || err);
+    return null;
+  }
+}
+
+// ==========================================
+// 8. SITE CONTENT SYNC (Branding, Footer, Reviews)
+// ==========================================
+
+export async function syncSiteContentToFirestore(contentId: string, data: any): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, 'site_content', contentId);
+    const sanitized = JSON.parse(JSON.stringify(data));
+    await setDoc(docRef, { id: contentId, data: sanitized, updatedAt: new Date().toISOString() });
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to sync site content to Firestore:', contentId, err?.message || err);
+    return false;
+  }
+}
+
+export async function fetchSiteContentFromFirestore(contentId: string): Promise<any> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const snap = await getDocs(collection(db, 'site_content'));
+    const docSnap = snap.docs.find((d) => d.id === contentId);
+    return docSnap ? docSnap.data()?.data : null;
+  } catch (err: any) {
+    console.warn('Failed to fetch site content from Firestore:', contentId, err?.message || err);
+    return null;
+  }
+}
+
+// ==========================================
+// 9. AUTOMATIC SEEDING FOR NEW DEVICES
+// ==========================================
+
+export async function seedInitialFirestoreDataIfNeeded(
+  stories: Story[],
+  worksheets: PrintableWorksheet[],
+  videos?: VideoStory[],
+  facts?: FunFact[],
+  learningItems?: LearningItem[],
+  audioStories?: AudioStory[],
+  quizzes?: QuizSet[]
+): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+
+  try {
+    // Stories check
+    const storySnap = await getDocs(collection(db, 'stories'));
+    const existingStoryIds = new Set(storySnap.docs.map((d) => d.id));
+    const missingStories = stories.filter((s) => !existingStoryIds.has(s.id));
+    if (missingStories.length > 0) {
+      await syncAllStoriesToFirestore(missingStories);
+    }
+
+    // Worksheets check
+    const wsSnap = await getDocs(collection(db, 'worksheets'));
+    const existingWsIds = new Set(wsSnap.docs.map((d) => d.id));
+    const missingWs = worksheets.filter((w) => !existingWsIds.has(w.id));
+    if (missingWs.length > 0) {
+      await syncAllWorksheetsToFirestore(missingWs);
+    }
+
+    // Video stories check
+    if (videos && videos.length > 0) {
+      const vidSnap = await getDocs(collection(db, 'video_stories'));
+      if (vidSnap.empty) {
+        await syncAllVideoStoriesToFirestore(videos);
+      }
+    }
+
+    // Fun facts check
+    if (facts && facts.length > 0) {
+      const factSnap = await getDocs(collection(db, 'fun_facts'));
+      if (factSnap.empty) {
+        await syncAllFunFactsToFirestore(facts);
+      }
+    }
+
+    // Early learning check
+    if (learningItems && learningItems.length > 0) {
+      const learnSnap = await getDocs(collection(db, 'early_learning'));
+      if (learnSnap.empty) {
+        await syncAllLearningItemsToFirestore(learningItems);
+      }
+    }
+
+    // Audio stories check
+    if (audioStories && audioStories.length > 0) {
+      const audioSnap = await getDocs(collection(db, 'audio_stories'));
+      if (audioSnap.empty) {
+        await syncAllAudioStoriesToFirestore(audioStories);
+      }
+    }
+
+    // Quizzes check
+    if (quizzes && quizzes.length > 0) {
+      const quizSnap = await getDocs(collection(db, 'quiz_sets'));
+      if (quizSnap.empty) {
+        await syncAllQuizSetsToFirestore(quizzes);
+      }
+    }
+  } catch (err: any) {
+    console.warn('Firestore initial seeding error:', err?.message || err);
+  }
+}

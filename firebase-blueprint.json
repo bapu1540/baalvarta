@@ -64,6 +64,76 @@
         "client": { "type": "string" }
       },
       "required": ["lastPing"]
+    },
+    "VideoStory": {
+      "title": "VideoStory",
+      "description": "Animated educational children video story",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleHi": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "youtubeUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "thumbnail": { "type": "string" }
+      },
+      "required": ["id", "titleHi", "youtubeUrl"]
+    },
+    "FunFact": {
+      "title": "FunFact",
+      "description": "Curious fun science and nature fact for kids",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleHi": { "type": "string" },
+        "factHi": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "titleHi", "factHi"]
+    },
+    "LearningItem": {
+      "title": "LearningItem",
+      "description": "Early learning alphabet, number, or word flashcard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "module": { "type": "string" },
+        "symbol": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["id", "module", "symbol", "name"]
+    },
+    "AudioStory": {
+      "title": "AudioStory",
+      "description": "Bedtime audio story with narrator voice",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleHi": { "type": "string" },
+        "audioUrl": { "type": "string" }
+      },
+      "required": ["id", "titleHi", "audioUrl"]
+    },
+    "QuizSet": {
+      "title": "QuizSet",
+      "description": "Interactive multiple choice quiz set for kids",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleHi": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "titleHi"]
+    },
+    "SiteContent": {
+      "title": "SiteContent",
+      "description": "General site configuration, footer image, and branding metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id"]
     }
   },
   "firestore": {
@@ -74,6 +144,30 @@
     "/worksheets/{worksheetId}": {
       "schema": "Worksheet",
       "description": "Public printable worksheets collection"
+    },
+    "/video_stories/{videoId}": {
+      "schema": "VideoStory",
+      "description": "Animated video stories collection"
+    },
+    "/fun_facts/{factId}": {
+      "schema": "FunFact",
+      "description": "Fun science and nature facts collection"
+    },
+    "/early_learning/{itemId}": {
+      "schema": "LearningItem",
+      "description": "Early learning and alphabet items collection"
+    },
+    "/audio_stories/{audioId}": {
+      "schema": "AudioStory",
+      "description": "Bedtime audio stories collection"
+    },
+    "/quiz_sets/{quizId}": {
+      "schema": "QuizSet",
+      "description": "Interactive quiz sets collection"
+    },
+    "/site_content/{contentId}": {
+      "schema": "SiteContent",
+      "description": "Site content and branding collection"
     },
     "/analytics_events/{eventId}": {
       "schema": "AnalyticsEvent",

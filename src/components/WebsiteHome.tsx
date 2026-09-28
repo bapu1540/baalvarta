@@ -513,6 +513,40 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
               </motion.div>
             );
           })()}
+
+          {/* Additional Recent Stories Quick Strip */}
+          {sortedByNewest.length > 1 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 pt-1">
+              {sortedByNewest.slice(1, 4).map((recentStory) => (
+                <div
+                  key={recentStory.id}
+                  onClick={() => handleStoryCardClick(recentStory)}
+                  className="p-2.5 rounded-2xl bg-white border border-amber-200/80 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer flex items-center gap-2.5 group"
+                >
+                  <img
+                    src={recentStory.coverImage}
+                    alt={recentStory.titleHi}
+                    className="w-14 h-11 rounded-xl object-cover shrink-0 group-hover:scale-105 transition-transform bg-slate-100"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-black text-[9px]">
+                        #{recentStory.number}
+                      </span>
+                      <span className="text-slate-400 font-semibold truncate">{recentStory.category}</span>
+                    </div>
+                    <h4 className="font-black text-xs text-slate-900 group-hover:text-amber-600 transition-colors truncate">
+                      {language === 'hi' ? recentStory.titleHi : recentStory.titleEn}
+                    </h4>
+                    <p className="text-[10px] text-slate-500 font-serif truncate">
+                      {language === 'hi' ? recentStory.summaryHi : recentStory.summaryEn}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 

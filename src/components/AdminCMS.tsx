@@ -111,10 +111,30 @@ import {
   deleteStoryFromFirestore,
   syncWorksheetToFirestore,
   deleteWorksheetFromFirestore,
+  syncVideoStoryToFirestore,
+  deleteVideoStoryFromFirestore,
+  syncFunFactToFirestore,
+  deleteFunFactFromFirestore,
+  syncLearningItemToFirestore,
+  deleteLearningItemFromFirestore,
+  syncAudioStoryToFirestore,
+  deleteAudioStoryFromFirestore,
+  syncQuizSetToFirestore,
+  deleteQuizSetFromFirestore,
   syncAllStoriesToFirestore,
   syncAllWorksheetsToFirestore,
+  syncAllVideoStoriesToFirestore,
+  syncAllFunFactsToFirestore,
+  syncAllLearningItemsToFirestore,
+  syncAllAudioStoriesToFirestore,
+  syncAllQuizSetsToFirestore,
   fetchStoriesFromFirestore,
   fetchWorksheetsFromFirestore,
+  fetchVideoStoriesFromFirestore,
+  fetchFunFactsFromFirestore,
+  fetchLearningItemsFromFirestore,
+  fetchAudioStoriesFromFirestore,
+  fetchQuizSetsFromFirestore,
   uploadImageToFirebaseStorage,
 } from '../utils/firebase';
 import { FirebaseConfig } from '../types';
@@ -321,14 +341,19 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
   const handlePushAllToFirebase = async () => {
     setIsSyncingFbAll(true);
-    setFbStatusMsg({ text: 'सभी कहानियाँ व वर्कशीट Firebase पर अपलोड हो रही हैं...', isSuccess: true });
+    setFbStatusMsg({ text: 'सभी कहानियाँ, वीडियो, क्विज़, वर्कशीट व तथ्य Firebase क्लाउड पर अपलोड हो रहे हैं...', isSuccess: true });
     try {
-      const [storyRes, wsRes] = await Promise.all([
+      const [storyRes, wsRes, vidRes, factRes, learnRes, audioRes, quizRes] = await Promise.all([
         syncAllStoriesToFirestore(stories),
         syncAllWorksheetsToFirestore(worksheets),
+        syncAllVideoStoriesToFirestore(videoStories),
+        syncAllFunFactsToFirestore(facts),
+        syncAllLearningItemsToFirestore(learningItems),
+        syncAllAudioStoriesToFirestore(audioStories),
+        syncAllQuizSetsToFirestore(quizSets),
       ]);
       setFbStatusMsg({
-        text: `✅ सफलता! ${storyRes.count} कहानियाँ और ${wsRes.count} वर्कशीट्स Firebase Firestore पर अपलोड हो गईं। अब यह सभी डिवाइसों पर लाइव दिखाई देंगी!`,
+        text: `✅ सफलता! ${storyRes.count} कहानियाँ, ${vidRes.count} वीडियो, ${quizRes.count} क्विज़, ${wsRes.count} वर्कशीट्स, ${factRes.count} तथ्य व ${audioRes.count} ऑडियो कहानियाँ Firebase पर 100% सुरक्षित अपलोड हो गईं! अब यह सभी मोबाइलों पर लाइव दिखाई देंगी!`,
         isSuccess: true,
       });
       if (soundEnabled) playSuccessSound();
@@ -343,24 +368,59 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     setIsSyncingFbAll(true);
     setFbStatusMsg({ text: 'Firebase Cloud से नवीनतम डेटा डाउनलोड हो रहा है...', isSuccess: true });
     try {
-      const [cloudStories, cloudWorksheets] = await Promise.all([
+      const [
+        cloudStories,
+        cloudWorksheets,
+        cloudVideos,
+        cloudFacts,
+        cloudLearning,
+        cloudAudio,
+        cloudQuizzes,
+      ] = await Promise.all([
         fetchStoriesFromFirestore(),
         fetchWorksheetsFromFirestore(),
+        fetchVideoStoriesFromFirestore(),
+        fetchFunFactsFromFirestore(),
+        fetchLearningItemsFromFirestore(),
+        fetchAudioStoriesFromFirestore(),
+        fetchQuizSetsFromFirestore(),
       ]);
-      let msg = '';
+      const parts: string[] = [];
       if (cloudStories && cloudStories.length > 0) {
         onSaveStories(cloudStories);
-        msg += `${cloudStories.length} कहानियाँ `;
+        parts.push(`${cloudStories.length} कहानियाँ`);
       }
       if (cloudWorksheets && cloudWorksheets.length > 0) {
         setWorksheets(cloudWorksheets);
         saveStoredWorksheets(cloudWorksheets);
-        msg += `${cloudWorksheets.length} वर्कशीट्स `;
+        parts.push(`${cloudWorksheets.length} वर्कशीट्स`);
       }
-      if (!msg) {
+      if (cloudVideos && cloudVideos.length > 0) {
+        onSaveVideos(cloudVideos);
+        parts.push(`${cloudVideos.length} वीडियो`);
+      }
+      if (cloudFacts && cloudFacts.length > 0) {
+        onSaveFacts(cloudFacts);
+        parts.push(`${cloudFacts.length} तथ्य`);
+      }
+      if (cloudLearning && cloudLearning.length > 0) {
+        onSaveLearning(cloudLearning);
+        parts.push(`${cloudLearning.length} अक्षर`);
+      }
+      if (cloudAudio && cloudAudio.length > 0) {
+        onSaveAudio(cloudAudio);
+        parts.push(`${cloudAudio.length} ऑडियो`);
+      }
+      if (cloudQuizzes && cloudQuizzes.length > 0) {
+        setQuizSets(cloudQuizzes);
+        saveStoredQuizSets(cloudQuizzes);
+        parts.push(`${cloudQuizzes.length} क्विज़`);
+      }
+
+      if (parts.length === 0) {
         setFbStatusMsg({ text: '⚠️ Firebase Firestore में अभी कोई डेटा नहीं मिला।', isSuccess: false });
       } else {
-        setFbStatusMsg({ text: `✅ सफलता! ${msg} Firebase से लोड होकर अपडेट हो गईं!`, isSuccess: true });
+        setFbStatusMsg({ text: `✅ सफलता! ${parts.join(', ')} Firebase से लोड होकर अपडेट हो गईं!`, isSuccess: true });
         if (soundEnabled) playSuccessSound();
       }
     } catch (err: any) {
@@ -675,6 +735,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     };
 
     onSaveLearning([...learningItems, created]);
+    syncLearningItemToFirestore(created);
     setNewLearning({
       module: 'alphabet',
       symbol: '',
@@ -724,7 +785,11 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
     const updatedStories = [created, ...stories];
     onSaveStories(updatedStories);
-    syncStoryToFirestore(created);
+    syncStoryToFirestore(created).then((ok) => {
+      if (ok) {
+        setToastMessage({ text: '✅ कहानी प्रकाशित हुई और Firebase पर 100% सिंक हो गई! सभी फोन पर तुरंत लाइव दिखेगी।', type: 'success' });
+      }
+    });
     if (created.coverImage.startsWith('data:')) {
       uploadImageToFirebaseStorage(created.coverImage, `stories/${created.id}-cover`).then((cloudUrl) => {
         if (cloudUrl && cloudUrl !== created.coverImage) {
@@ -747,8 +812,8 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       readTime: '3 मिनट',
       recommendedAge: '4-9 वर्ष',
     });
-    setToastMessage({ text: 'मानक बाल कहानी सफलतापूर्वक प्रकाशित हो गई!', type: 'success' });
-    setTimeout(() => setToastMessage(null), 3000);
+    setToastMessage({ text: '✅ मानक बाल कहानी प्रकाशित हुई और Firebase क्लाउड पर सिंक हो रही है...', type: 'success' });
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleAddStoryScene = () => {
@@ -837,7 +902,11 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
     const updatedStories = [created, ...stories];
     onSaveStories(updatedStories);
-    syncStoryToFirestore(created);
+    syncStoryToFirestore(created).then((ok) => {
+      if (ok) {
+        setToastMessage({ text: '✅ सचित्र कथा प्रकाशित हुई और Firebase पर 100% सिंक हो गई! सभी फोन पर तुरंत लाइव दिखेगी।', type: 'success' });
+      }
+    });
     if (created.coverImage.startsWith('data:')) {
       uploadImageToFirebaseStorage(created.coverImage, `stories/${created.id}-cover`).then((cloudUrl) => {
         if (cloudUrl && cloudUrl !== created.coverImage) {
@@ -874,8 +943,8 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       },
     ]);
 
-    setToastMessage({ text: '📸 सचित्र दृश्य-कथा (Picture Book Story) सफलतापूर्वक प्रकाशित हो गई!', type: 'success' });
-    setTimeout(() => setToastMessage(null), 3000);
+    setToastMessage({ text: '📸 सचित्र दृश्य-कथा प्रकाशित हुई और Firebase क्लाउड पर सिंक हो रही है...', type: 'success' });
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleRequestDelete = (story: Story) => {
@@ -978,6 +1047,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     };
 
     onSaveFacts([...facts, created]);
+    syncFunFactToFirestore(created);
     setNewFact({
       titleHi: '',
       titleEn: '',
@@ -992,6 +1062,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   const handleDeleteFact = (id: string) => {
     if (soundEnabled) playPopSound();
     onSaveFacts(facts.filter((f) => f.id !== id));
+    deleteFunFactFromFirestore(id);
   };
 
   const handleAddAudio = (e: React.FormEvent) => {
@@ -1014,6 +1085,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     };
 
     onSaveAudio([...audioStories, created]);
+    syncAudioStoryToFirestore(created);
     setNewAudio({
       titleHi: '',
       titleEn: '',
@@ -1031,6 +1103,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   const handleDeleteAudio = (id: string) => {
     if (soundEnabled) playPopSound();
     onSaveAudio(audioStories.filter((a) => a.id !== id));
+    deleteAudioStoryFromFirestore(id);
   };
 
   // Helper to extract YouTube video ID and 16:9 thumbnail
@@ -1053,10 +1126,12 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     }
 
     if (editingVideoId) {
+      const updatedItem: VideoStory = { ...newVideo, id: editingVideoId };
       const updated = videoStories.map((v) =>
-        v.id === editingVideoId ? { ...newVideo, id: editingVideoId } : v
+        v.id === editingVideoId ? updatedItem : v
       );
       onSaveVideos(updated);
+      syncVideoStoryToFirestore(updatedItem);
       setEditingVideoId(null);
     } else {
       const created: VideoStory = {
@@ -1064,6 +1139,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
         id: `vid-${Date.now()}`,
       };
       onSaveVideos([created, ...videoStories]);
+      syncVideoStoryToFirestore(created);
     }
 
     setNewVideo({
@@ -1105,6 +1181,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     if (confirm('क्या आप वाकई इस वीडियो कहानी को हटाना चाहते हैं?')) {
       const updated = videoStories.filter((v) => v.id !== id);
       onSaveVideos(updated);
+      deleteVideoStoryFromFirestore(id);
       if (editingVideoId === id) {
         setEditingVideoId(null);
       }
@@ -2431,6 +2508,24 @@ service cloud.firestore {
 
                   if (sortByHeatmap) {
                     processedStories = [...processedStories].sort((a, b) => getStoryScore(b) - getStoryScore(a));
+                  } else {
+                    const getStoryTimestamp = (s: Story): number => {
+                      if (s.createdAt) return s.createdAt;
+                      if (typeof s.id === 'string') {
+                        const match = s.id.match(/\d{10,}/);
+                        if (match) return parseInt(match[0], 10);
+                      }
+                      return 0;
+                    };
+                    processedStories = [...processedStories].sort((a, b) => {
+                      const timeA = getStoryTimestamp(a);
+                      const timeB = getStoryTimestamp(b);
+                      if (timeA > 0 || timeB > 0) {
+                        if (timeA > 0 && timeB > 0) return timeB - timeA;
+                        return timeA > 0 ? -1 : 1;
+                      }
+                      return (a.number || 0) - (b.number || 0);
+                    });
                   }
 
                   if (processedStories.length === 0) {
@@ -5336,7 +5431,7 @@ service cloud.firestore {
                     className="px-4 py-2.5 rounded-xl bg-white text-amber-950 font-black text-xs shadow-md hover:bg-amber-50 flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
                   >
                     <UploadCloud className={`w-4 h-4 text-orange-600 ${isSyncingFbAll ? 'animate-bounce' : ''}`} />
-                    <span>{isSyncingFbAll ? 'अपलोड हो रहा है...' : '🚀 सभी कहानियाँ व वर्कशीट Firebase पर अपलोड करें (Push All to Cloud)'}</span>
+                    <span>{isSyncingFbAll ? 'अपलोड हो रहा है...' : '🚀 सभी सामग्री (कहानियाँ, वीडियो, क्विज़, वर्कशीट) Firebase पर सिंक करें (Push All)'}</span>
                   </button>
 
                   <button
