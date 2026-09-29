@@ -13,7 +13,8 @@ import {
   Share2,
   Award,
   Crown,
-  Zap
+  Zap,
+  Scissors
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PrintableWorksheet, Language } from '../types';
@@ -21,6 +22,7 @@ import { playPopSound, playSuccessSound } from '../utils/soundEffects';
 import { trackWorksheetDownload } from '../utils/analytics';
 import { AdBannerSlot } from './AdBannerSlot';
 import { KidsCertificateHub } from './KidsCertificateHub';
+import { KidsColoringBook } from './KidsColoringBook';
 import { getProSubscription, getDailyDownloadCount, incrementDailyDownloadCount } from '../utils/proManager';
 
 interface PrintableWorksheetsHubProps {
@@ -30,6 +32,7 @@ interface PrintableWorksheetsHubProps {
   onBackToHome?: () => void;
   initialCategory?: string;
   initialCertificateType?: string;
+  initialSubTab?: 'art_craft' | 'download';
   onOpenProModal?: () => void;
 }
 
@@ -108,9 +111,11 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
   soundEnabled,
   initialCategory,
   initialCertificateType,
+  initialSubTab = 'download',
   onBackToHome,
   onOpenProModal,
 }) => {
+  const [mainSubTab, setMainSubTab] = useState<'art_craft' | 'download'>(initialSubTab);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'all');
   const [activePreviewSheet, setActivePreviewSheet] = useState<PrintableWorksheet | null>(null);
   const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
@@ -143,14 +148,12 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
     if (soundEnabled) playPopSound();
     trackWorksheetDownload(sheet.id, sheet.titleHi || sheet.titleEn, sheet.category);
     setActivePreviewSheet(sheet);
-    // Allow state to render then print
     setTimeout(() => {
       window.print();
     }, 300);
   };
 
   const handleDownloadSheet = (sheet: PrintableWorksheet) => {
-    // Check free daily limit if not pro member
     if (!isPro && downloadCount >= 2) {
       if (soundEnabled) playPopSound();
       if (onOpenProModal) {
@@ -166,19 +169,16 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
       setDownloadCount(updated);
     }
 
-    // Generate high-resolution printable sheet on canvas and download
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
     canvas.height = 1600;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // White page background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, 1200, 1600);
 
-    // Border
-    ctx.strokeStyle = '#f59e0b';
+    ctx.strokeStyle = '#0d9488';
     ctx.lineWidth = 8;
     ctx.strokeRect(40, 40, 1120, 1520);
 
@@ -186,14 +186,12 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
     ctx.lineWidth = 2;
     ctx.strokeRect(55, 55, 1090, 1490);
 
-    // Header Branding
     ctx.fillStyle = '#1e293b';
     ctx.font = 'bold 36px "Baloo 2", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('📖 बालवार्ता (Baalvarta) - निःशुल्क बाल अभ्यास वर्कशीट', 600, 120);
 
-    // Sheet Title
-    ctx.fillStyle = '#0284c7';
+    ctx.fillStyle = '#0d9488';
     ctx.font = 'bold 32px "Baloo 2", sans-serif';
     ctx.fillText(isHi ? sheet.titleHi : sheet.titleEn, 600, 175);
 
@@ -201,7 +199,6 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
     ctx.font = '20px "Baloo 2", sans-serif';
     ctx.fillText(`विद्यार्थी का नाम: _______________________      दिनांक: ______________      आयु: ${sheet.ageGroup}`, 600, 225);
 
-    // Underline
     ctx.strokeStyle = '#cbd5e1';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -209,7 +206,6 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
     ctx.lineTo(1120, 250);
     ctx.stroke();
 
-    // Draw placeholder illustration area / activity boxes
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(100, 280, 1000, 1150);
     ctx.strokeStyle = '#94a3b8';
@@ -220,7 +216,6 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
     ctx.font = 'bold 28px "Baloo 2", sans-serif';
     ctx.fillText(isHi ? sheet.descriptionHi : sheet.descriptionEn, 600, 340);
 
-    // Fun Tracing or Activity Guideline lines
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 2;
     for (let y = 420; y <= 1350; y += 80) {
@@ -230,12 +225,10 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
       ctx.stroke();
     }
 
-    // Footer
     ctx.fillStyle = '#94a3b8';
     ctx.font = '18px "Baloo 2", sans-serif';
     ctx.fillText('बालवार्ता • 100% निःशुल्क व सुरक्षित भारतीय बाल पोर्टल • www.baalvarta.com', 600, 1500);
 
-    // Download trigger
     const dataUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.download = `Baalvarta-Worksheet-${sheet.id}.png`;
@@ -248,175 +241,216 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
   };
 
   return (
-    <div className="space-y-4 pb-12 font-kids">
+    <div className="space-y-4 pb-20 font-kids">
       
-      {/* Sleek Top Header */}
-      <div className="flex items-center justify-between gap-3 bg-white rounded-2xl p-2.5 sm:p-3 border border-teal-200/80 shadow-xs">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-xs shrink-0">
-            📄
-          </div>
-          <h1 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
-            {isHi ? '10. फ्री डाउनलोड PDF (Free Download & Certificates)' : '10. Free Download PDFs & Certificates'}
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="px-2.5 py-1 rounded-xl bg-teal-50 text-teal-900 border border-teal-200 text-xs font-black whitespace-nowrap">
-            {selectedCategory === 'certificates' 
-              ? (isHi ? '4 प्रमाण पत्र टेम्पलेट' : '4 Certificate Types')
-              : (isHi ? `${filtered.length} शीट्स उपलब्ध` : `${filtered.length} Worksheets`)}
-          </span>
-        </div>
-      </div>
-
-      {/* Pro Membership & Download Limit Banner */}
-      <div className={`p-3 sm:p-3.5 rounded-2xl border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs ${
-        isPro 
-          ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-          : 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border-amber-300 text-amber-950'
-      }`}>
-        <div className="flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 shadow-xs ${
-            isPro ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
-          }`}>
-            {isPro ? '👑' : '💎'}
-          </div>
-          <div>
-            <div className="text-xs font-black flex items-center gap-1.5">
-              <span>
-                {isPro
-                  ? (isHi ? 'बालवार्ता वीआईपी सदस्य: असीमित डाउनलोड सक्रिय!' : 'Baalvarta VIP: Unlimited HD Downloads Active!')
-                  : (isHi ? `दैनिक मुफ़्त डाउनलोड: ${Math.max(0, 2 - downloadCount)} / 2 शेष` : `Free Daily Downloads: ${Math.max(0, 2 - downloadCount)} / 2 remaining`)}
-              </span>
+      {/* 1. TOP HEADER BANNER (Category 10: Art, Paper Craft & Free Download) */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-700 text-white p-4 sm:p-6 shadow-lg border-2 border-teal-400/40">
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-teal-500/40 backdrop-blur-md text-amber-200 text-xs font-black border border-amber-300/40">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>{isHi ? '10. आर्ट-पेपरक्राफ्ट और फ्री डाउनलोड' : '10. Art-Papercraft & Free Download'}</span>
             </div>
-            <p className="text-[11px] text-slate-600 font-medium">
-              {isPro
-                ? (isHi ? 'आप बिना किसी सीमा के सभी शीट्स व सर्टिफिकेट्स डाउनलोड कर सकते हैं।' : 'You can download all worksheets and certificates without limits.')
-                : (isHi ? 'केवल ₹29/माह या ₹299/वर्ष में 100% Ad-Free व असीमित डाउनलोड प्राप्त करें।' : 'Upgrade to Pro for ₹29/mo or ₹299/yr for unlimited downloads & ad-free access.')}
-            </p>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+              <span>🎨✂️</span>
+              <span>{isHi ? 'रंग भरो, ओरिगेमी क्राफ्ट बनाओ और PDF डाउनलोड करो' : 'Art, Origami Craft & Free Downloads'}</span>
+            </h1>
           </div>
         </div>
 
-        {onOpenProModal && (
+        {/* 2. TWO MAIN SUB-CATEGORY TABS */}
+        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-teal-400/30 pt-3">
           <button
             onClick={() => {
               if (soundEnabled) playPopSound();
-              onOpenProModal();
+              setMainSubTab('art_craft');
             }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all active:scale-95 shadow-xs shrink-0 self-start sm:self-auto flex items-center gap-1.5 ${
-              isPro
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+            className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer ${
+              mainSubTab === 'art_craft'
+                ? 'bg-amber-400 text-slate-950 shadow-md border-2 border-amber-300 scale-101'
+                : 'bg-teal-900/60 hover:bg-teal-800/80 text-teal-100 border border-teal-400/30'
             }`}
           >
-            <Crown className="w-3.5 h-3.5 text-yellow-200" />
-            <span>{isPro ? (isHi ? 'VIP स्थिति' : 'VIP Status') : (isHi ? 'प्रो अपग्रेड (₹29) 👑' : 'Upgrade to Pro (₹29) 👑')}</span>
+            <Palette className="w-4 h-4 text-slate-950" />
+            <span>{isHi ? '1. 🎨✂️ आर्ट और पेपर क्राफ्ट' : '1. 🎨✂️ Art & Paper Craft'}</span>
           </button>
-        )}
+
+          <button
+            onClick={() => {
+              if (soundEnabled) playPopSound();
+              setMainSubTab('download');
+            }}
+            className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer ${
+              mainSubTab === 'download'
+                ? 'bg-amber-400 text-slate-950 shadow-md border-2 border-amber-300 scale-101'
+                : 'bg-teal-900/60 hover:bg-teal-800/80 text-teal-100 border border-teal-400/30'
+            }`}
+          >
+            <Download className="w-4 h-4 text-slate-950" />
+            <span>{isHi ? '2. 📄🖨️ फ्री डाउनलोड व प्रमाण पत्र' : '2. 📄🖨️ Free Download & Certificates'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Category Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-        {categories.map((cat) => {
-          const Icon = cat.icon;
-          const isActive = selectedCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                setSelectedCategory(cat.id);
-              }}
-              className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-2 border-2 cursor-pointer ${
-                isActive
-                  ? 'bg-emerald-600 text-white border-emerald-700 shadow-md scale-102'
-                  : 'bg-white text-slate-700 hover:bg-emerald-50 border-slate-200'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{isHi ? cat.labelHi : cat.labelEn}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Ad Space Banner */}
-      <AdBannerSlot format="leaderboard" slotId="worksheets-hub-top" />
-
-      {/* Toast Notification */}
-      {downloadSuccessMsg && (
-        <div className="p-3 bg-emerald-600 text-white rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 shadow-md animate-bounce">
-          <CheckCircle className="w-4 h-4" />
-          <span>{downloadSuccessMsg}</span>
+      {/* 3. SUB-MENU 1: ART & PAPER CRAFT (Interactive Coloring + Origami Guides) */}
+      {mainSubTab === 'art_craft' && (
+        <div className="space-y-4">
+          <KidsColoringBook language={language} soundEnabled={soundEnabled} onBackToHome={onBackToHome} />
         </div>
       )}
 
-      {/* VIEW: Reader Star Certificate Generator */}
-      {selectedCategory === 'certificates' ? (
-        <KidsCertificateHub
-          language={language}
-          soundEnabled={soundEnabled}
-          initialAchievementType={initialCertificateType}
-          onBackToHome={onBackToHome}
-        />
-      ) : (
-        /* Worksheets Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((ws) => (
-          <div
-            key={ws.id}
-            className="bg-white rounded-3xl border-2 border-amber-200 hover:border-emerald-400 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
-          >
-            <div>
-              <div className="relative h-48 bg-slate-100 overflow-hidden">
-                <img
-                  src={ws.thumbnailUrl}
-                  alt={ws.titleHi}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <span className="absolute top-3 left-3 bg-white/95 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full shadow-xs">
-                  {ws.ageGroup}
-                </span>
-                <span className="absolute top-3 right-3 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
-                  मुफ्त PDF
-                </span>
+      {/* 4. SUB-MENU 2: FREE DOWNLOAD & CERTIFICATES (Worksheets & Star Certificates) */}
+      {mainSubTab === 'download' && (
+        <div className="space-y-4">
+          
+          {/* Pro Membership & Download Limit Banner */}
+          <div className={`p-3 sm:p-3.5 rounded-2xl border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs ${
+            isPro 
+              ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+              : 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border-amber-300 text-amber-950'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 shadow-xs ${
+                isPro ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+              }`}>
+                {isPro ? '👑' : '💎'}
               </div>
-
-              <div className="p-4 sm:p-5 space-y-1.5">
-                <h3 className="text-sm sm:text-base font-black text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
-                  {isHi ? ws.titleHi : ws.titleEn}
-                </h3>
-                <p className="text-slate-600 text-xs leading-relaxed line-clamp-2">
-                  {isHi ? ws.descriptionHi : ws.descriptionEn}
+              <div>
+                <div className="text-xs font-black flex items-center gap-1.5">
+                  <span>
+                    {isPro
+                      ? (isHi ? 'बालवार्ता वीआईपी सदस्य: असीमित डाउनलोड सक्रिय!' : 'Baalvarta VIP: Unlimited HD Downloads Active!')
+                      : (isHi ? `दैनिक मुफ़्त डाउनलोड: ${Math.max(0, 2 - downloadCount)} / 2 शेष` : `Free Daily Downloads: ${Math.max(0, 2 - downloadCount)} / 2 remaining`)}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 font-medium">
+                  {isPro
+                    ? (isHi ? 'आप बिना किसी सीमा के सभी शीट्स व सर्टिफिकेट्स डाउनलोड कर सकते हैं।' : 'You can download all worksheets and certificates without limits.')
+                    : (isHi ? 'केवल ₹29/माह या ₹299/वर्ष में 100% Ad-Free व असीमित डाउनलोड प्राप्त करें।' : 'Upgrade to Pro for ₹29/mo or ₹299/yr for unlimited downloads & ad-free access.')}
                 </p>
               </div>
             </div>
 
-            <div className="p-4 sm:p-5 pt-0 grid grid-cols-2 gap-2">
+            {onOpenProModal && (
               <button
-                onClick={() => handleDownloadSheet(ws)}
-                className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                onClick={() => {
+                  if (soundEnabled) playPopSound();
+                  onOpenProModal();
+                }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all active:scale-95 shadow-xs shrink-0 self-start sm:self-auto flex items-center gap-1.5 cursor-pointer ${
+                  isPro
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                }`}
               >
-                <Download className="w-3.5 h-3.5 text-amber-600" />
-                <span>{isHi ? 'डाउनलोड' : 'Download'}</span>
+                <Crown className="w-3.5 h-3.5 text-yellow-200" />
+                <span>{isPro ? (isHi ? 'VIP स्थिति' : 'VIP Status') : (isHi ? 'प्रो अपग्रेड (₹29) 👑' : 'Upgrade to Pro (₹29) 👑')}</span>
               </button>
-
-              <button
-                onClick={() => handlePrintSheet(ws)}
-                className="py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>{isHi ? 'प्रिंट करें' : 'Print'}</span>
-              </button>
-            </div>
+            )}
           </div>
-        ))}
-      </div>
+
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {categories.map((cat) => {
+              const Icon = cat.icon;
+              const isActive = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    if (soundEnabled) playPopSound();
+                    setSelectedCategory(cat.id);
+                  }}
+                  className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black whitespace-nowrap transition-all flex items-center gap-2 border-2 cursor-pointer ${
+                    isActive
+                      ? 'bg-teal-600 text-white border-teal-700 shadow-md scale-102'
+                      : 'bg-white text-slate-700 hover:bg-teal-50 border-slate-200'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{isHi ? cat.labelHi : cat.labelEn}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Ad Space Banner */}
+          <AdBannerSlot format="leaderboard" slotId="worksheets-hub-top" />
+
+          {/* Toast Notification */}
+          {downloadSuccessMsg && (
+            <div className="p-3 bg-emerald-600 text-white rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 shadow-md animate-bounce">
+              <CheckCircle className="w-4 h-4" />
+              <span>{downloadSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* VIEW: Reader Star Certificate Generator */}
+          {selectedCategory === 'certificates' ? (
+            <KidsCertificateHub
+              language={language}
+              soundEnabled={soundEnabled}
+              initialAchievementType={initialCertificateType}
+              onBackToHome={onBackToHome}
+            />
+          ) : (
+            /* Worksheets Grid */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filtered.map((ws) => (
+                <div
+                  key={ws.id}
+                  className="bg-white rounded-3xl border-2 border-teal-200 hover:border-teal-400 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                >
+                  <div>
+                    <div className="relative h-48 bg-slate-100 overflow-hidden">
+                      <img
+                        src={ws.thumbnailUrl}
+                        alt={ws.titleHi}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <span className="absolute top-3 left-3 bg-white/95 text-teal-800 text-xs font-black px-2.5 py-0.5 rounded-full shadow-xs">
+                        {ws.ageGroup}
+                      </span>
+                      <span className="absolute top-3 right-3 bg-teal-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                        मुफ्त PDF
+                      </span>
+                    </div>
+
+                    <div className="p-4 sm:p-5 space-y-1.5">
+                      <h3 className="text-sm sm:text-base font-black text-slate-900 group-hover:text-teal-700 transition-colors leading-snug">
+                        {isHi ? ws.titleHi : ws.titleEn}
+                      </h3>
+                      <p className="text-slate-600 text-xs leading-relaxed line-clamp-2">
+                        {isHi ? ws.descriptionHi : ws.descriptionEn}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 sm:p-5 pt-0 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleDownloadSheet(ws)}
+                      className="py-2.5 px-3 bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-300 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-teal-600" />
+                      <span>{isHi ? 'डाउनलोड' : 'Download'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handlePrintSheet(ws)}
+                      className="py-2.5 px-3 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>{isHi ? 'प्रिंट करें' : 'Print'}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Preview / Modal if active */}
     </div>
   );
 };

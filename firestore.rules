@@ -53,6 +53,26 @@ service cloud.firestore {
       allow write: if isValidId(contentId);
     }
 
+    match /great_heroes/{heroId} {
+      allow read: if true;
+      allow write: if isValidId(heroId);
+    }
+
+    match /space_planets/{planetId} {
+      allow read: if true;
+      allow write: if isValidId(planetId);
+    }
+
+    match /space_missions/{missionId} {
+      allow read: if true;
+      allow write: if isValidId(missionId);
+    }
+
+    match /origami_crafts/{craftId} {
+      allow read: if true;
+      allow write: if isValidId(craftId);
+    }
+
     match /newsletter_subscribers/{subscriberId} {
       allow read: if true;
       allow write: if isValidId(subscriberId);
@@ -66,6 +86,10 @@ service cloud.firestore {
     match /analytics_events/{eventId} {
       allow read: if true;
       allow write: if isValidId(eventId);
+    }
+
+    match /auth_otps/{otpId} {
+      allow read, write: if isValidId(otpId);
     }
   }
 }

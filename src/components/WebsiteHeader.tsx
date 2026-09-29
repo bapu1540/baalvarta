@@ -34,7 +34,8 @@ import {
   ExternalLink,
   FileText,
   Crown,
-  Zap
+  Zap,
+  Rocket
 } from 'lucide-react';
 import { BaalvartaLogo } from './BaalvartaLogo';
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
@@ -54,7 +55,7 @@ interface WebsiteHeaderProps {
   showBookmarksOnly: boolean;
   setShowBookmarksOnly: (show: boolean) => void;
   bookmarkCount: number;
-  onQuickSearchClick?: (query?: string) => void;
+  onQuickSearchClick?: (query?: string, category?: string) => void;
   onOpenThemeModal?: () => void;
   onOpenProModal?: () => void;
   stories?: Story[];
@@ -173,12 +174,46 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
     };
   }, [headerQuery, stories, videoStories, allWorksheets, games]);
 
+  const getSearchPlaceholder = () => {
+    if (activeTab === 'stories') {
+      return language === 'hi' ? 'बाल कहानियों में खोजें (शीर्षक, #)...' : 'Search Stories (Title, #)...';
+    }
+    if (activeTab === 'videos') {
+      return language === 'hi' ? 'वीडियो कहानियों में खोजें...' : 'Search Video Stories...';
+    }
+    if (activeTab === 'worksheets') {
+      return language === 'hi' ? 'PDF वर्कशीट्स व आर्ट-क्राफ्ट में खोजें...' : 'Search PDFs & Worksheets...';
+    }
+    if (activeTab === 'games') {
+      return language === 'hi' ? 'बाल खेलों में खोजें...' : 'Search Kids Games...';
+    }
+    if (activeTab === 'gk') {
+      return language === 'hi' ? 'सामान्य ज्ञान और क्विज़ में खोजें...' : 'Search GK & Quiz...';
+    }
+    if (activeTab === 'space') {
+      return language === 'hi' ? 'अंतरिक्ष व सौरमंडल में खोजें...' : 'Search Space & Universe...';
+    }
+    if (activeTab === 'heroes') {
+      return language === 'hi' ? 'महान हस्तियों की गाथाओं में खोजें...' : 'Search Great Heroes...';
+    }
+    if (activeTab === 'facts') {
+      return language === 'hi' ? 'रोचक तथ्यों में खोजें...' : 'Search Fun Facts...';
+    }
+    if (activeTab === 'audio') {
+      return language === 'hi' ? 'ऑडियो कहानियों में खोजें...' : 'Search Audio Stories...';
+    }
+    return language === 'hi'
+      ? 'संपूर्ण बालवार्ता में खोजें (कहानी, वीडियो, GK, PDF)...'
+      : 'Search all Baalvarta (Stories, Videos, GK, PDFs)...';
+  };
+
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (soundEnabled) playPopSound();
     setIsLiveDropdownOpen(false);
     if (onQuickSearchClick) {
-      onQuickSearchClick(headerQuery);
+      const searchCat = activeTab === 'home' ? 'all' : activeTab;
+      onQuickSearchClick(headerQuery, searchCat);
     }
   };
 
@@ -302,8 +337,8 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
     },
     {
       id: 'gk' as ActiveTab,
-      labelHi: '4. सामान्य ज्ञान व क्विज़ (GK & Quiz)',
-      labelEn: '4. General Knowledge & Quiz',
+      labelHi: '4. सामान्य ज्ञान और क्विज़ (General Knowledge and Quiz)',
+      labelEn: '4. General Knowledge and Quiz',
       icon: Globe,
       color: 'from-indigo-500 to-blue-700',
       badgeHi: 'GK + 🏆',
@@ -337,31 +372,31 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
       badgeEn: '8 Games 🎮',
     },
     {
-      id: 'quizzes' as ActiveTab,
-      labelHi: '8. बाल क्विज़ गेम्स (Kids Quiz)',
-      labelEn: '8. Kids Quiz Games',
-      icon: Trophy,
-      color: 'from-rose-500 to-pink-600',
-      badgeHi: '🎯 खेलें',
-      badgeEn: '🎯 Play',
+      id: 'space' as ActiveTab,
+      labelHi: '8. अंतरिक्ष और ब्रह्मांड (Space & Universe Explorer)',
+      labelEn: '8. Space & Universe Explorer',
+      icon: Rocket,
+      color: 'from-blue-600 to-indigo-700',
+      badgeHi: 'सौरमंडल 🚀',
+      badgeEn: 'Space 🚀',
     },
     {
-      id: 'coloring' as ActiveTab,
-      labelHi: '9. आर्ट व पेपर क्राफ्ट (Art, Colouring & Origami)',
-      labelEn: '9. Art, Colouring & Origami',
-      icon: Palette,
-      color: 'from-amber-400 to-orange-500',
-      badgeHi: 'कलर + ✂️',
-      badgeEn: 'Art + ✂️',
+      id: 'heroes' as ActiveTab,
+      labelHi: '9. महान हस्तियों का बचपन (Childhood of Great Heroes)',
+      labelEn: '9. Childhood of Great Heroes',
+      icon: Sparkles,
+      color: 'from-pink-600 to-rose-600',
+      badgeHi: 'प्रेरक 🌟',
+      badgeEn: 'Heroes 🌟',
     },
     {
       id: 'worksheets' as ActiveTab,
-      labelHi: '10. फ्री डाउनलोड (Free Download)',
-      labelEn: '10. Free Download',
+      labelHi: '10. आर्ट-क्राफ्ट व फ्री डाउनलोड (Art, Craft & Free Download)',
+      labelEn: '10. Art, Craft & Free Download',
       icon: Download,
       color: 'from-teal-500 via-cyan-500 to-blue-600',
-      badgeHi: 'PDF + 🎖️',
-      badgeEn: 'PDF + 🎖️',
+      badgeHi: '🎨+📄',
+      badgeEn: '🎨+📄',
     },
     {
       id: 'about' as ActiveTab,
@@ -453,11 +488,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                     setIsLiveDropdownOpen(true);
                   }}
                   onFocus={() => setIsLiveDropdownOpen(true)}
-                  placeholder={
-                    language === 'hi'
-                      ? 'कहानी, वीडियो, PDF खोजें...'
-                      : 'Search stories, videos, PDFs...'
-                  }
+                  placeholder={getSearchPlaceholder()}
                   className="w-full px-2 py-1 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none bg-transparent"
                 />
                 {headerQuery && (

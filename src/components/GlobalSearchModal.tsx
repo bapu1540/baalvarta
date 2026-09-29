@@ -37,7 +37,7 @@ import {
 import { playPopSound, playSuccessSound } from '../utils/soundEffects';
 import { downloadOrPrintWorksheet } from '../utils/worksheetPrinter';
 import { INITIAL_KIDS_GAMES } from '../data/gamesData';
-import { getStoredWorksheets } from '../utils/storage';
+import { getStoredWorksheets, extractYoutubeThumbnail } from '../utils/storage';
 import {
   getDisplayStoryTitle,
   getDisplayStorySummary,
@@ -59,6 +59,7 @@ interface GlobalSearchModalProps {
   onNavigateTab: (tab: ActiveTab) => void;
   onOpenAdmin?: () => void;
   initialQuery?: string;
+  initialCategory?: string;
 }
 
 type SearchCategoryFilter =
@@ -87,9 +88,12 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   onNavigateTab,
   onOpenAdmin,
   initialQuery = '',
+  initialCategory = 'all',
 }) => {
   const [query, setQuery] = useState(initialQuery);
-  const [activeCategory, setActiveCategory] = useState<SearchCategoryFilter>('all');
+  const [activeCategory, setActiveCategory] = useState<SearchCategoryFilter>(
+    (initialCategory as SearchCategoryFilter) || 'all'
+  );
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -102,11 +106,16 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setQuery(initialQuery);
+      if (initialCategory && ['all', 'stories', 'videos', 'worksheets', 'games', 'learning', 'facts', 'audio'].includes(initialCategory)) {
+        setActiveCategory(initialCategory as SearchCategoryFilter);
+      } else {
+        setActiveCategory('all');
+      }
       setTimeout(() => {
         inputRef.current?.focus();
       }, 80);
     }
-  }, [isOpen, initialQuery]);
+  }, [isOpen, initialQuery, initialCategory]);
 
   // Quick suggestions chips matching popular kids queries
   const popularKeywords = [
@@ -576,7 +585,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     {/* 9:16 Portrait Thumbnail with Play Glow */}
                     <div className="relative w-16 aspect-[9/16] rounded-xl overflow-hidden bg-black shrink-0 border border-red-300 shadow-sm group-hover:scale-105 transition-transform">
                       <img
-                        src={video.thumbnail}
+                        src={extractYoutubeThumbnail(video.youtubeUrl, video.thumbnail) || video.thumbnail}
                         alt={video.titleHi}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"

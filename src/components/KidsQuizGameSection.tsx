@@ -17,6 +17,7 @@ import {
   Medal
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { triggerQuizCelebrationConfetti } from '../utils/confetti';
 import { QuizSet, QuizQuestion, Language } from '../types';
 import { playPopSound, playSuccessSound, speakText } from '../utils/soundEffects';
 import { INITIAL_QUIZ_SETS } from '../data/quizData';
@@ -98,11 +99,7 @@ export const KidsQuizGameSection: React.FC<KidsQuizGameSectionProps> = ({
     } else {
       setQuizFinished(true);
       if (soundEnabled) playSuccessSound();
-      confetti({
-        particleCount: 100,
-        spread: 80,
-        origin: { y: 0.6 },
-      });
+      triggerQuizCelebrationConfetti();
     }
   };
 

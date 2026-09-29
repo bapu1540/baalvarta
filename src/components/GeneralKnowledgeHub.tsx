@@ -28,7 +28,7 @@ export const GeneralKnowledgeHub: React.FC<GeneralKnowledgeHubProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-lg sm:text-2xl shrink-0">🧠</span>
           <h1 className="font-black text-xs sm:text-base md:text-lg tracking-tight truncate">
-            {isHi ? 'सामान्य ज्ञान व बाल क्विज़ (GK & Kids Quiz)' : 'General Knowledge & Kids Quiz'}
+            {isHi ? '4. सामान्य ज्ञान और क्विज़ (General Knowledge and Quiz)' : '4. General Knowledge and Quiz'}
           </h1>
         </div>
         <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-amber-200 text-[10px] sm:text-xs font-black shrink-0 border border-white/20">

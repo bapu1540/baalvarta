@@ -57,6 +57,7 @@ import {
   Send,
   Bell,
   Users,
+  Rocket,
 } from 'lucide-react';
 import {
   Story,
@@ -81,6 +82,8 @@ import { playPopSound, playSuccessSound } from '../utils/soundEffects';
 import { safeCopyToClipboard } from '../utils/clipboard';
 import { ImageUpload16x9 } from './ImageUpload16x9';
 import { ImageUpload9x16 } from './ImageUpload9x16';
+import { AdminGreatHeroesManager } from './admin/AdminGreatHeroesManager';
+import { AdminSpaceManager } from './admin/AdminSpaceManager';
 import {
   getStoredQuizSets,
   saveStoredQuizSets,
@@ -103,9 +106,15 @@ import {
   saveStoredFooterImage,
   getAdminPasswords,
   saveAdminPassword,
+  getStoredAdminPhone,
+  saveStoredAdminPhone,
+  DEFAULT_ADMIN_PHONE,
+  maskAdminEmail,
+  maskAdminPhone,
+  extractYoutubeThumbnail,
+  extractYoutubeId,
   AUTHORIZED_ADMIN_EMAILS,
   PRIMARY_ADMIN_EMAIL,
-  SECONDARY_ADMIN_EMAIL,
   exportFullDatabaseJson,
   importFullDatabaseJson,
   getStoredPaymentSettings,
@@ -222,6 +231,8 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     | 'videos'
     | 'quizzes'
     | 'worksheets'
+    | 'space_universe'
+    | 'great_heroes'
     | 'games'
     | 'coloring'
     | 'awards'
@@ -250,8 +261,9 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
   // Dual Admin Passwords & 2FA State
   const [adminPasswords, setAdminPasswordsState] = useState<Record<string, string>>(() => getAdminPasswords());
-  const [newPassBaalvarta, setNewPassBaalvarta] = useState('');
   const [newPassSanjay, setNewPassSanjay] = useState('');
+  const [adminPhone, setAdminPhoneState] = useState<string>(() => getStoredAdminPhone());
+  const [newAdminPhoneInput, setNewAdminPhoneInput] = useState<string>(() => getStoredAdminPhone());
   const [securitySuccessMsg, setSecuritySuccessMsg] = useState('');
   const [testingEmail, setTestingEmail] = useState<string | null>(null);
   const [testEmailMsg, setTestEmailMsg] = useState<string>('');
@@ -1153,27 +1165,28 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     deleteAudioStoryFromFirestore(id);
   };
 
-  // Helper to extract YouTube video ID and 16:9 thumbnail
-  const extractYoutubeThumbnail = (url: string): string | null => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    if (match && match[2].length === 11) {
-      return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
-    }
-    return null;
-  };
-
   // Video Stories & Categories Handlers
   const handleAddOrUpdateVideo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVideo.titleHi.trim() || !newVideo.youtubeUrl.trim() || !newVideo.thumbnail) {
-      alert('कृपया कहानी का नाम, यूट्यूब लिंक और 16:9 थंबनेल अवश्य भरें।');
+    if (!newVideo.titleHi.trim() || !newVideo.youtubeUrl.trim()) {
+      alert('कृपया कहानी का नाम और यूट्यूब लिंक अवश्य भरें।');
       return;
     }
 
+    // Auto-derive high-quality YouTube thumbnail directly from the YouTube link if not custom
+    const autoYtThumb = extractYoutubeThumbnail(newVideo.youtubeUrl);
+    const resolvedThumbnail =
+      newVideo.thumbnail && !newVideo.thumbnail.includes('unsplash')
+        ? newVideo.thumbnail
+        : autoYtThumb || newVideo.thumbnail || 'https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=600&auto=format&fit=crop&q=80';
+
+    const videoPayload = {
+      ...newVideo,
+      thumbnail: resolvedThumbnail,
+    };
+
     if (editingVideoId) {
-      const updatedItem: VideoStory = { ...newVideo, id: editingVideoId };
+      const updatedItem: VideoStory = { ...videoPayload, id: editingVideoId };
       const updated = videoStories.map((v) =>
         v.id === editingVideoId ? updatedItem : v
       );
@@ -1182,7 +1195,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       setEditingVideoId(null);
     } else {
       const created: VideoStory = {
-        ...newVideo,
+        ...videoPayload,
         id: `vid-${Date.now()}`,
       };
       onSaveVideos([created, ...videoStories]);
@@ -1193,7 +1206,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       titleHi: '',
       titleEn: '',
       youtubeUrl: '',
-      thumbnail: 'https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=600&auto=format&fit=crop&q=80',
+      thumbnail: '',
       category: videoCategories[0] || 'पंचतंत्र कहानियाँ',
       duration: '0:58',
       viewsCount: '15K+',
@@ -1698,19 +1711,21 @@ service cloud.firestore {
             { id: 'stories', label: '1. कहानियाँ', icon: BookOpen, count: stories.length },
             { id: 'videos', label: '2. वीडियो कहानियाँ', icon: Video, count: videoStories.length },
             { id: 'quizzes', label: '3. बाल क्विज़', icon: Trophy, count: quizSets.length },
-            { id: 'worksheets', label: '4. वर्कशीट्स', icon: Printer, count: worksheets.length },
-            { id: 'games', label: '5. किड्स गेम्स', icon: Gamepad2, count: gamesList.length },
-            { id: 'coloring', label: '6. कलरिंग टेम्पलेट्स', icon: Palette, count: coloringTemplates.length },
-            { id: 'awards', label: '7. बाल सम्मान', icon: Award, count: certificateAwards.length },
-            { id: 'tasks', label: '8. दैनिक टास्क व मिशन', icon: CheckCircle2, count: dailyTasksList.length },
-            { id: 'analytics', label: '9. बाल प्रोफ़ाइल व एनालिटिक्स', icon: UserCheck },
-            { id: 'facts', label: '10. रोचक तथ्य', icon: Lightbulb, count: facts.length },
-            { id: 'learning', label: '11. अक्षर व गिनती', icon: Sparkles, count: learningItems.length },
-            { id: 'audio', label: '12. ऑडियो कहानियाँ', icon: Headphones, count: audioStories.length },
-            { id: 'reviews', label: '13. पाठक समीक्षाएँ', icon: Heart, count: reviews.length },
-            { id: 'vip_payment', label: '14. VIP व पेमेंट गेटवे', icon: Crown },
-            { id: 'security', label: '15. सुरक्षा व 2FA', icon: Shield },
-            { id: 'firebase', label: '16. डेटाबेस बैकअप', icon: Cloud },
+            { id: 'worksheets', label: '4. वर्कशीट्स व PDF', icon: Printer, count: worksheets.length },
+            { id: 'space_universe', label: '5. अंतरिक्ष व सौरमंडल', icon: Rocket },
+            { id: 'great_heroes', label: '6. महान हस्तियों का बचपन', icon: Sparkles },
+            { id: 'games', label: '7. किड्स गेम्स', icon: Gamepad2, count: gamesList.length },
+            { id: 'coloring', label: '8. कलरिंग टेम्पलेट्स', icon: Palette, count: coloringTemplates.length },
+            { id: 'awards', label: '9. बाल सम्मान', icon: Award, count: certificateAwards.length },
+            { id: 'tasks', label: '10. दैनिक टास्क व मिशन', icon: CheckCircle2, count: dailyTasksList.length },
+            { id: 'analytics', label: '11. बाल प्रोफ़ाइल व एनालिटिक्स', icon: UserCheck },
+            { id: 'facts', label: '12. रोचक तथ्य', icon: Lightbulb, count: facts.length },
+            { id: 'learning', label: '13. अक्षर व गिनती', icon: Sparkles, count: learningItems.length },
+            { id: 'audio', label: '14. ऑडियो कहानियाँ', icon: Headphones, count: audioStories.length },
+            { id: 'reviews', label: '15. पाठक समीक्षाएँ', icon: Heart, count: reviews.length },
+            { id: 'vip_payment', label: '16. VIP व पेमेंट गेटवे', icon: Crown },
+            { id: 'security', label: '17. सुरक्षा व 2FA', icon: Shield },
+            { id: 'firebase', label: '18. डेटाबेस बैकअप', icon: Cloud },
           ].map((tab) => {
 
             const Icon = tab.icon;
@@ -1826,13 +1841,35 @@ service cloud.firestore {
                     {
                       id: 'worksheets' as const,
                       num: '4',
-                      titleHi: 'प्रिंटेबल वर्कशीट्स (Worksheets)',
-                      titleEn: 'Printable Activity & Coloring PDFs',
+                      titleHi: 'आर्ट-क्राफ्ट व फ्री डाउनलोड (Worksheets & Craft)',
+                      titleEn: 'Printable Activity, Origami & Coloring PDFs',
                       icon: Printer,
                       count: `${worksheets.length} वर्कशीट्स`,
                       gradient: 'from-emerald-500 to-teal-600',
-                      desc: 'कलरिंग शीट्स, वर्णमाला ट्रेसिंग व ड्राइंग अभ्यास पत्र।',
+                      desc: 'कलरिंग शीट्स, ओरिगेमी पेपर क्राफ्ट, वर्णमाला ट्रेसिंग व ड्राइंग अभ्यास पत्र।',
                       actions: ['+ नई वर्कशीट जोड़ें', '✏️ विवरण सुधारें', '🗑️ डिलीट'],
+                    },
+                    {
+                      id: 'space_universe' as const,
+                      num: '5',
+                      titleHi: 'अंतरिक्ष और ब्रह्मांड (Space & Universe)',
+                      titleEn: 'Planets, ISRO Missions & Space Facts',
+                      icon: Rocket,
+                      count: 'सौरमंडल व चंद्रयान',
+                      gradient: 'from-blue-600 to-indigo-700',
+                      desc: 'सौरमंडल के ग्रह, चंद्रयान-3/मंगलयान मिशन और ब्रह्मांड ज्ञान का सचित्र प्रबंधन।',
+                      actions: ['+ नया ग्रह/मिशन', '✏️ फोटो व तथ्य बदलें', '🗑️ डिलीट'],
+                    },
+                    {
+                      id: 'great_heroes' as const,
+                      num: '6',
+                      titleHi: 'महान हस्तियों का बचपन (Childhood of Heroes)',
+                      titleEn: 'Inspirational Childhood Stories & Photo Notes',
+                      icon: Sparkles,
+                      count: 'महानायकों की गाथाएं',
+                      gradient: 'from-pink-600 to-rose-600',
+                      desc: 'शिवाजी महाराज, कलाम साहब, विवेकानंद व रानी लक्ष्मीबाई के बचपन की कहानियाँ व फोटो।',
+                      actions: ['+ नया महानायक', '📸 फोटो व नोट्स बदलें', '🗑️ डिलीट'],
                     },
                     {
                       id: 'games' as const,
@@ -2931,8 +2968,8 @@ service cloud.firestore {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="font-bold text-slate-700 block mb-1">
+                  <div className="sm:col-span-2 space-y-2">
+                    <label className="font-bold text-slate-700 block mb-0.5">
                       यूट्यूब वीडियो लिंक (YouTube Video URL) *
                     </label>
                     <input
@@ -2946,14 +2983,43 @@ service cloud.firestore {
                         setNewVideo((prev) => ({
                           ...prev,
                           youtubeUrl: url,
-                          thumbnail: ytThumb && (!prev.thumbnail || prev.thumbnail.includes('unsplash')) ? ytThumb : prev.thumbnail,
+                          thumbnail: ytThumb || prev.thumbnail,
                         }));
                       }}
                       className="w-full p-2.5 rounded-xl bg-white border border-red-200 font-semibold focus:outline-none focus:ring-2 focus:ring-red-400"
                     />
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      क्लिक करने पर दर्शक सीधे आपके यूट्यूब वीडियो / चैनल पर पहुँच जाएंगे।
-                    </p>
+
+                    {/* Auto-extracted YouTube Thumbnail Live Preview */}
+                    {(() => {
+                      const derivedThumb = extractYoutubeThumbnail(newVideo.youtubeUrl) || newVideo.thumbnail;
+                      if (derivedThumb) {
+                        return (
+                          <div className="p-3 bg-red-50 rounded-2xl border border-red-200 flex flex-col sm:flex-row items-start sm:items-center gap-3 animate-in fade-in">
+                            <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-slate-900 shrink-0 border border-red-300 shadow-xs">
+                              <img
+                                src={derivedThumb}
+                                alt="YouTube Auto Thumbnail"
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                <Play className="w-4 h-4 fill-white text-white" />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black">
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span>यूट्यूब थंबनेल स्वतः डिटेक्ट हुआ (Auto-Fetched from YouTube)</span>
+                              </span>
+                              <p className="text-[11px] text-slate-600 leading-snug">
+                                ✨ आपको अलग से कोई फोटो डालने की जरूरत नहीं है, यूट्यूब पर जो थंबनेल है वही यहाँ अपने आप 16:9 में दिखेगा।
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   <div>
@@ -3005,15 +3071,23 @@ service cloud.firestore {
                     />
                   </div>
 
-                  {/* 16:9 Aspect Ratio Thumbnail Upload */}
-                  <div className="sm:col-span-2 bg-white p-4 rounded-2xl border border-red-200">
+                  {/* Optional Custom 16:9 Thumbnail Override */}
+                  <div className="sm:col-span-2 bg-white p-3.5 rounded-2xl border border-red-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-slate-700 text-xs">
+                        वैकल्पिक: क्या आप कोई अन्य कस्टम थंबनेल फोटो अपलोड करना चाहते हैं? (Optional)
+                      </label>
+                      <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">
+                        ऐच्छिक (Optional)
+                      </span>
+                    </div>
                     <ImageUpload16x9
-                      label="वीडियो का 16:9 थंबनेल फोटो (YouTube 16:9 Thumbnail)"
+                      label="कस्टम 16:9 थंबनेल फोटो (यदि यूट्यूब वाला नहीं रखना हो तो)"
                       value={newVideo.thumbnail}
                       onChange={(img) => setNewVideo({ ...newVideo, thumbnail: img })}
-                      required
+                      required={false}
                       soundEnabled={soundEnabled}
-                      helperText="16:9 अनुपात में यूट्यूब थंबनेल फोटो अपलोड करें या ऑनलाइन इमेज URL पेस्ट करें (यूट्यूब लिंक डालने पर यह अपने आप भी भर जाता है)।"
+                      helperText="यदि आप यूट्यूब का मूल थंबनेल रखना चाहते हैं, तो इसे खाली छोड़ दें।"
                     />
                   </div>
 
@@ -3689,6 +3763,16 @@ service cloud.firestore {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB: 🚀 SPACE & UNIVERSE EXPLORER CMS */}
+          {activeTab === 'space_universe' && (
+            <AdminSpaceManager soundEnabled={soundEnabled} />
+          )}
+
+          {/* TAB: 🌟 GREAT HEROES CHILDHOOD CMS */}
+          {activeTab === 'great_heroes' && (
+            <AdminGreatHeroesManager soundEnabled={soundEnabled} />
           )}
 
           {/* TAB 5: 🎮 KIDS MINI GAMES CMS */}
@@ -6024,25 +6108,25 @@ service cloud.firestore {
                     श्रेणी 10: एडमिन सुरक्षा व 2FA
                   </span>
                   <span className="text-slate-600 font-semibold hidden md:inline">
-                    • दोनों अधिकृत जीमेल आईडी के पासवर्ड व सुरक्षा नियम
+                    • 1 अधिकृत ईमेल ({maskAdminEmail()}) [सुरक्षा मोड: ईमेल OTP व पासवर्ड]
                   </span>
                 </div>
               </div>
 
               {/* Security Header Banner */}
-              <div className="p-5 rounded-3xl bg-gradient-to-r from-rose-600 via-amber-700 to-amber-800 text-white shadow-md space-y-2">
+              <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white shadow-md space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-0.5 rounded-full bg-white/25 text-xs font-black uppercase">
-                    Strict 2-Factor Authentication
+                    Admin Security & Access Control
                   </span>
-                  <Shield className="w-6 h-6 text-emerald-300" />
+                  <Shield className="w-6 h-6 text-amber-200" />
                 </div>
                 <h3 className="text-xl font-black">
-                  🔒 एडमिन सुरक्षा व दोहरे खाते (Dual Admin Security & 2FA)
+                  🔒 एडमिन सुरक्षा व प्रमाणीकरण (Admin Security)
                 </h3>
                 <p className="text-xs text-amber-100 leading-relaxed max-w-2xl">
-                  बालवार्ता एडमिन में केवल दो अधिकृत ईमेल को ही प्रवेश की अनुमति है।
-                  हर बार लॉगिन करते समय पासवर्ड के साथ-साथ ईमेल पर 6 अंकों का OTP सत्यापन अनिवार्य है।
+                  बालवार्ता एडमिन में केवल अधिकृत ईमेल ({maskAdminEmail()}) एवं सुरक्षित बैक-अप ईमेल को ही प्रवेश की अनुमति है।
+                  मोबाइल OTP बंद कर दिया गया है। आप अपने पासवर्ड अथवा ईमेल पर भेजे गए 6-अंकों के सुरक्षा OTP दोनों में से किसी भी एक तरीके से सीधे लॉगिन कर सकते हैं।
                 </p>
               </div>
 
@@ -6054,10 +6138,10 @@ service cloud.firestore {
                   </div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-black text-emerald-950">
-                      2-स्टेप वेरिफिकेशन प्रणाली सक्रिय है (2FA Active)
+                      सुरक्षित डुअल ईमेल OTP व पासवर्ड लॉगिन सक्रिय (Active 2FA)
                     </h4>
                     <p className="text-[11px] text-emerald-700">
-                      आईडी-पासवर्ड डालने के बाद केवल नीचे दिए गए दो ईमेल पर ही OTP कोड जाएगा।
+                      एडमिन पासवर्ड अथवा पंजीकृत ईमेल ({maskAdminEmail()}) व गुप्त बैक-अप ईमेल पर 6-अंकों के OTP द्वारा सीधा सुरक्षित प्रवेश।
                     </p>
                   </div>
                 </div>
@@ -6073,90 +6157,28 @@ service cloud.firestore {
                 </div>
               )}
 
-              {/* Account 1: baalvarta@gmail.com */}
-              <div className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-amber-200 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black">
-                      1
-                    </div>
-                    <div>
-                      <h4 className="font-black text-sm text-slate-900 flex items-center gap-1.5">
-                        <span>baalvarta@gmail.com</span>
-                        <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold">
-                          मुख्य बालवार्ता एडमिन
-                        </span>
-                      </h4>
-                      <p className="text-[11px] text-slate-500">
-                        Official Publishing & Content Administrator
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="text-xs font-mono font-bold text-slate-500">
-                    वर्तमान पासवर्ड: {adminPasswords['baalvarta@gmail.com'] ? '••••••••' : 'डिफ़ॉल्ट सेट'}
-                  </span>
-                </div>
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!newPassBaalvarta.trim() || newPassBaalvarta.trim().length < 6) {
-                      alert('पासवर्ड कम से कम 6 अक्षरों/अंकों का होना चाहिए!');
-                      return;
-                    }
-                    saveAdminPassword('baalvarta@gmail.com', newPassBaalvarta.trim());
-                    setAdminPasswordsState(getAdminPasswords());
-                    setNewPassBaalvarta('');
-                    if (soundEnabled) playSuccessSound();
-                    setSecuritySuccessMsg('baalvarta@gmail.com का पासवर्ड सफलतापूर्वक अपडेट हो गया है!');
-                    setTimeout(() => setSecuritySuccessMsg(''), 4000);
-                  }}
-                  className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-1"
-                >
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-black text-slate-700 mb-1">
-                      baalvarta@gmail.com के लिए नया पासवर्ड सेट करें:
-                    </label>
-                    <input
-                      type="text"
-                      value={newPassBaalvarta}
-                      onChange={(e) => setNewPassBaalvarta(e.target.value)}
-                      placeholder="नया पासवर्ड दर्ज करें (कम से कम 6 अक्षर)"
-                      className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 border-2 border-amber-200 focus:outline-none focus:border-amber-600"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer"
-                  >
-                    पासवर्ड सेव करें
-                  </button>
-                </form>
-              </div>
-
-              {/* Account 2: chauhansanjay932@gmail.com */}
+              {/* Account 1: Primary Super Admin */}
               <div className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-amber-200 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center font-black">
-                      2
+                      1
                     </div>
                     <div>
                       <h4 className="font-black text-sm text-slate-900 flex items-center gap-1.5">
-                        <span>chauhansanjay932@gmail.com</span>
+                        <span className="font-mono">{maskAdminEmail('chauhansanjay932@gmail.com')}</span>
                         <span className="text-[10px] bg-orange-100 text-orange-950 px-2 py-0.5 rounded font-bold">
-                          संजय चौहान (सुपर एडमिन / स्वामी)
+                          अधिकृत व्यवस्थापक (सुपर एडमिन / स्वामी)
                         </span>
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Primary Owner & Super Administrator
+                        Primary Owner & Super Administrator • पासवर्ड: Bapu@1540 (या आपका नया पासवर्ड)
                       </p>
                     </div>
                   </div>
 
-                  <span className="text-xs font-mono font-bold text-slate-500">
-                    वर्तमान पासवर्ड: {adminPasswords['chauhansanjay932@gmail.com'] ? '••••••••' : 'डिफ़ॉल्ट सेट'}
+                  <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-xl">
+                    पासवर्ड: ••••••••
                   </span>
                 </div>
 
@@ -6171,20 +6193,20 @@ service cloud.firestore {
                     setAdminPasswordsState(getAdminPasswords());
                     setNewPassSanjay('');
                     if (soundEnabled) playSuccessSound();
-                    setSecuritySuccessMsg('chauhansanjay932@gmail.com का पासवर्ड सफलतापूर्वक अपडेट हो गया है!');
+                    setSecuritySuccessMsg(`${maskAdminEmail('chauhansanjay932@gmail.com')} एवं बैक-अप खाते का पासवर्ड सफलतापूर्वक अपडेट हो गया है!`);
                     setTimeout(() => setSecuritySuccessMsg(''), 4000);
                   }}
                   className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-1"
                 >
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-black text-slate-700 mb-1">
-                      chauhansanjay932@gmail.com के लिए नया पासवर्ड सेट करें:
+                      {maskAdminEmail('chauhansanjay932@gmail.com')} के लिए नया पासवर्ड सेट करें:
                     </label>
                     <input
                       type="text"
                       value={newPassSanjay}
                       onChange={(e) => setNewPassSanjay(e.target.value)}
-                      placeholder="नया पासवर्ड दर्ज करें (कम से कम 6 अक्षर)"
+                      placeholder="नया पासवर्ड दर्ज करें (उदा. Bapu@1540)"
                       className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 border-2 border-amber-200 focus:outline-none focus:border-amber-600"
                     />
                   </div>
@@ -6197,86 +6219,132 @@ service cloud.firestore {
                 </form>
               </div>
 
-              {/* Direct Gmail 2FA OTP Delivery Status & Live Testing */}
-              <div className="p-5 rounded-3xl bg-white border-2 border-emerald-300 shadow-sm space-y-4">
-                <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
+              {/* Account 2: Hidden Backup Account */}
+              <div className="bg-slate-50 rounded-3xl p-5 sm:p-6 border-2 border-sky-200 shadow-sm space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-sky-100 pb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">
+                    <div className="w-10 h-10 rounded-xl bg-sky-700 text-white flex items-center justify-center font-black">
+                      2
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-slate-900 flex items-center gap-1.5">
+                        <span className="font-mono text-slate-700">•••••••••••••• (गुप्त बैक-अप ईमेल)</span>
+                        <span className="text-[10px] bg-sky-100 text-sky-950 px-2 py-0.5 rounded font-bold">
+                          बैक-अप व्यवस्थापक (पूर्णतः सुरक्षित व हिडन)
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Second Emergency Admin & Backup • निर्देशानुसार यह ईमेल UI में 100% गुप्त रखा गया है
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-xl">
+                    ✅ सक्रिय व सुरक्षित
+                  </span>
+                </div>
+
+                <div className="p-3 bg-white rounded-xl border border-sky-200 text-xs text-slate-600 space-y-1">
+                  <p className="font-bold text-sky-950 flex items-center gap-1.5">
+                    <Shield className="w-4 h-4 text-sky-600" />
+                    <span>डुअल डिलीवरी गारंटी (Dual Dispatch Guarantee):</span>
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    जब भी आप 2-स्टेप लॉगिन या पासवर्ड रीसेट के लिए OTP मंगाएंगे, कोड स्वतः आपके प्राथमिक ईमेल एवं इस गुप्त बैक-अप ईमेल दोनों पर एक साथ भेजा जाता है। यदि एक ईमेल में समस्या आए तो आप दूसरे इनबॉक्स से कोड ले सकते हैं।
+                  </p>
+                </div>
+              </div>
+
+              {/* Notice: Mobile OTP Disabled */}
+              <div className="bg-slate-50 rounded-3xl p-5 sm:p-6 border-2 border-slate-200 shadow-sm space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-600 flex items-center justify-center font-black">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-slate-800 flex items-center gap-1.5">
+                      <span>मोबाइल OTP स्थिति:</span>
+                      <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold">
+                        निष्क्रिय (Disabled by Admin)
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      मोबाइल पर SMS शुल्क व नेटवर्क बाधा से बचने के लिए मोबाइल OTP बंद कर दिया गया है।
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Direct Gmail OTP Delivery Status & Live Testing */}
+              <div className="p-5 rounded-3xl bg-white border-2 border-sky-300 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-sky-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-black">
                       <Mail className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="font-black text-sm text-slate-900 flex items-center gap-1.5">
-                        <span>2-स्टेप Google Mail (Gmail) OTP डिलीवरी सेंटर</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-950 px-2 py-0.5 rounded font-bold">
-                          सक्रिय (Active)
+                        <span>सुरक्षा OTP डिलीवरी सेंटर (Gmail Direct Verification)</span>
+                        <span className="text-[10px] bg-sky-100 text-sky-950 px-2 py-0.5 rounded font-bold">
+                          सक्रिय (100% Free - ₹0 शुल्क)
                         </span>
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Strict 2FA Security - स्क्रीन पर OTP कभी नहीं दिखता, केवल Gmail इनबॉक्स में आता है
+                        गोपनीय OTP स्क्रीन पर कभी नहीं दिखता, सीधे आपके अधिकृत Gmail इनबॉक्स पर भेजा जाता है
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-2">
+                <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-xs text-sky-900 space-y-2">
                   <p className="font-bold flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                    <ShieldCheck className="w-4 h-4 text-sky-700" />
                     <span>पूर्ण सुरक्षा नीति (Full Privacy Guarantee):</span>
                   </p>
-                  <p className="text-[11px] text-emerald-800 leading-relaxed">
-                    लॉगिन करते समय OTP कोड अब कभी भी कंप्यूटर स्क्रीन पर नहीं दिखता ताकि कोई भी व्यक्ति देखकर एंटर न कर सके। 6 अंकों का गुप्त कोड केवल और केवल आपके <strong>Google Account (Gmail)</strong> इनबॉक्स में भेजा जाता है।
+                  <p className="text-[11px] text-sky-800 leading-relaxed">
+                    लॉगिन अथवा पासवर्ड रीसेट करते समय 6 अंकों का गुप्त सुरक्षा कोड केवल और केवल आपके अधिकृत <strong>Google Account ({maskAdminEmail('chauhansanjay932@gmail.com')})</strong> पर भेजा जाता है।
                   </p>
                 </div>
 
                 {/* Test OTP Buttons */}
                 <div className="space-y-2">
                   <p className="text-xs font-black text-slate-800">
-                    📧 लाइव ईमेल डिलीवरी टेस्ट (Test Gmail Delivery Now):
+                    📧 लाइव ईमेल डिलीवरी टेस्ट (Test Email OTP Delivery Now):
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
                     <button
                       type="button"
                       disabled={testingEmail !== null}
                       onClick={async () => {
                         setTestingEmail('chauhansanjay932@gmail.com');
-                        setTestEmailMsg('chauhansanjay932@gmail.com पर टेस्ट OTP भेजा जा रहा है...');
+                        setTestEmailMsg(`${maskAdminEmail('chauhansanjay932@gmail.com')} एवं बैक-अप ईमेल पर टेस्ट OTP भेजा जा रहा है...`);
                         const testOtp = Math.floor(100000 + Math.random() * 900000).toString();
                         const res = await sendAdminOtpEmail('chauhansanjay932@gmail.com', testOtp, 'login');
                         setTestingEmail(null);
-                        setTestEmailMsg(res.message);
+                        setTestEmailMsg(res.success ? `सफलता! ${maskAdminEmail('chauhansanjay932@gmail.com')} एवं गुप्त बैक-अप ईमेल दोनों पर 6 अंकों का टेस्ट OTP ईमेल भेज दिया गया है!` : res.message);
                       }}
-                      className="px-4 py-3 rounded-2xl bg-orange-50 hover:bg-orange-100 border border-orange-300 text-left transition-all cursor-pointer"
+                      className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-sky-50 hover:bg-sky-100 border border-sky-300 text-left transition-all cursor-pointer"
                     >
-                      <div className="text-xs font-bold text-orange-950 flex items-center justify-between">
-                        <span>chauhansanjay932@gmail.com</span>
-                        <span className="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded-full">
-                          {testingEmail === 'chauhansanjay932@gmail.com' ? 'भेजा जा रहा है...' : 'टेस्ट OTP भेजें'}
+                      <div className="text-xs font-bold text-sky-950 flex items-center justify-between gap-4">
+                        <span className="font-mono">{maskAdminEmail('chauhansanjay932@gmail.com')} + बैक-अप ईमेल</span>
+                        <span className="text-[10px] bg-sky-600 text-white px-2.5 py-0.5 rounded-full">
+                          {testingEmail === 'chauhansanjay932@gmail.com' ? 'भेजा जा रहा है...' : 'टेस्ट OTP ईमेल भेजें'}
                         </span>
                       </div>
-                      <p className="text-[10px] text-orange-800 mt-1">संजय चौहान के Gmail पर टेस्ट OTP मेल करें</p>
+                      <p className="text-[10px] text-sky-800 mt-1">दोनों अधिकृत इनबॉक्स पर एक साथ टेस्ट OTP मेल करें</p>
                     </button>
+                  </div>
 
-                    <button
-                      type="button"
-                      disabled={testingEmail !== null}
-                      onClick={async () => {
-                        setTestingEmail('baalvarta@gmail.com');
-                        setTestEmailMsg('baalvarta@gmail.com पर टेस्ट OTP भेजा जा रहा है...');
-                        const testOtp = Math.floor(100000 + Math.random() * 900000).toString();
-                        const res = await sendAdminOtpEmail('baalvarta@gmail.com', testOtp, 'login');
-                        setTestingEmail(null);
-                        setTestEmailMsg(res.message);
-                      }}
-                      className="px-4 py-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-left transition-all cursor-pointer"
-                    >
-                      <div className="text-xs font-bold text-amber-950 flex items-center justify-between">
-                        <span>baalvarta@gmail.com</span>
-                        <span className="text-[10px] bg-amber-600 text-white px-2 py-0.5 rounded-full">
-                          {testingEmail === 'baalvarta@gmail.com' ? 'भेजा जा रहा है...' : 'टेस्ट OTP भेजें'}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-amber-800 mt-1">baalvarta@gmail.com पर टेस्ट OTP मेल करें</p>
-                    </button>
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 font-medium space-y-1">
+                    <p className="font-bold flex items-center gap-1.5 text-amber-950">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                      <span>OTP ईमेल प्राप्त न होने पर समाधान:</span>
+                    </p>
+                    <ul className="list-disc list-inside space-y-0.5 text-[10px] text-amber-800">
+                      <li>Gmail के <strong>Spam (स्पैम)</strong>, <strong>Junk</strong> या <strong>Promotions</strong> फ़ोल्डर को अवश्य चेक करें।</li>
+                      <li>यदि पहली बार FormSubmit का एक्टिवेशन मेल आए, तो उस पर क्लिक कर दें ताकि आगे से ईमेल सीधे इनबॉक्स में आएँ।</li>
+                      <li>बैक-अप ईमेल इनबॉक्स भी चेक करें जहाँ OTP की एक प्रति समानांतर रूप से भेजी जाती है।</li>
+                    </ul>
                   </div>
 
                   {testEmailMsg && (

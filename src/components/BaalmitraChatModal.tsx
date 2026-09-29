@@ -302,8 +302,20 @@ export const BaalmitraChatModal: React.FC<BaalmitraChatModalProps> = ({
                       : 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-700 text-white rounded-tr-sm'
                   }`}
                 >
-                  <p className="text-xs sm:text-sm font-semibold whitespace-pre-wrap leading-relaxed">
-                    {msg.content}
+                  <p className="text-xs sm:text-sm font-medium whitespace-pre-wrap leading-relaxed">
+                    {(() => {
+                      const parts = msg.content.split(/(\*\*.*?\*\*)/g);
+                      return parts.map((part, i) => {
+                        if (part.startsWith('**') && part.endsWith('**')) {
+                          return (
+                            <strong key={i} className={isBot ? "font-black text-slate-950" : "font-black text-white"}>
+                              {part.slice(2, -2)}
+                            </strong>
+                          );
+                        }
+                        return <React.Fragment key={i}>{part}</React.Fragment>;
+                      });
+                    })()}
                   </p>
 
                   <div

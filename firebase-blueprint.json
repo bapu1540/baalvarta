@@ -65,6 +65,19 @@
       },
       "required": ["lastPing"]
     },
+    "AuthOtp": {
+      "title": "AuthOtp",
+      "description": "Secure OTP record for Firebase phone and email authentication",
+      "type": "object",
+      "properties": {
+        "identifier": { "type": "string" },
+        "type": { "type": "string" },
+        "otpCode": { "type": "string" },
+        "expiresAt": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["identifier", "type", "otpCode", "expiresAt"]
+    },
     "VideoStory": {
       "title": "VideoStory",
       "description": "Animated educational children video story",
@@ -206,6 +219,10 @@
     "/_connection_test/{testId}": {
       "schema": "ConnectionTest",
       "description": "Connection test heartbeat document"
+    },
+    "/auth_otps/{otpId}": {
+      "schema": "AuthOtp",
+      "description": "Secure OTP records for Firebase phone and email authentication"
     }
   }
 }

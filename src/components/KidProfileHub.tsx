@@ -391,7 +391,7 @@ export const KidProfileHub: React.FC<KidProfileHubProps> = ({
 
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-amber-100 font-bold">
                 <span className="px-2.5 py-0.5 rounded-lg bg-black/20 border border-white/20">
-                  {profile.ageGroup || '6-8 वर्ष'}
+                  {isHi ? '🌟 बालवार्ता पाठक' : '🌟 Baalvarta Scholar'}
                 </span>
                 <span>•</span>
                 <span className="font-extrabold text-white">
@@ -503,17 +503,18 @@ export const KidProfileHub: React.FC<KidProfileHubProps> = ({
               </div>
               <div>
                 <label className="block text-xs font-bold text-amber-100 mb-1">
-                  आयु वर्ग (Age Group / Class):
+                  {isHi ? 'पसंदीदा विषय (Favorite Topic):' : 'Favorite Topic:'}
                 </label>
                 <select
                   value={ageGroupInput}
                   onChange={(e) => setAgeGroupInput(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-white text-slate-900 text-sm font-bold border border-amber-300 shadow-inner focus:outline-hidden focus:ring-2 focus:ring-yellow-400"
                 >
-                  <option value="3-5 वर्ष (Nursery)">3-5 वर्ष (Nursery / KG)</option>
-                  <option value="6-8 वर्ष (Class 1-3)">6-8 वर्ष (Class 1-3)</option>
-                  <option value="9-12 वर्ष (Class 4-7)">9-12 वर्ष (Class 4-7)</option>
-                  <option value="12+ वर्ष (Teen Scholar)">12+ वर्ष (Young Adult)</option>
+                  <option value="🌟 प्रेरक कहानियाँ">🌟 प्रेरक कहानियाँ (Moral Stories)</option>
+                  <option value="🧠 सामान्य ज्ञान व क्विज़">🧠 सामान्य ज्ञान व क्विज़ (GK & Quiz)</option>
+                  <option value="🚀 अंतरिक्ष व ब्रह्मांड">🚀 अंतरिक्ष व ब्रह्मांड (Space Explorer)</option>
+                  <option value="👑 महान विभूतियों का बचपन">👑 महान विभूतियों का बचपन (Great Legends)</option>
+                  <option value="🎨 आर्ट व क्राफ्ट">🎨 आर्ट व क्राफ्ट (Art & Craft)</option>
                 </select>
               </div>
             </div>

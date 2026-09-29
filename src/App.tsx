@@ -30,6 +30,7 @@ import {
   loadPersistentData,
   mergeWithInitialStories,
   recordSiteVisit,
+  addRecentlyReadStory,
 } from './utils/storage';
 import { saveToServerDatabase } from './utils/dbStorage';
 import { WebsiteHeader } from './components/WebsiteHeader';
@@ -55,6 +56,8 @@ import { KidsCertificateHub } from './components/KidsCertificateHub';
 import { KidProfileHub } from './components/KidProfileHub';
 import { PrintableWorksheetsHub } from './components/PrintableWorksheetsHub';
 import { GeneralKnowledgeHub } from './components/GeneralKnowledgeHub';
+import { SpaceUniverseHub } from './components/SpaceUniverseHub';
+import { GreatHeroesChildhoodHub } from './components/GreatHeroesChildhoodHub';
 import { BaalmitraChatModal } from './components/BaalmitraChatModal';
 import { BaalvartaProModal } from './components/BaalvartaProModal';
 import { ContentSkeletonLoader } from './components/ContentSkeletonLoader';
@@ -107,6 +110,7 @@ export default function App() {
   // Global Search State
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
   const [searchModalQuery, setSearchModalQuery] = useState<string>('');
+  const [searchModalCategory, setSearchModalCategory] = useState<string>('all');
 
   // Theme & Font Settings State
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>(() => getStoredThemeSettings());
@@ -130,9 +134,10 @@ export default function App() {
     saveStoredThemeSettings(newSettings);
   };
 
-  const handleOpenSearch = (query: string = '') => {
+  const handleOpenSearch = (query: string = '', category: string = 'all') => {
     if (soundEnabled) playPopSound();
     setSearchModalQuery(query);
+    setSearchModalCategory(category);
     setIsSearchModalOpen(true);
   };
 
@@ -530,6 +535,7 @@ export default function App() {
 
   const handleSelectStory = (story: Story) => {
     stopSpeech();
+    addRecentlyReadStory(story.id);
     setSelectedStoryForReader(story);
     setTabHistory((prev) => [...prev, 'stories']);
     setActiveTab('stories');
@@ -632,6 +638,7 @@ export default function App() {
 
   const handleSelectStoryFromHome = (story: Story) => {
     stopSpeech();
+    addRecentlyReadStory(story.id);
     if (activeTab !== 'stories') {
       setTabHistory((prev) => [...prev, 'stories']);
     }
@@ -743,6 +750,22 @@ export default function App() {
 
         {activeTab === 'gk' && (
           <GeneralKnowledgeHub
+            language={language}
+            soundEnabled={soundEnabled}
+            onBackToHome={handleBackToHome}
+          />
+        )}
+
+        {activeTab === 'space' && (
+          <SpaceUniverseHub
+            language={language}
+            soundEnabled={soundEnabled}
+            onBackToHome={handleBackToHome}
+          />
+        )}
+
+        {activeTab === 'heroes' && (
+          <GreatHeroesChildhoodHub
             language={language}
             soundEnabled={soundEnabled}
             onBackToHome={handleBackToHome}
@@ -928,6 +951,7 @@ export default function App() {
           setIsParentalGateOpen(true);
         }}
         initialQuery={searchModalQuery}
+        initialCategory={searchModalCategory}
       />
 
       {/* Theme, Font & Text Size Customization Modal */}

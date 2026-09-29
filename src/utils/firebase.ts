@@ -30,6 +30,8 @@ import {
   PaymentSettings,
   NewsletterSubscriber,
 } from '../types';
+import { GreatHeroItem } from '../data/greatHeroesData';
+import { PlanetItem, SpaceMissionItem } from '../data/spaceData';
 import appletConfig from '../../firebase-applet-config.json';
 
 export const FIREBASE_STORAGE_CONFIG_KEY = 'baalvarta_firebase_config_v1';
@@ -1235,3 +1237,90 @@ export async function seedInitialFirestoreDataIfNeeded(
     console.warn('Firestore initial seeding error:', err?.message || err);
   }
 }
+
+// --- Great Heroes Firestore Sync ---
+export async function syncGreatHeroToFirestore(hero: GreatHeroItem): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+  try {
+    const docRef = doc(db, 'great_heroes', hero.id);
+    const sanitized = JSON.parse(JSON.stringify(hero));
+    await setDoc(docRef, { ...sanitized, _syncedAt: Date.now() });
+    return true;
+  } catch (err) {
+    console.warn('Failed to sync hero to Firestore:', hero.id, err);
+    return false;
+  }
+}
+
+export async function deleteGreatHeroFromFirestore(heroId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+  try {
+    await deleteDoc(doc(db, 'great_heroes', heroId));
+    return true;
+  } catch (err) {
+    console.warn('Failed to delete hero from Firestore:', heroId, err);
+    return false;
+  }
+}
+
+export async function syncAllGreatHeroesToFirestore(heroes: GreatHeroItem[]): Promise<{ success: boolean; count: number }> {
+  const db = getFirestoreDb();
+  if (!db) return { success: false, count: 0 };
+  try {
+    let count = 0;
+    const batch = writeBatch(db);
+    heroes.forEach((h) => {
+      const docRef = doc(db, 'great_heroes', h.id);
+      const sanitized = JSON.parse(JSON.stringify(h));
+      batch.set(docRef, { ...sanitized, _syncedAt: Date.now() });
+      count++;
+    });
+    await batch.commit();
+    return { success: true, count };
+  } catch (err) {
+    console.warn('Failed to sync all heroes to Firestore:', err);
+    return { success: false, count: 0 };
+  }
+}
+
+export async function fetchGreatHeroesFromFirestore(): Promise<GreatHeroItem[] | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+  try {
+    const snap = await getDocs(collection(db, 'great_heroes'));
+    if (snap.empty) return null;
+    const list: GreatHeroItem[] = [];
+    snap.forEach((d) => list.push(d.data() as GreatHeroItem));
+    return list.length > 0 ? list : null;
+  } catch {
+    return null;
+  }
+}
+
+// --- Space Planets Firestore Sync ---
+export async function syncSpacePlanetToFirestore(planet: PlanetItem): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+  try {
+    const docRef = doc(db, 'space_planets', planet.id);
+    const sanitized = JSON.parse(JSON.stringify(planet));
+    await setDoc(docRef, { ...sanitized, _syncedAt: Date.now() });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteSpacePlanetFromFirestore(planetId: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+  try {
+    await deleteDoc(doc(db, 'space_planets', planetId));
+    return true;
+  } catch {
+    return false;
+  }
+}
+

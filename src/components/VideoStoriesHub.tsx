@@ -4,17 +4,14 @@ import {
   Video,
   Play,
   ExternalLink,
-  Search,
   Sparkles,
   Clock,
   Eye,
   Filter,
-  Layers,
-  LayoutList,
-  LayoutGrid,
   Film
 } from 'lucide-react';
 import { playPopSound } from '../utils/soundEffects';
+import { extractYoutubeThumbnail } from '../utils/storage';
 
 interface VideoStoriesHubProps {
   videos: VideoStory[];
@@ -22,6 +19,7 @@ interface VideoStoriesHubProps {
   language: Language;
   soundEnabled: boolean;
   onBackToHome?: () => void;
+  searchQuery?: string;
 }
 
 export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
@@ -30,12 +28,11 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
   language,
   soundEnabled,
   onBackToHome,
+  searchQuery = '',
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Filter videos
+  // Filter videos based on selected category and external/contextual search query
   const filteredVideos = videos.filter((video) => {
     if (selectedCategory !== 'all' && video.category !== selectedCategory) {
       return false;
@@ -80,58 +77,7 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
         </div>
       </div>
 
-      {/* Filter, Search & Layout Switcher Bar */}
-      <div className="bg-white rounded-2xl p-3 shadow-xs border border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Search Bar */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-red-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={
-              language === 'hi'
-                ? 'वीडियो कहानी या श्रेणी खोजें (जैसे: शेर, अकबर बीरबल)...'
-                : 'Search video stories or category (e.g. lion, Akbar Birbal)...'
-            }
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:bg-white transition-all"
-          />
-        </div>
-
-        {/* View Mode Switcher */}
-        <div className="flex items-center gap-1.5 self-end md:self-auto bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-          <button
-            onClick={() => {
-              if (soundEnabled) playPopSound();
-              setViewMode('grid');
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              viewMode === 'grid'
-                ? 'bg-red-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>{language === 'hi' ? 'ग्रिड' : 'Grid'}</span>
-          </button>
-          <button
-            onClick={() => {
-              if (soundEnabled) playPopSound();
-              setViewMode('list');
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              viewMode === 'list'
-                ? 'bg-red-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <LayoutList className="w-3.5 h-3.5" />
-            <span>{language === 'hi' ? 'सूची' : 'List'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Categories Filter Pills (Dynamically populated from admin categories) */}
+      {/* Categories Filter Pills */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1">
@@ -191,7 +137,7 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
         </div>
       </div>
 
-      {/* Videos Display Area */}
+      {/* Videos Automatic 16:9 Grid Display */}
       {filteredVideos.length === 0 ? (
         <div className="bg-white rounded-3xl p-10 text-center space-y-4 border-2 border-dashed border-red-200 max-w-md mx-auto">
           <div className="text-5xl">🎬🌾</div>
@@ -200,21 +146,20 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
           </h3>
           <p className="text-xs text-slate-500">
             {language === 'hi'
-              ? 'कृपया कोई अन्य श्रेणी या खोज शब्द चुनें, या एडमिन मेनू में नई वीडियो जोड़ें।'
+              ? 'कृपया कोई अन्य श्रेणी चुनें, या एडमिन मेनू में नई वीडियो जोड़ें।'
               : 'Try selecting another category or add a new video from Admin CMS.'}
           </p>
           <button
             onClick={() => {
               setSelectedCategory('all');
-              setSearchQuery('');
             }}
             className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
           >
             {language === 'hi' ? 'सभी वीडियो देखें' : 'View All Videos'}
           </button>
         </div>
-      ) : viewMode === 'grid' ? (
-        /* 16:9 Aspect Ratio Responsive Cards Grid */
+      ) : (
+        /* Automatic Responsive 16:9 Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredVideos.map((video) => (
             <div
@@ -225,14 +170,14 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
               {/* 16:9 Aspect Ratio Thumbnail Container */}
               <div className="relative w-full aspect-video overflow-hidden bg-slate-950">
                 <img
-                  src={video.thumbnail}
+                  src={extractYoutubeThumbnail(video.youtubeUrl, video.thumbnail) || video.thumbnail}
                   alt={language === 'hi' ? video.titleHi : video.titleEn}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   referrerPolicy="no-referrer"
                   loading="lazy"
                 />
 
-                {/* Gradient Overlays for Readability */}
+                {/* Gradient Overlays */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/60 opacity-80 group-hover:opacity-90 transition-opacity" />
 
                 {/* Top Badges */}
@@ -280,82 +225,6 @@ export const VideoStoriesHub: React.FC<VideoStoriesHubProps> = ({
                     <ExternalLink className="w-3.5 h-3.5" />
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        /* List View (16:9 Thumbnail + Story Title) */
-        <div className="space-y-3">
-          {filteredVideos.map((video) => (
-            <div
-              key={video.id}
-              onClick={() => handleOpenVideo(video)}
-              className="group flex flex-col sm:flex-row sm:items-center gap-4 p-3 sm:p-4 rounded-2xl bg-white border-2 border-red-100 hover:border-red-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
-            >
-              {/* 16:9 Thumbnail Preview in List */}
-              <div className="relative w-full sm:w-44 md:w-52 aspect-video rounded-xl overflow-hidden bg-black shrink-0 shadow-sm border border-red-200">
-                <img
-                  src={video.thumbnail}
-                  alt={language === 'hi' ? video.titleHi : video.titleEn}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  referrerPolicy="no-referrer"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                    <Play className="w-4 h-4 fill-white ml-0.5" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Story Title & Meta List-wise */}
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-800 text-[10px] font-black uppercase">
-                    {video.category}
-                  </span>
-                  {video.duration && (
-                    <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-red-500" />
-                      {video.duration}
-                    </span>
-                  )}
-                  {video.viewsCount && (
-                    <span className="text-[11px] text-amber-600 font-bold flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      {video.viewsCount}
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="text-sm sm:text-base font-black text-slate-900 group-hover:text-red-600 transition-colors">
-                  {language === 'hi' ? video.titleHi : video.titleEn}
-                </h3>
-
-                {(video.descriptionHi || video.descriptionEn) && (
-                  <p className="text-xs text-slate-500 line-clamp-1">
-                    {language === 'hi' ? video.descriptionHi : video.descriptionEn}
-                  </p>
-                )}
-              </div>
-
-              {/* Action Button: Direct Video Link */}
-              <div className="shrink-0 pl-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenVideo(video);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-sm group-hover:shadow-md transition-all cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5 fill-white" />
-                  <span>
-                    {language === 'hi' ? 'यूट्यूब पर देखें' : 'Watch on YouTube'}
-                  </span>
-                  <ExternalLink className="w-3 h-3" />
-                </button>
               </div>
             </div>
           ))}

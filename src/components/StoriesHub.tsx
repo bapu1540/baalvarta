@@ -303,7 +303,7 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
         </div>
 
         {/* Dynamic Category Helper Sub-Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1 text-xs">
+        <div className="flex items-center justify-between gap-2.5 pt-1 text-xs">
           <div className="text-slate-700 font-medium flex items-center gap-1.5">
             {selectedFormat === 'picture_book' && (
               <span className="text-purple-900 bg-purple-100/80 px-2.5 py-1 rounded-lg font-bold border border-purple-200">
@@ -320,18 +320,6 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
                 📚 {language === 'hi' ? 'सभी बाल कहानियाँ: सचित्र व एक इमेज वाली सभी कहानियों का संग्रह।' : 'All Kids Stories: Showing both picture books and single image stories.'}
               </span>
             )}
-          </div>
-
-          {/* Fast Search input */}
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'hi' ? 'कहानी या क्रमांक खोजें...' : 'Search story or #...'}
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-amber-200 bg-white text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
-            />
           </div>
         </div>
       </div>
@@ -473,16 +461,6 @@ export const StoriesHub: React.FC<StoriesHubProps> = ({
                           className={`w-4 h-4 ${isBookmarked ? 'fill-white' : ''}`}
                         />
                       </button>
-                    </div>
-
-                    {/* Bottom overlay: Read Time and Age Group */}
-                    <div className="flex items-center justify-between text-white text-[11px] font-bold">
-                      <span className="bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-lg">
-                        ⏱️ {story.readTime}
-                      </span>
-                      <span className="bg-amber-400/90 text-amber-950 px-2 py-0.5 rounded-lg font-black">
-                        {story.recommendedAge}
-                      </span>
                     </div>
                   </div>
                 </div>

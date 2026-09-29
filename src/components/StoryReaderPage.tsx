@@ -27,9 +27,12 @@ import {
   Layers,
   Film,
   Pause,
-  Minimize2
+  Minimize2,
+  MoreVertical,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { triggerStoryCompleteConfetti, triggerFestiveConfetti } from '../utils/confetti';
 import { Story, StoryScene, Language } from '../types';
 import {
   getDisplayStoryTitle,
@@ -47,7 +50,7 @@ import {
   resumeSpeech,
   isSpeechPaused
 } from '../utils/soundEffects';
-import { recordStoryRead, getReadingStreak } from '../utils/storage';
+import { recordStoryRead, getReadingStreak, addRecentlyReadStory } from '../utils/storage';
 import { trackStoryView, trackStoryLike, trackStoryShare } from '../utils/analytics';
 import { AdBannerSlot } from './AdBannerSlot';
 import { StoryReadingProgressIndicator } from './StoryReadingProgressIndicator';
@@ -96,6 +99,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
   const [showToast, setShowToast] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [selectedZoomImage, setSelectedZoomImage] = useState<string | null>(null);
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
 
   // View Mode: 'picture_book' (Photo + Words per scene slider) or 'full_text' (Full page reader)
   const [viewMode, setViewMode] = useState<'picture_book' | 'full_text'>(() => {
@@ -156,8 +160,9 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
     } else {
       setViewMode('full_text');
     }
-    // Track story view in Firebase Analytics
+    // Track story view in Firebase Analytics & Record in Recently Read list
     trackStoryView(story);
+    addRecentlyReadStory(story.id);
   }, [story.id]);
 
   const handleSpeakScene = (scene: StoryScene) => {
@@ -276,16 +281,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
     setIsCompleted(true);
     const updated = recordStoryRead();
     setReadingStreakInfo(updated);
-    try {
-      confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#F59E0B', '#EF4444', '#10B981', '#3B82F6', '#8B5CF6'],
-      });
-    } catch {
-      // ignore
-    }
+    triggerStoryCompleteConfetti();
   };
 
   const handleShare = async () => {
@@ -391,14 +387,6 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
   return (
     <div className={`font-sans ${isFullViewMode ? 'fixed inset-0 z-50 overflow-y-auto p-3 sm:p-6 bg-[#FDFBF7] dark:bg-[#12161F] animate-in fade-in' : 'space-y-3 sm:space-y-4 pb-12'}`}>
       
-      {/* Top Floating Reading Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-1 sm:h-1.5 bg-black/10 dark:bg-white/10 pointer-events-none shadow-xs">
-        <div
-          className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 transition-all duration-300 shadow-xs"
-          style={{ width: `${readingProgressPercentage}%` }}
-        />
-      </div>
-      
       {/* Full View Exit Top Banner */}
       {isFullViewMode && (
         <div className="sticky top-1 z-50 mb-3 max-w-4xl mx-auto flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white shadow-xl border border-slate-700">
@@ -429,189 +417,50 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
         </div>
       )}
 
-      {/* COMPACT ORGANIZED READING TOOLBAR */}
-      <div className={`relative z-10 p-2.5 sm:p-3 rounded-2xl sm:rounded-3xl border shadow-sm transition-colors space-y-2.5 ${getToolbarClass()}`}>
+      {/* SINGLE COMPACT READING BANNER (AUDIO + SLIM PROGRESS + PROMINENT RED 3-DOT MENU) */}
+      <div className={`relative z-30 p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl border shadow-sm transition-colors flex items-center justify-between gap-2.5 ${getToolbarClass()}`}>
         
-        {/* Line 1: Audio Narrator, Speed, Font Size & Theme */}
-        <div className="flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
-          
-          {/* Left: Back, Audio & Speed Group */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <button
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                onBack();
-              }}
-              title={language === 'hi' ? 'कहानियों पर वापस जाएं' : 'Back to Stories'}
-              className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-900 dark:text-amber-200 border border-amber-500/40 text-[11px] sm:text-xs font-black flex items-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>{language === 'hi' ? 'वापस' : 'Back'}</span>
-            </button>
-
-            <button
-              id="tts-read-aloud-btn"
-              onClick={() => handleSpeak()}
-              className={`h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 ${
-                isReadingAloud
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
-                  : 'bg-amber-500 hover:bg-amber-600 text-white'
-              }`}
-            >
-              {isReadingAloud ? (
-                <>
-                  <Square className="w-3.5 h-3.5 fill-white" />
-                  <span>{language === 'hi' ? 'रोकें' : 'Stop'}</span>
-                </>
-              ) : (
-                <>
-                  <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>{language === 'hi' ? 'कहानी सुनो' : 'Listen'}</span>
-                </>
-              )}
-            </button>
-
-            {/* Speed Selector (0.7x, 0.8x, 1.0x) */}
-            <div className="h-8 sm:h-9 flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-[10px] font-bold">
-              <button
-                type="button"
-                onClick={() => handleChangeSpeed(0.7)}
-                title={language === 'hi' ? 'धीमी गति (0.7x)' : 'Slow pace (0.7x)'}
-                className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                  speechRate === 0.7 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                }`}
-              >
-                0.7x
-              </button>
-              <button
-                type="button"
-                onClick={() => handleChangeSpeed(0.78)}
-                title={language === 'hi' ? 'मीठी कहानी गति (0.8x)' : 'Bedtime pace (0.8x)'}
-                className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                  speechRate === 0.78 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                }`}
-              >
-                0.8x
-              </button>
-              <button
-                type="button"
-                onClick={() => handleChangeSpeed(1.0)}
-                title={language === 'hi' ? 'सामान्य गति (1.0x)' : 'Normal speed (1.0x)'}
-                className={`px-1.5 sm:px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                  speechRate === 1.0 ? 'bg-amber-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                }`}
-              >
-                1.0x
-              </button>
-            </div>
-          </div>
-
-          {/* Right: Font Switcher, Font Size & Theme Group */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 ml-auto">
-            {/* Font Family Switcher (Desktop) */}
-            <div className="hidden lg:flex items-center gap-0.5 p-0.5 h-8 sm:h-9 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10">
-              <button
-                onClick={() => {
-                  if (soundEnabled) playPopSound();
-                  setFontFamily('noto');
-                }}
-                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
-                  fontFamily === 'noto' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                {language === 'hi' ? 'देवनागरी' : 'Serif'}
-              </button>
-              <button
-                onClick={() => {
-                  if (soundEnabled) playPopSound();
-                  setFontFamily('baloo');
-                }}
-                className={`px-2 py-1 rounded-lg font-bold text-[10px] transition-colors ${
-                  fontFamily === 'baloo' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                {language === 'hi' ? 'बाल-फ़ॉन्ट' : 'Kids Font'}
-              </button>
-            </div>
-
-            {/* Language Toggle in Reader */}
-            {onLanguageChange && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (soundEnabled) playPopSound();
-                  onLanguageChange(language === 'hi' ? 'en' : 'hi');
-                }}
-                title={language === 'hi' ? 'Switch story text to English' : 'कहानी हिंदी में पढ़ें'}
-                className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-[10px] sm:text-xs shadow-2xs flex items-center gap-1 active:scale-95 transition-all cursor-pointer shrink-0"
-              >
-                <span>{language === 'hi' ? 'ENG' : 'हिंदी'}</span>
-              </button>
+        {/* Left: Audio Narrator Button */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            id="tts-read-aloud-btn"
+            onClick={() => handleSpeak()}
+            className={`h-9 px-3 sm:px-4 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 ${
+              isReadingAloud
+                ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-500/20'
+            }`}
+          >
+            {isReadingAloud ? (
+              <>
+                <Square className="w-3.5 h-3.5 fill-white" />
+                <span>{language === 'hi' ? 'रोकें' : 'Stop'}</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-4 h-4" />
+                <span>{language === 'hi' ? 'कहानी सुनो' : 'Listen'}</span>
+              </>
             )}
-
-            {/* Font Size Button */}
-            <button
-              onClick={() => {
-                if (soundEnabled) playPopSound();
-                setFontSize(
-                  fontSize === 'normal' ? 'large' : fontSize === 'large' ? 'huge' : 'normal'
-                );
-              }}
-              title={language === 'hi' ? 'फ़ॉन्ट आकार बदलें' : 'Change font size'}
-              className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/10 font-black flex items-center gap-1 hover:bg-black/10 dark:hover:bg-white/20 transition-colors text-[11px] cursor-pointer"
-            >
-              <Type className="w-3.5 h-3.5" />
-              <span className="font-extrabold text-[10px] sm:text-[11px]">
-                {fontSize === 'normal' ? (language === 'hi' ? 'A (छोटा)' : 'A (Small)') : fontSize === 'large' ? (language === 'hi' ? 'A+ (मध्यम)' : 'A+ (Medium)') : (language === 'hi' ? 'A++ (बड़ा)' : 'A++ (Large)')}
-              </span>
-            </button>
-
-            {/* Theme Palette Toggle */}
-            <div className="h-8 sm:h-9 flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10">
-              <button
-                onClick={() => {
-                  if (soundEnabled) playPopSound();
-                  setTheme('cream');
-                }}
-                title={language === 'hi' ? 'कागज़ी थीम (Cream)' : 'Cream Theme'}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  theme === 'cream' ? 'bg-amber-200 text-amber-900 shadow-xs' : 'text-slate-500 dark:text-slate-400'
-                }`}
-              >
-                <Coffee className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => {
-                  if (soundEnabled) playPopSound();
-                  setTheme('white');
-                }}
-                title={language === 'hi' ? 'श्वेत दिन मोड (Day White)' : 'Day White Mode'}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  theme === 'white' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 dark:text-slate-400'
-                }`}
-              >
-                <Sun className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => {
-                  if (soundEnabled) playPopSound();
-                  setTheme('dark');
-                }}
-                title={language === 'hi' ? 'रात्रि मोड (Night Dark)' : 'Night Dark Mode'}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-800 text-amber-300 shadow-xs' : 'text-slate-500 dark:text-slate-400'
-                }`}
-              >
-                <Moon className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+          </button>
         </div>
 
-        {/* Line 2: Actions Bar (Likes, Bookmark, WhatsApp, Share, Full View) */}
-        <div className="flex items-center justify-between gap-1 sm:gap-2 pt-1 border-t border-black/5 dark:border-white/10 w-full overflow-x-auto no-scrollbar">
-          
-          {/* Like */}
+        {/* Center: Slim Compact Reading Progress Bar with percentage */}
+        <div className="flex-1 min-w-0 flex items-center gap-2 max-w-xs sm:max-w-md mx-auto">
+          <div className="flex-1 bg-black/10 dark:bg-white/20 rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-500 transition-all duration-300"
+              style={{ width: `${readingProgressPercentage}%` }}
+            />
+          </div>
+          <span className="text-[11px] font-black text-amber-900 dark:text-amber-200 shrink-0">
+            {isCompleted ? '⭐ 100%' : `${readingProgressPercentage}%`}
+          </span>
+        </div>
+
+        {/* Right: Quick Like Button & VIBRANT RED THREE-DOTS MENU BUTTON */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Quick Like */}
           <button
             onClick={() => {
               if (soundEnabled) playPopSound();
@@ -619,92 +468,277 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               onLikeStory(story.id);
             }}
             title={language === 'hi' ? 'कहानी पसंद करें' : 'Like Story'}
-            className="flex-1 min-w-[54px] h-8 sm:h-8.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-black"
+            className="h-9 px-2.5 sm:px-3 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer text-xs font-black"
           >
-            <Heart className="w-3.5 h-3.5 fill-rose-500" />
+            <Heart className="w-4 h-4 fill-rose-500 text-rose-500" />
             <span>{story.likes}</span>
           </button>
 
-          {/* Bookmark */}
-          <button
-            onClick={() => {
-              if (soundEnabled) playPopSound();
-              onToggleBookmark(story.id);
-            }}
-            title={isBookmarked ? (language === 'hi' ? 'बुकमार्क हटाया' : 'Remove Bookmark') : (language === 'hi' ? 'बुकमार्क करें' : 'Bookmark Story')}
-            className={`flex-1 min-w-[54px] h-8 sm:h-8.5 rounded-xl border flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-bold ${
-              isBookmarked
-                ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                : 'bg-black/5 dark:bg-white/10 border-black/10 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-black/10'
-            }`}
-          >
-            <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-white' : ''}`} />
-            <span className="hidden xs:inline text-[11px] font-black">{isBookmarked ? (language === 'hi' ? 'सहेजा' : 'Saved') : (language === 'hi' ? 'सहेजें' : 'Save')}</span>
-          </button>
+          {/* VIBRANT HIGH-VISIBILITY RED THREE-DOT MENU BUTTON */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                setIsOptionsMenuOpen(!isOptionsMenuOpen);
+              }}
+              title={language === 'hi' ? 'सेटिंग्स व अन्य विकल्प' : 'Options & Settings'}
+              className="h-9 w-9 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/40 border-2 border-red-700 ring-2 ring-red-400/50 flex items-center justify-center transition-all active:scale-95 cursor-pointer font-black"
+            >
+              <MoreVertical className="w-5 h-5 text-white stroke-[2.5]" />
+            </button>
 
-          {/* WhatsApp Share */}
-          <button
-            onClick={handleShareWhatsApp}
-            title={language === 'hi' ? 'WhatsApp पर शेयर करें' : 'Share on WhatsApp'}
-            className="flex-1 min-w-[70px] h-8 sm:h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer font-bold text-xs"
-          >
-            <span className="text-xs">📲</span>
-            <span className="text-[11px] font-black">WhatsApp</span>
-          </button>
+            {/* THREE-DOT DROPDOWN POPUP MENU MODAL */}
+            {isOptionsMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs"
+                  onClick={() => setIsOptionsMenuOpen(false)}
+                />
+                <div className="absolute right-0 top-11 z-50 w-72 sm:w-80 p-4 rounded-3xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xl border-2 border-amber-400 dark:border-amber-600 space-y-3.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between pb-2 border-b border-black/10 dark:border-white/10">
+                    <span className="font-black text-xs sm:text-sm flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>{language === 'hi' ? 'कहानी सेटिंग्स व विकल्प' : 'Story Reader Settings'}</span>
+                    </span>
+                    <button
+                      onClick={() => setIsOptionsMenuOpen(false)}
+                      className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer"
+                    >
+                      <X className="w-4 h-4 text-slate-500" />
+                    </button>
+                  </div>
 
-          {/* Share Link */}
-          <button
-            onClick={handleShare}
-            title={language === 'hi' ? 'कहानी शेयर करें' : 'Share Story'}
-            className="flex-1 min-w-[50px] h-8 sm:h-8.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-black/10 flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer text-xs font-bold"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline text-[11px] font-black">{language === 'hi' ? 'शेयर' : 'Share'}</span>
-          </button>
+                  {/* 1. Language Toggle */}
+                  {onLanguageChange && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-600 dark:text-slate-300">
+                        {language === 'hi' ? '🌐 भाषा (Language):' : '🌐 Language:'}
+                      </span>
+                      <div className="flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10">
+                        <button
+                          onClick={() => {
+                            if (soundEnabled) playPopSound();
+                            onLanguageChange('hi');
+                          }}
+                          className={`px-2.5 py-1 rounded-lg font-black text-xs transition-colors cursor-pointer ${
+                            language === 'hi' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          हिंदी
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (soundEnabled) playPopSound();
+                            onLanguageChange('en');
+                          }}
+                          className={`px-2.5 py-1 rounded-lg font-black text-xs transition-colors cursor-pointer ${
+                            language === 'en' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          English
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-          {/* Distraction-Free Full View Button */}
-          <button
-            onClick={() => {
-              if (soundEnabled) playPopSound();
-              setIsFullViewMode(!isFullViewMode);
-            }}
-            title={isFullViewMode ? (language === 'hi' ? 'फुल व्यू से बाहर निकलें' : 'Exit Full View') : (language === 'hi' ? 'डिस्टर्ब-फ्री फुल व्यू मोड' : 'Distraction-Free Mode')}
-            className={`flex-1 min-w-[65px] h-8 sm:h-8.5 rounded-xl font-black text-xs flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer active:scale-95 ${
-              isFullViewMode
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
-            }`}
-          >
-            {isFullViewMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span className="text-[11px] font-black">{isFullViewMode ? (language === 'hi' ? 'सामान्य' : 'Exit') : (language === 'hi' ? 'फुल व्यू' : 'Full View')}</span>
-          </button>
+                  {/* 2. Audio Pace / Speed */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-600 dark:text-slate-300">
+                      {language === 'hi' ? '⚡ आवाज़ गति:' : '⚡ Audio Pace:'}
+                    </span>
+                    <div className="flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-xs font-bold">
+                      <button
+                        onClick={() => handleChangeSpeed(0.7)}
+                        className={`px-2 py-1 rounded-lg cursor-pointer ${speechRate === 0.7 ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        0.7x
+                      </button>
+                      <button
+                        onClick={() => handleChangeSpeed(0.78)}
+                        className={`px-2 py-1 rounded-lg cursor-pointer ${speechRate === 0.78 ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        0.8x
+                      </button>
+                      <button
+                        onClick={() => handleChangeSpeed(1.0)}
+                        className={`px-2 py-1 rounded-lg cursor-pointer ${speechRate === 1.0 ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        1.0x
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3. Font Size */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-600 dark:text-slate-300">
+                      {language === 'hi' ? '🔤 अक्षरों का आकार:' : '🔤 Font Size:'}
+                    </span>
+                    <div className="flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-xs font-bold">
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setFontSize('normal');
+                        }}
+                        className={`px-2.5 py-1 rounded-lg cursor-pointer ${fontSize === 'normal' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        A
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setFontSize('large');
+                        }}
+                        className={`px-2.5 py-1 rounded-lg cursor-pointer ${fontSize === 'large' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        A+
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setFontSize('huge');
+                        }}
+                        className={`px-2.5 py-1 rounded-lg cursor-pointer ${fontSize === 'huge' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        A++
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 4. Font Style */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-600 dark:text-slate-300">
+                      {language === 'hi' ? '✍️ फ़ॉन्ट प्रकार:' : '✍️ Font Style:'}
+                    </span>
+                    <div className="flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-xs font-bold">
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setFontFamily('noto');
+                        }}
+                        className={`px-2.5 py-1 rounded-lg cursor-pointer ${fontFamily === 'noto' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        {language === 'hi' ? 'देवनागरी' : 'Serif'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setFontFamily('baloo');
+                        }}
+                        className={`px-2.5 py-1 rounded-lg cursor-pointer ${fontFamily === 'baloo' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        {language === 'hi' ? 'बाल-फ़ॉन्ट' : 'Kids'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 5. Theme Palette */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-600 dark:text-slate-300">
+                      {language === 'hi' ? '🎨 बैकग्राउंड थीम:' : '🎨 Theme:'}
+                    </span>
+                    <div className="flex items-center p-0.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10">
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setTheme('cream');
+                        }}
+                        className={`p-1.5 rounded-lg cursor-pointer ${theme === 'cream' ? 'bg-amber-200 text-amber-900 shadow-xs' : 'text-slate-500 dark:text-slate-400'}`}
+                        title="Cream"
+                      >
+                        <Coffee className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setTheme('white');
+                        }}
+                        className={`p-1.5 rounded-lg cursor-pointer ${theme === 'white' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 dark:text-slate-400'}`}
+                        title="White"
+                      >
+                        <Sun className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (soundEnabled) playPopSound();
+                          setTheme('dark');
+                        }}
+                        className={`p-1.5 rounded-lg cursor-pointer ${theme === 'dark' ? 'bg-slate-800 text-amber-300 shadow-xs' : 'text-slate-500 dark:text-slate-400'}`}
+                        title="Dark"
+                      >
+                        <Moon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 6. Action Buttons in Menu */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/10 dark:border-white/10">
+                    {/* Bookmark */}
+                    <button
+                      onClick={() => {
+                        if (soundEnabled) playPopSound();
+                        onToggleBookmark(story.id);
+                      }}
+                      className={`p-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                        isBookmarked
+                          ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-white' : ''}`} />
+                      <span>{isBookmarked ? (language === 'hi' ? 'सहेजा गया' : 'Saved') : (language === 'hi' ? 'बुकमार्क' : 'Bookmark')}</span>
+                    </button>
+
+                    {/* WhatsApp */}
+                    <button
+                      onClick={() => {
+                        handleShareWhatsApp();
+                        setIsOptionsMenuOpen(false);
+                      }}
+                      className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <span>📲</span>
+                      <span>WhatsApp</span>
+                    </button>
+
+                    {/* Copy Link / Share */}
+                    <button
+                      onClick={() => {
+                        handleShare();
+                        setIsOptionsMenuOpen(false);
+                      }}
+                      className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-black flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 cursor-pointer"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>{language === 'hi' ? 'शेयर' : 'Share'}</span>
+                    </button>
+
+                    {/* Full View */}
+                    <button
+                      onClick={() => {
+                        if (soundEnabled) playPopSound();
+                        setIsFullViewMode(!isFullViewMode);
+                        setIsOptionsMenuOpen(false);
+                      }}
+                      className="p-2 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/50 text-amber-950 dark:text-amber-200 text-xs font-black flex items-center justify-center gap-1.5 border border-amber-300 dark:border-amber-700 cursor-pointer"
+                    >
+                      {isFullViewMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                      <span>{isFullViewMode ? (language === 'hi' ? 'सामान्य' : 'Exit Full') : (language === 'hi' ? 'फुल व्यू' : 'Full View')}</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       {/* MAIN READING PAGE CONTAINER */}
       <article
         ref={articleRef}
-        className={`max-w-4xl mx-auto rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 border transition-colors ${getThemeContainerClass()}`}
+        className={`max-w-4xl mx-auto rounded-2xl sm:rounded-3xl p-4 sm:p-7 md:p-9 border transition-colors ${getThemeContainerClass()}`}
       >
-        {/* Visual Reading Progress Indicator at top for children */}
-        <StoryReadingProgressIndicator
-          progressPercentage={readingProgressPercentage}
-          currentScene={currentSceneIndex + 1}
-          totalScenes={totalStoryScenes}
-          isPictureBookMode={isPictureBook}
-          isCompleted={isCompleted}
-          language={language}
-          soundEnabled={soundEnabled}
-          onJumpToScene={(idx) => {
-            if (soundEnabled) playPopSound();
-            stopSpeech();
-            setIsSceneSpeaking(false);
-            setCurrentSceneIndex(idx);
-          }}
-        />
-        
-        {/* Header Section */}
-        <header className="space-y-3 pb-4 border-b border-black/10">
+        {/* 1. Header Section: Title & Tags (Clean, No Duplicate Summary above photo) */}
+        <header className="space-y-2 pb-3 border-b border-black/10">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-amber-500 text-white font-black text-xs shadow-xs">
@@ -716,13 +750,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               {story.scenes && story.scenes.length > 0 && (
                 <span className="px-3 py-1 rounded-xl bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center gap-1">
                   <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>📸 {language === 'hi' ? `सचित्र दृश्य-कथा (${story.scenes.length} फोटो)` : `Picture Book (${story.scenes.length} Photos)`}</span>
-                </span>
-              )}
-              {story.isFeatured && (
-                <span className="px-3 py-1 rounded-xl bg-purple-100 text-purple-900 font-bold text-xs flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-purple-600" />
-                  <span>{language === 'hi' ? 'विशेष बाल कथा' : 'Featured Story'}</span>
+                  <span>📸 {language === 'hi' ? `सचित्र (${story.scenes.length} फोटो)` : `Picture Book (${story.scenes.length} Photos)`}</span>
                 </span>
               )}
             </div>
@@ -736,14 +764,14 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                     if (soundEnabled) playPopSound();
                     setViewMode('picture_book');
                   }}
-                  className={`px-3 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition-all ${
+                  className={`px-3 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                     viewMode === 'picture_book'
                       ? 'bg-amber-500 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <ImageIcon className="w-3.5 h-3.5" />
-                  <span>📸 {language === 'hi' ? 'सचित्र दृश्य मोड' : 'Picture Scene Mode'}</span>
+                  <span>📸 {language === 'hi' ? 'सचित्र दृश्य मोड' : 'Scene Mode'}</span>
                 </button>
                 <button
                   type="button"
@@ -751,44 +779,64 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
                     if (soundEnabled) playPopSound();
                     setViewMode('full_text');
                   }}
-                  className={`px-3 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition-all ${
+                  className={`px-3 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                     viewMode === 'full_text'
                       ? 'bg-amber-500 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span>📜 {language === 'hi' ? 'सम्पूर्ण पृष्ठ पाठ' : 'Full Page Text'}</span>
+                  <span>📜 {language === 'hi' ? 'सम्पूर्ण पाठ' : 'Full Text'}</span>
                 </button>
               </div>
             )}
           </div>
 
           <h1
-            className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight"
+            className="text-xl sm:text-3xl md:text-4xl font-black tracking-tight leading-snug"
             style={{ fontFamily: getFontFamilyStyle() }}
           >
             {getDisplayStoryTitle(story, language)}
           </h1>
-
-          <p className="text-xs sm:text-sm font-semibold opacity-80 leading-relaxed font-sans">
-            {getDisplayStorySummary(story, language)}
-          </p>
         </header>
 
         {/* 📸 PICTURE-BOOK SCENE-BY-SCENE READER MODE */}
         {story.scenes && story.scenes.length > 0 && viewMode === 'picture_book' ? (
-          <div className="my-6 space-y-6">
-            {/* Scene Header & Progress */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-xl bg-amber-500 text-white font-black text-xs">
-                  {language === 'hi' ? 'दृश्य' : 'Scene'} {currentSceneIndex + 1} / {story.scenes.length}
-                </span>
-                <span className="font-bold text-xs sm:text-sm text-amber-950">
-                  {story.scenes[currentSceneIndex].captionHi || `${language === 'hi' ? 'दृश्य' : 'Scene'} ${currentSceneIndex + 1}`}
-                </span>
+          <div className="my-5 space-y-4">
+            
+            {/* 1. Thumbnail/Scene Image Directly Under Title */}
+            <div className="relative rounded-3xl overflow-hidden shadow-xl border-2 border-black/10 bg-slate-900 group">
+              <div className="aspect-video w-full overflow-hidden flex items-center justify-center bg-black/10">
+                <img
+                  src={story.scenes[currentSceneIndex].image}
+                  alt={getDisplayStoryTitle(story, language)}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-102"
+                />
               </div>
+
+              {/* Badges on Image */}
+              <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>{language === 'hi' ? 'दृश्य #' : 'Scene #'}{currentSceneIndex + 1} / {story.scenes.length}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedZoomImage(story.scenes![currentSceneIndex].image)}
+                className="absolute bottom-3 right-3 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white p-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-transform hover:scale-105"
+                title={language === 'hi' ? 'फोटो बड़ा करें' : 'Zoom Image'}
+              >
+                <Maximize2 className="w-4 h-4" />
+                <span className="hidden sm:inline">{language === 'hi' ? 'बड़ा देखें' : 'View Full'}</span>
+              </button>
+            </div>
+
+            {/* Scene Navigation Strip & Progress Dots */}
+            <div className="flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-amber-50/80 border border-amber-200">
+              <span className="px-2.5 py-1 rounded-xl bg-amber-500 text-white font-black text-xs shrink-0">
+                {language === 'hi' ? 'दृश्य' : 'Scene'} {currentSceneIndex + 1} / {story.scenes.length}
+              </span>
 
               {/* Progress dots */}
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
@@ -814,35 +862,7 @@ export const StoryReaderPage: React.FC<StoryReaderPageProps> = ({
               </div>
             </div>
 
-            {/* Current Scene Image Card (16:9 with Zoom) */}
-            <div className="relative rounded-3xl overflow-hidden shadow-xl border-2 border-black/10 bg-slate-900 group">
-              <div className="aspect-video w-full overflow-hidden flex items-center justify-center bg-black/10">
-                <img
-                  src={story.scenes[currentSceneIndex].image}
-                  alt={story.scenes[currentSceneIndex].captionHi || `दृश्य ${currentSceneIndex + 1}`}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-102"
-                />
-              </div>
-
-              {/* Top/Bottom Badges */}
-              <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>{language === 'hi' ? 'दृश्य #' : 'Scene #'}{currentSceneIndex + 1}</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedZoomImage(story.scenes![currentSceneIndex].image)}
-                className="absolute bottom-3 right-3 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white p-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg transition-transform hover:scale-105"
-                title={language === 'hi' ? 'फोटो बड़ा करें' : 'Zoom Image'}
-              >
-                <Maximize2 className="w-4 h-4" />
-                <span className="hidden sm:inline">{language === 'hi' ? 'बड़ा देखें' : 'View Full'}</span>
-              </button>
-            </div>
-
-            {/* Story Words for this Photo */}
+            {/* 2. Story Text Starting Directly Below Image */}
             <div
               className={`p-6 sm:p-8 rounded-3xl bg-amber-100/40 border-2 border-amber-300/80 shadow-md space-y-4 text-justify ${
                 fontSize === 'huge'

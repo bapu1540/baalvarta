@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ActiveTab,
   Story,
@@ -23,6 +23,9 @@ import {
   Users,
   Download,
   ChevronRight,
+  Clock,
+  History,
+  BookmarkCheck,
   X,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -32,6 +35,7 @@ import {
   getDisplayStorySummary,
   getDisplayStoryMoral,
 } from '../utils/storyLanguageHelper';
+import { getRecentlyReadStoryIds } from '../utils/storage';
 import { AdBannerSlot } from './AdBannerSlot';
 import { UserReviewsSection } from './UserReviewsSection';
 
@@ -68,6 +72,23 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeInteractiveLetter, setActiveInteractiveLetter] = useState<string>('A');
+  const [recentlyReadIds, setRecentlyReadIds] = useState<string[]>(() => getRecentlyReadStoryIds());
+
+  useEffect(() => {
+    const handleRecentChange = (e: any) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        setRecentlyReadIds(e.detail);
+      } else {
+        setRecentlyReadIds(getRecentlyReadStoryIds());
+      }
+    };
+    window.addEventListener('baalvarta_recently_read_change', handleRecentChange);
+    window.addEventListener('storage', handleRecentChange);
+    return () => {
+      window.removeEventListener('baalvarta_recently_read_change', handleRecentChange);
+      window.removeEventListener('storage', handleRecentChange);
+    };
+  }, []);
 
   // Featured Storybooks Sorting: Ensure newly uploaded stories appear at the very top (beginning)
   const getStoryTimestamp = (s: Story): number => {
@@ -79,7 +100,24 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
     return (s.number || 0) * 1000;
   };
 
-  const sortedByNewest = [...stories].sort((a, b) => getStoryTimestamp(b) - getStoryTimestamp(a));
+  const sortedByNewest = useMemo(() => {
+    return [...stories].sort((a, b) => getStoryTimestamp(b) - getStoryTimestamp(a));
+  }, [stories]);
+
+  // Last 5 accessed stories for Recently Read horizontal list (with popular fallback so always visible)
+  const recentlyReadStories = useMemo(() => {
+    if (recentlyReadIds && recentlyReadIds.length > 0) {
+      const matched = recentlyReadIds
+        .map((id) => stories.find((s) => s.id === id))
+        .filter((s): s is Story => Boolean(s))
+        .slice(0, 5); // strictly last 5 stories
+      if (matched.length > 0) return matched;
+    }
+    // Fallback if user hasn't read any story yet: show top 5 starter stories
+    return sortedByNewest.slice(0, 5);
+  }, [recentlyReadIds, stories, sortedByNewest]);
+
+  const hasUserHistory = recentlyReadIds && recentlyReadIds.length > 0;
   const singleFeaturedAudio = audioStories[0];
 
   // Compact ABC letters for sleek homepage banner
@@ -89,9 +127,8 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
     { symbol: 'C', name: 'Cat (बिल्ली)', color: 'bg-emerald-500 text-white', sound: 'Cat. C for Cat.' },
   ];
 
-  // Colorful Core Categories in exact requested sequence:
-  // 1. Stories, 2. Learning, 3. Fun fact, 4. General knowledge, 5. Audio stories, 
-  // 6. Video stories, 7. Mini games, 8. Kids Quiz, 9. Colouring books, 10. Free download
+  // Vibrant Single Solid Colors for all 10 Core Categories (strictly distinct, no adjacent duplicate hues):
+  // 1. Orange, 2. Dark Green, 3. Sky Blue, 4. Indigo, 5. Purple, 6. Red, 7. Yellow/Amber, 8. Blue, 9. Pink, 10. Teal
   const categoryBanners = [
     {
       id: 'stories',
@@ -100,8 +137,9 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       badgeHi: '500+ कहानियाँ',
       badgeEn: '500+ Stories',
       emoji: '📚',
-      gradient: 'from-amber-500 via-orange-500 to-amber-600',
-      border: 'border-amber-300',
+      solidBg: 'bg-orange-500',
+      btnBg: 'bg-orange-500 hover:bg-orange-600',
+      border: 'border-orange-400',
       tab: 'stories' as ActiveTab,
     },
     {
@@ -111,8 +149,9 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       badgeHi: 'ABC 🔤',
       badgeEn: 'ABC 🔤',
       emoji: '🔤',
-      gradient: 'from-emerald-500 via-teal-500 to-green-600',
-      border: 'border-emerald-300',
+      solidBg: 'bg-emerald-600',
+      btnBg: 'bg-emerald-600 hover:bg-emerald-700',
+      border: 'border-emerald-500',
       tab: 'learning' as ActiveTab,
     },
     {
@@ -122,19 +161,21 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       badgeHi: '💡 ज्ञान',
       badgeEn: '💡 Facts',
       emoji: '💡',
-      gradient: 'from-sky-500 via-blue-500 to-indigo-600',
-      border: 'border-sky-300',
+      solidBg: 'bg-sky-500',
+      btnBg: 'bg-sky-500 hover:bg-sky-600',
+      border: 'border-sky-400',
       tab: 'facts' as ActiveTab,
     },
     {
       id: 'gk',
-      titleHi: '4. सामान्य ज्ञान',
-      titleEn: '4. General Knowledge',
-      badgeHi: '💡 ज्ञान कार्ड्स',
-      badgeEn: '💡 GK Cards',
+      titleHi: '4. सामान्य ज्ञान और क्विज़',
+      titleEn: '4. General Knowledge and Quiz',
+      badgeHi: '💡 GK + 🏆 Quiz',
+      badgeEn: '💡 GK + 🏆 Quiz',
       emoji: '🧠',
-      gradient: 'from-indigo-500 via-blue-600 to-purple-700',
-      border: 'border-indigo-300',
+      solidBg: 'bg-indigo-600',
+      btnBg: 'bg-indigo-600 hover:bg-indigo-700',
+      border: 'border-indigo-500',
       tab: 'gk' as ActiveTab,
     },
     {
@@ -144,8 +185,9 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       badgeHi: '🎧 सुनें',
       badgeEn: '🎧 Audio',
       emoji: '🎧',
-      gradient: 'from-purple-500 via-violet-500 to-indigo-600',
-      border: 'border-purple-300',
+      solidBg: 'bg-purple-600',
+      btnBg: 'bg-purple-600 hover:bg-purple-700',
+      border: 'border-purple-500',
       tab: 'audio' as ActiveTab,
     },
     {
@@ -155,8 +197,9 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       badgeHi: '🎬 Videos',
       badgeEn: '🎬 Videos',
       emoji: '📺',
-      gradient: 'from-red-500 via-rose-500 to-amber-600',
-      border: 'border-red-300',
+      solidBg: 'bg-red-600',
+      btnBg: 'bg-red-600 hover:bg-red-700',
+      border: 'border-red-500',
       tab: 'videos' as ActiveTab,
     },
     {
@@ -166,41 +209,45 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
       badgeHi: '🧩 खेलें',
       badgeEn: '🧩 Games',
       emoji: '🎮',
-      gradient: 'from-purple-500 via-indigo-500 to-rose-500',
-      border: 'border-purple-300',
+      solidBg: 'bg-amber-500',
+      btnBg: 'bg-amber-500 hover:bg-amber-600',
+      border: 'border-amber-400',
       tab: 'games' as ActiveTab,
     },
     {
-      id: 'quizzes',
-      titleHi: '8. बाल क्विज़',
-      titleEn: '8. Kids Quiz',
-      badgeHi: '🎯 क्विज़ ज़ोन',
-      badgeEn: '🎯 Quiz Zone',
-      emoji: '🏆',
-      gradient: 'from-rose-500 via-pink-500 to-rose-600',
-      border: 'border-rose-300',
-      tab: 'quizzes' as ActiveTab,
+      id: 'space',
+      titleHi: '8. अंतरिक्ष और ब्रह्मांड',
+      titleEn: '8. Space & Universe Explorer',
+      badgeHi: '🚀 सौरमंडल',
+      badgeEn: '🚀 Space',
+      emoji: '🚀',
+      solidBg: 'bg-blue-600',
+      btnBg: 'bg-blue-600 hover:bg-blue-700',
+      border: 'border-blue-500',
+      tab: 'space' as ActiveTab,
     },
     {
-      id: 'coloring',
-      titleHi: '9. आर्ट व पेपर क्राफ्ट',
-      titleEn: '9. Art & Paper Craft',
-      badgeHi: '🎨 कलर + ✂️ क्राफ्ट',
-      badgeEn: '🎨 Paint + ✂️ Craft',
-      emoji: '🎨',
-      gradient: 'from-amber-400 via-orange-400 to-rose-500',
-      border: 'border-orange-300',
-      tab: 'coloring' as ActiveTab,
+      id: 'heroes',
+      titleHi: '9. महान हस्तियों का बचपन',
+      titleEn: '9. Childhood of Great Heroes',
+      badgeHi: '🌟 प्रेरक गाथाएं',
+      badgeEn: '🌟 Great Heroes',
+      emoji: '🌟',
+      solidBg: 'bg-pink-600',
+      btnBg: 'bg-pink-600 hover:bg-pink-700',
+      border: 'border-pink-500',
+      tab: 'heroes' as ActiveTab,
     },
     {
       id: 'worksheets',
-      titleHi: '10. फ्री डाउनलोड',
-      titleEn: '10. Free Download',
-      badgeHi: '🖨️ PDF + 🎖️',
-      badgeEn: '🖨️ PDF + 🎖️',
-      emoji: '📄',
-      gradient: 'from-teal-500 via-cyan-500 to-blue-600',
-      border: 'border-teal-300',
+      titleHi: '10. आर्ट-क्राफ्ट व फ्री डाउनलोड',
+      titleEn: '10. Art-Craft & Free Download',
+      badgeHi: '🎨 क्राफ्ट + 📄 PDF',
+      badgeEn: '🎨 Craft + 📄 PDF',
+      emoji: '🎨',
+      solidBg: 'bg-teal-600',
+      btnBg: 'bg-teal-600 hover:bg-teal-700',
+      border: 'border-teal-500',
       tab: 'worksheets' as ActiveTab,
     },
   ];
@@ -243,10 +290,10 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                 onNavigate(cat.tab);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className={`relative overflow-hidden rounded-2xl cursor-pointer shadow-2xs hover:shadow-md transition-all border ${cat.border} bg-white flex flex-col justify-between group`}
+              className={`relative overflow-hidden rounded-2xl cursor-pointer shadow-2xs hover:shadow-md transition-all border-2 ${cat.border} bg-white flex flex-col justify-between group`}
             >
-              {/* Colorful Gradient Header with Emoji, Badge & Large Bold Title */}
-              <div className={`bg-gradient-to-br ${cat.gradient} p-2.5 sm:p-3 text-white flex flex-col justify-between min-h-[64px] sm:min-h-[72px]`}>
+              {/* Colorful Solid Color Header with Emoji, Badge & Large Bold Title */}
+              <div className={`${cat.solidBg} p-2.5 sm:p-3 text-white flex flex-col justify-between min-h-[64px] sm:min-h-[72px]`}>
                 <div className="flex items-center justify-between gap-1.5">
                   <span className="w-8 h-8 rounded-xl bg-white/25 backdrop-blur-xs flex items-center justify-center text-lg sm:text-xl shadow-inner group-hover:scale-110 transition-transform">
                     {cat.emoji}
@@ -263,7 +310,7 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                 </div>
               </div>
 
-              {/* Compact Card Body with Color-Matched Open Button */}
+              {/* Compact Card Body with Solid Color Open Button */}
               <div className="p-1.5 sm:p-2 bg-white border-t border-slate-100 flex-1 flex flex-col justify-center">
                 <button
                   type="button"
@@ -273,10 +320,96 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                     onNavigate(cat.tab);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`w-full py-1.5 sm:py-2 px-2.5 rounded-xl bg-gradient-to-r ${cat.gradient} text-white font-black text-xs shadow-2xs flex items-center justify-center gap-1.5 group-hover:scale-[1.02] active:scale-95 transition-all cursor-pointer`}
+                  className={`w-full py-1.5 sm:py-2 px-2.5 rounded-xl ${cat.btnBg} text-white font-black text-xs shadow-2xs flex items-center justify-center gap-1.5 group-hover:scale-[1.02] active:scale-95 transition-all cursor-pointer`}
                 >
                   <span>{language === 'hi' ? 'खोलें (Open)' : 'Open'}</span>
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* 2. RECENTLY READ STORIES - HORIZONTAL SCROLLABLE LIST (LAST 5 STORIES) */}
+      <section className="space-y-2.5 p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-amber-50 via-orange-50/80 to-amber-100/60 border-2 border-amber-300 shadow-xs">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center text-sm shadow-xs shrink-0">
+              <History className="w-4 h-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-1.5 leading-tight truncate">
+                <span>
+                  {hasUserHistory
+                    ? (language === 'hi' ? 'हाल ही में पढ़ी गई कहानियाँ (Recently Read)' : 'Recently Read Stories')
+                    : (language === 'hi' ? 'हालिया लोकप्रिय कहानियाँ (Recently Read Stories)' : 'Recently Read & Popular Stories')}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-extrabold shrink-0 hidden sm:inline">
+                  {language === 'hi' ? 'अंतिम 5' : 'Last 5'}
+                </span>
+              </h2>
+              <p className="text-[11px] text-amber-900 font-bold truncate">
+                {hasUserHistory
+                  ? (language === 'hi' ? 'जहाँ छोड़ा था, वहीं से तुरंत पढ़ना जारी रखें' : 'Pick up where you left off')
+                  : (language === 'hi' ? 'कहानी पढ़ना शुरू करें (पढ़ते ही आपकी कहानियाँ यहाँ जुड़ जाएँगी)' : 'Start reading (Your recent stories will appear here)')}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('stories')}
+            className="px-2.5 py-1 rounded-xl bg-white hover:bg-amber-100 text-amber-950 font-black text-xs transition-colors flex items-center gap-1 shrink-0 border border-amber-300 shadow-2xs cursor-pointer active:scale-95"
+          >
+            <span>{language === 'hi' ? 'सभी कहानियाँ' : 'All Stories'}</span>
+            <ChevronRight className="w-3.5 h-3.5 text-amber-600" />
+          </button>
+        </div>
+
+        {/* Horizontal Scrollable Carousel Strip (Snap-x, zero scrollbar clutter) */}
+        <div className="flex items-stretch gap-3 sm:gap-3.5 overflow-x-auto pb-1.5 pt-1 no-scrollbar snap-x touch-pan-x">
+          {recentlyReadStories.map((rStory) => (
+            <motion.div
+              key={`recent-${rStory.id}`}
+              whileHover={{ y: -2, scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleStoryCardClick(rStory)}
+              className="w-48 sm:w-56 shrink-0 snap-start bg-white rounded-2xl overflow-hidden border-2 border-amber-200/90 hover:border-amber-400 shadow-2xs hover:shadow-md transition-all group cursor-pointer flex flex-col justify-between"
+            >
+              {/* 16:9 Aspect Ratio Thumbnail */}
+              <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                <img
+                  src={rStory.coverImage}
+                  alt={getDisplayStoryTitle(rStory, language)}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+                <div className="absolute top-2 left-2 flex items-center gap-1">
+                  <span className="px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[9px] font-black">
+                    #{rStory.number}
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-white text-[9px] font-black uppercase">
+                    {rStory.category}
+                  </span>
+                </div>
+              </div>
+
+              {/* Card Text & Resume Button */}
+              <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between space-y-2">
+                <h3 className="font-black text-xs sm:text-sm text-slate-900 leading-snug line-clamp-2 group-hover:text-amber-600 transition-colors">
+                  {getDisplayStoryTitle(rStory, language)}
+                </h3>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStoryCardClick(rStory);
+                  }}
+                  className="w-full py-1.5 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-[11px] sm:text-xs flex items-center justify-center gap-1 shadow-2xs group-hover:shadow-xs transition-all active:scale-95 cursor-pointer"
+                >
+                  <span>{hasUserHistory ? (language === 'hi' ? 'जारी रखें' : 'Continue') : (language === 'hi' ? 'पढ़ें' : 'Read')}</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </div>
             </motion.div>
@@ -389,6 +522,81 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
             </div>
           </div>
 
+          {/* Colorful Story Categories Navigation Pills with Distinct Child-Friendly Icons */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar snap-x">
+            <button
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('stories', 'picture_book');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3 py-1.5 rounded-2xl bg-purple-100 hover:bg-purple-200 text-purple-950 font-black text-xs transition-all flex items-center gap-1.5 border-2 border-purple-300 shadow-2xs shrink-0 cursor-pointer active:scale-95"
+            >
+              <span>🎨</span>
+              <span>{language === 'hi' ? 'सचित्र कहानियाँ' : 'Picture Books'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('stories', 'single_image');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3 py-1.5 rounded-2xl bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-black text-xs transition-all flex items-center gap-1.5 border-2 border-emerald-300 shadow-2xs shrink-0 cursor-pointer active:scale-95"
+            >
+              <span>🖼️</span>
+              <span>{language === 'hi' ? '1 इमेज क्लासिक' : 'Classic Stories'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('stories', 'all');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3 py-1.5 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-xs transition-all flex items-center gap-1.5 border-2 border-amber-300 shadow-2xs shrink-0 cursor-pointer active:scale-95"
+            >
+              <span>🦁</span>
+              <span>{language === 'hi' ? 'पंचतंत्र कथाएं' : 'Panchatantra'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('stories', 'all');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3 py-1.5 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-950 font-black text-xs transition-all flex items-center gap-1.5 border-2 border-rose-300 shadow-2xs shrink-0 cursor-pointer active:scale-95"
+            >
+              <span>👑</span>
+              <span>{language === 'hi' ? 'अकबर-बीरबल' : 'Akbar Birbal'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('stories', 'all');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3 py-1.5 rounded-2xl bg-indigo-100 hover:bg-indigo-200 text-indigo-950 font-black text-xs transition-all flex items-center gap-1.5 border-2 border-indigo-300 shadow-2xs shrink-0 cursor-pointer active:scale-95"
+            >
+              <span>💡</span>
+              <span>{language === 'hi' ? 'तेनालीराम व सूझबूझ' : 'Tenali Raman'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('stories', 'all');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3 py-1.5 rounded-2xl bg-teal-100 hover:bg-teal-200 text-teal-950 font-black text-xs transition-all flex items-center gap-1.5 border-2 border-teal-300 shadow-2xs shrink-0 cursor-pointer active:scale-95"
+            >
+              <span>🦜</span>
+              <span>{language === 'hi' ? 'पशु-पक्षी' : 'Animal Tales'}</span>
+            </button>
+          </div>
+
           {/* Quick 2 Story Category Launchers on Homepage */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div
@@ -467,11 +675,6 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                       {language === 'hi' ? '🌟 नई कहानी' : '🌟 New Story'}
                     </span>
                   </div>
-                  <div className="absolute top-2 right-2">
-                    <span className="px-2 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-black shadow-xs">
-                      ⏱️ {singleStory.readTime}
-                    </span>
-                  </div>
                 </div>
 
                 <div className="p-4 sm:p-5 md:w-7/12 flex flex-col justify-between space-y-3">
@@ -480,7 +683,6 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px] uppercase">
                         {singleStory.category}
                       </span>
-                      <span className="text-slate-400 font-bold">{language === 'hi' ? 'आयु:' : 'Age:'} {singleStory.recommendedAge}</span>
                     </div>
 
                     <h3 className="font-black text-base sm:text-xl text-slate-900 group-hover:text-amber-600 transition-colors">

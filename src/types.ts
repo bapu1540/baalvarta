@@ -299,6 +299,8 @@ export type ActiveTab =
   | 'videos' 
   | 'games' 
   | 'quizzes' 
+  | 'space'
+  | 'heroes'
   | 'coloring' 
   | 'certificates' 
   | 'profile'

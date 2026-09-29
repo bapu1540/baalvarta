@@ -379,37 +379,25 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
                   <li>
                     <button
                       onClick={() => {
-                        onNavigate('coloring');
+                        onNavigate('space');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-bold text-amber-300 cursor-pointer text-left w-full group leading-tight"
+                      className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-bold text-blue-300 cursor-pointer text-left w-full group leading-tight"
                     >
-                      <ChevronRight className="w-3 h-3 text-amber-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                      <span className="line-clamp-2">{language === 'hi' ? '🎨 आर्ट, कलरिंग व पेपर क्राफ्ट' : '🎨 Art, Colouring & Origami'}</span>
+                      <ChevronRight className="w-3 h-3 text-blue-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                      <span className="line-clamp-2">{language === 'hi' ? '🚀 अंतरिक्ष और सौरमंडल' : '🚀 Space & Universe'}</span>
                     </button>
                   </li>
                   <li>
                     <button
                       onClick={() => {
-                        onNavigate('games');
+                        onNavigate('heroes');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-bold text-purple-300 cursor-pointer text-left w-full group leading-tight"
+                      className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-bold text-pink-300 cursor-pointer text-left w-full group leading-tight"
                     >
-                      <ChevronRight className="w-3 h-3 text-purple-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                      <span className="line-clamp-2">{language === 'hi' ? '🧩 मिनी गेम्स (Memory & Puzzle)' : '🧩 Kids Mini Games'}</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => {
-                        onNavigate('certificates');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-bold text-yellow-300 cursor-pointer text-left w-full group leading-tight"
-                    >
-                      <ChevronRight className="w-3 h-3 text-yellow-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                      <span className="line-clamp-2">{language === 'hi' ? '🏆 बाल पाठक प्रमाण पत्र' : '🏆 Reader Certificate'}</span>
+                      <ChevronRight className="w-3 h-3 text-pink-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                      <span className="line-clamp-2">{language === 'hi' ? '🌟 महान हस्तियों का बचपन' : '🌟 Great Heroes Childhood'}</span>
                     </button>
                   </li>
                   <li>
@@ -421,7 +409,7 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
                       className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-bold text-teal-300 cursor-pointer text-left w-full group leading-tight"
                     >
                       <ChevronRight className="w-3 h-3 text-teal-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                      <span className="line-clamp-2">{language === 'hi' ? '🖨️ प्रिंटेबल वर्कशीट्स' : '🖨️ Printable Worksheets'}</span>
+                      <span className="line-clamp-2">{language === 'hi' ? '🎨✂️ आर्ट, क्राफ्ट व फ्री PDF' : '🎨✂️ Art, Craft & Free Download'}</span>
                     </button>
                   </li>
                   <li>
