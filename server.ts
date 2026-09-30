@@ -352,10 +352,13 @@ Your mission:
   });
 
   // Frontend routing: Vite middlewares in dev, static dist in production
-  if (process.env.NODE_ENV === 'production') {
-    app.use(express.static('dist'));
+  const distHtmlPath = path.resolve(process.cwd(), 'dist', 'index.html');
+  const hasDist = fs.existsSync(distHtmlPath);
+
+  if (process.env.NODE_ENV === 'production' && hasDist) {
+    app.use(express.static(path.resolve(process.cwd(), 'dist')));
     app.get('*', (_req, res) => {
-      res.sendFile(path.resolve('dist', 'index.html'));
+      res.sendFile(distHtmlPath);
     });
   } else {
     const vite = await createViteServer({
@@ -363,6 +366,23 @@ Your mission:
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    // Fallback for SPA routing in dev mode so index.html is always served
+    app.get('*', async (req, res, next) => {
+      const url = req.originalUrl;
+      try {
+        const indexPath = path.resolve(process.cwd(), 'index.html');
+        if (fs.existsSync(indexPath)) {
+          let template = fs.readFileSync(indexPath, 'utf-8');
+          template = await vite.transformIndexHtml(url, template);
+          res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+        } else {
+          next();
+        }
+      } catch (e) {
+        next(e);
+      }
+    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
