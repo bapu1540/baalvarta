@@ -678,7 +678,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                 title={
                   isPro
                     ? (language === 'hi' ? 'आप सक्रिय प्रो वीआईपी सदस्य हैं 👑' : 'Active Pro VIP Member 👑')
-                    : (language === 'hi' ? 'बालवार्ता प्रो - ₹29/माह (100% विज्ञापन-मुक्त व असीमित)' : 'Upgrade to Baalvarta Pro - ₹29/mo')
+                    : (language === 'hi' ? 'बालवार्ता प्रो - ₹49/माह (100% विज्ञापन-मुक्त व असीमित)' : 'Upgrade to Baalvarta Pro - ₹49/mo')
                 }
                 className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-black text-xs transition-all active:scale-95 cursor-pointer shadow-xs border shrink-0 ${
                   isPro
@@ -688,7 +688,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
               >
                 <Crown className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200 shrink-0" />
                 <span className="hidden sm:inline">
-                  {isPro ? (language === 'hi' ? 'VIP सदस्य' : 'VIP Pro') : (language === 'hi' ? 'प्रो (₹29)' : 'Pro (₹29)')}
+                  {isPro ? (language === 'hi' ? 'VIP सदस्य' : 'VIP Pro') : (language === 'hi' ? 'प्रो (₹49)' : 'Pro (₹49)')}
                 </span>
                 <span className="sm:hidden">
                   {isPro ? 'VIP' : 'PRO'}
@@ -917,7 +917,7 @@ export const WebsiteHeader: React.FC<WebsiteHeaderProps> = ({
                           </div>
                           <div className="min-w-0">
                             <div className="text-xs font-black truncate">
-                              {isPro ? (language === 'hi' ? 'बालवार्ता वीआईपी सदस्य' : 'Baalvarta VIP Member') : (language === 'hi' ? 'बालवार्ता प्रो (₹29/माह)' : 'Baalvarta Pro Pass')}
+                              {isPro ? (language === 'hi' ? 'बालवार्ता वीआईपी सदस्य' : 'Baalvarta VIP Member') : (language === 'hi' ? 'बालवार्ता प्रो (₹49/माह)' : 'Baalvarta Pro Pass')}
                             </div>
                             <div className="text-[10px] text-amber-100 font-semibold truncate">
                               {isPro ? (language === 'hi' ? 'सभी सुविधाएं सक्रिय ✓' : 'All Features Active ✓') : (language === 'hi' ? '100% Ad-Free • असीमित PDF' : 'Ad-Free • Unlimited')}

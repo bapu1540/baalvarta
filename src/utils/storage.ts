@@ -1505,8 +1505,8 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
   whatsappNumber: '919876543210',
   instructionsHi: '1. ऊपर दिए गए UPI ID, QR कोड या बैंक खाते में भुगतान करें।\n2. भुगतान के बाद स्क्रीनशॉट (Payment Screenshot) व्हाट्सएप पर भेजें।\n3. आपका VIP पास 5 मिनट में 100% एक्टिवेट हो जाएगा!',
   instructionsEn: '1. Pay via UPI ID, QR code, or Bank transfer.\n2. Send the payment screenshot on WhatsApp.\n3. Your VIP pass will be activated within 5 minutes!',
-  monthlyPrice: 29,
-  annualPrice: 299,
+  monthlyPrice: 49,
+  annualPrice: 499,
   lifetimePrice: 599,
   isPaymentEnabled: true,
 };
@@ -1516,7 +1516,10 @@ export function getStoredPaymentSettings(): PaymentSettings {
     const raw = localStorage.getItem(KEYS.PAYMENT_SETTINGS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULT_PAYMENT_SETTINGS, ...parsed };
+      const monthly = (!parsed.monthlyPrice || parsed.monthlyPrice < 49) ? 49 : parsed.monthlyPrice;
+      const annual = (!parsed.annualPrice || parsed.annualPrice < 499) ? 499 : parsed.annualPrice;
+      const updated = { ...DEFAULT_PAYMENT_SETTINGS, ...parsed, monthlyPrice: monthly, annualPrice: annual };
+      return updated;
     }
   } catch (e) {
     console.warn('Error reading payment settings from storage:', e);

@@ -261,7 +261,7 @@ export const KidProfileHub: React.FC<KidProfileHubProps> = ({
               className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-black text-sm sm:text-base shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all border-2 border-white ring-4 ring-amber-400/30 animate-bounce"
             >
               <Crown className="w-5 h-5 fill-slate-950 text-slate-950" />
-              <span>{isHi ? '🌟 अभी PRO मेंबरशिप अनलॉक करें (₹29/माह)' : '🌟 Unlock PRO Membership Now'}</span>
+              <span>{isHi ? '🌟 अभी PRO मेंबरशिप अनलॉक करें (₹49/माह)' : '🌟 Unlock PRO Membership Now'}</span>
             </button>
           </div>
 

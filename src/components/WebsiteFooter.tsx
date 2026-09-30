@@ -456,7 +456,7 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({
                       className="hover:text-sky-400 transition-colors flex items-center gap-1 cursor-pointer text-left w-full group leading-tight"
                     >
                       <ChevronRight className="w-3 h-3 text-sky-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                      <span className="line-clamp-2">{language === 'hi' ? 'मुफ्त वर्कशीट PDF' : 'Free Worksheets'}</span>
+                      <span className="line-clamp-2">{language === 'hi' ? 'पेरेंट गाइड व को-रीडिंग' : 'Parent & Family Guide'}</span>
                     </button>
                   </li>
                   <li>

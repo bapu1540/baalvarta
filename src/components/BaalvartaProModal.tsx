@@ -61,14 +61,20 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(() => getStoredPaymentSettings());
 
   useEffect(() => {
+    const sanitize = (settings: PaymentSettings): PaymentSettings => ({
+      ...settings,
+      monthlyPrice: (!settings.monthlyPrice || settings.monthlyPrice < 49) ? 49 : settings.monthlyPrice,
+      annualPrice: (!settings.annualPrice || settings.annualPrice < 499) ? 499 : settings.annualPrice,
+    });
+
     // Initial fetch from Firestore
     fetchPaymentSettingsFromFirestore().then((remote) => {
-      if (remote) setPaymentSettings(remote);
+      if (remote) setPaymentSettings(sanitize(remote));
     });
 
     // Real-time listener
     const unsub = subscribeToFirestorePaymentSettings((remote) => {
-      if (remote) setPaymentSettings(remote);
+      if (remote) setPaymentSettings(sanitize(remote));
     });
 
     const handleLocalChange = () => {
@@ -87,9 +93,9 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
 
   if (!isOpen) return null;
 
-  const activePrice = selectedPlan === 'annual'
-    ? (paymentSettings.annualPrice || PRO_PLANS.annual.price)
-    : (paymentSettings.monthlyPrice || PRO_PLANS.monthly.price);
+  const monthlyPrice = (paymentSettings.monthlyPrice && paymentSettings.monthlyPrice >= 49) ? paymentSettings.monthlyPrice : 49;
+  const annualPrice = (paymentSettings.annualPrice && paymentSettings.annualPrice >= 499) ? paymentSettings.annualPrice : 499;
+  const activePrice = selectedPlan === 'annual' ? annualPrice : monthlyPrice;
 
   const handleSelectPlan = (plan: 'monthly' | 'annual') => {
     if (soundEnabled) playPopSound();
@@ -296,12 +302,12 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                       {isHi ? 'मासिक पास (Monthly)' : 'Monthly Pass'}
                     </h3>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl sm:text-3xl font-black text-blue-600">₹{paymentSettings.monthlyPrice || 29}</span>
-                      <span className="text-xs text-slate-400 line-through font-bold">₹49</span>
+                      <span className="text-2xl sm:text-3xl font-black text-blue-600">₹{monthlyPrice}</span>
+                      <span className="text-xs text-slate-400 line-through font-bold">₹99</span>
                       <span className="text-xs text-slate-600 font-bold">/ {isHi ? 'माह' : 'month'}</span>
                     </div>
                     <div className="text-[11px] font-bold text-emerald-600 mt-0.5">
-                      {isHi ? 'रोजाना ₹1 से भी कम' : 'Less than ₹1/day'}
+                      {isHi ? 'केवल ~₹1.60 प्रतिदिन' : 'Only ~₹1.60/day'}
                     </div>
                   </div>
 
@@ -354,12 +360,12 @@ export const BaalvartaProModal: React.FC<BaalvartaProModalProps> = ({
                       <span className="text-xs">🌟</span>
                     </h3>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl sm:text-3xl font-black text-amber-600">₹{paymentSettings.annualPrice || 299}</span>
-                      <span className="text-xs text-slate-400 line-through font-bold">₹499</span>
+                      <span className="text-2xl sm:text-3xl font-black text-amber-600">₹{annualPrice}</span>
+                      <span className="text-xs text-slate-400 line-through font-bold">₹799</span>
                       <span className="text-xs text-slate-600 font-bold">/ {isHi ? 'वर्ष' : 'year'}</span>
                     </div>
                     <div className="text-[11px] font-bold text-emerald-600 mt-0.5">
-                      {isHi ? `केवल ~₹${Math.round((paymentSettings.annualPrice || 299) / 12)}/माह (80 पैसे/दिन)` : 'Only ~80 paise/day'}
+                      {isHi ? `केवल ~₹${Math.round(annualPrice / 12)}/माह (₹1.36/दिन)` : 'Only ~₹41/month'}
                     </div>
                   </div>
 

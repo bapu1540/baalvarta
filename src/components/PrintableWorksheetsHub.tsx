@@ -326,7 +326,7 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
                 <p className="text-[11px] text-slate-600 font-medium">
                   {isPro
                     ? (isHi ? 'आप बिना किसी सीमा के सभी शीट्स व सर्टिफिकेट्स डाउनलोड कर सकते हैं।' : 'You can download all worksheets and certificates without limits.')
-                    : (isHi ? 'केवल ₹29/माह या ₹299/वर्ष में 100% Ad-Free व असीमित डाउनलोड प्राप्त करें।' : 'Upgrade to Pro for ₹29/mo or ₹299/yr for unlimited downloads & ad-free access.')}
+                    : (isHi ? 'केवल ₹49/माह या ₹499/वर्ष में 100% Ad-Free व असीमित डाउनलोड प्राप्त करें।' : 'Upgrade to Pro for ₹49/mo or ₹499/yr for unlimited downloads & ad-free access.')}
                 </p>
               </div>
             </div>
@@ -344,7 +344,7 @@ export const PrintableWorksheetsHub: React.FC<PrintableWorksheetsHubProps> = ({
                 }`}
               >
                 <Crown className="w-3.5 h-3.5 text-yellow-200" />
-                <span>{isPro ? (isHi ? 'VIP स्थिति' : 'VIP Status') : (isHi ? 'प्रो अपग्रेड (₹29) 👑' : 'Upgrade to Pro (₹29) 👑')}</span>
+                <span>{isPro ? (isHi ? 'VIP स्थिति' : 'VIP Status') : (isHi ? 'प्रो अपग्रेड (₹49) 👑' : 'Upgrade to Pro (₹49) 👑')}</span>
               </button>
             )}
           </div>

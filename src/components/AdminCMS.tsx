@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Plus,
@@ -92,6 +92,7 @@ import {
   saveStoredStories,
   saveStoredFunFacts,
   saveStoredAudioStories,
+  saveStoredLearningItems,
   recordDeletedDocId,
   unrecordDeletedDocId,
   getStoredGames,
@@ -197,6 +198,10 @@ interface AdminCMSProps {
   onSaveLearning: (items: LearningItem[]) => void;
   audioStories: AudioStory[];
   onSaveAudio: (audio: AudioStory[]) => void;
+  worksheets?: PrintableWorksheet[];
+  onSaveWorksheets?: (worksheets: PrintableWorksheet[]) => void;
+  quizSets?: QuizSet[];
+  onSaveQuizSets?: (quizSets: QuizSet[]) => void;
   videoStories: VideoStory[];
   onSaveVideos: (videos: VideoStory[]) => void;
   videoCategories: string[];
@@ -221,6 +226,10 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   onSaveLearning,
   audioStories,
   onSaveAudio,
+  worksheets: initialWorksheets = [],
+  onSaveWorksheets,
+  quizSets: initialQuizSets = [],
+  onSaveQuizSets,
   videoStories = [],
   onSaveVideos,
   videoCategories = [],
@@ -555,8 +564,24 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   };
 
   // Quiz Sets and Worksheets
-  const [quizSets, setQuizSets] = useState<QuizSet[]>(() => getStoredQuizSets());
-  const [worksheets, setWorksheets] = useState<PrintableWorksheet[]>(() => getStoredWorksheets());
+  const [quizSets, setQuizSets] = useState<QuizSet[]>(() =>
+    initialQuizSets && initialQuizSets.length > 0 ? initialQuizSets : getStoredQuizSets()
+  );
+  const [worksheets, setWorksheets] = useState<PrintableWorksheet[]>(() =>
+    initialWorksheets && initialWorksheets.length > 0 ? initialWorksheets : getStoredWorksheets()
+  );
+
+  useEffect(() => {
+    if (initialQuizSets && initialQuizSets.length > 0) {
+      setQuizSets(initialQuizSets);
+    }
+  }, [initialQuizSets]);
+
+  useEffect(() => {
+    if (initialWorksheets && initialWorksheets.length > 0) {
+      setWorksheets(initialWorksheets);
+    }
+  }, [initialWorksheets]);
 
   // New Quiz Set Form State (with 5 questions and 4 options each)
   const [newQuizTitleHi, setNewQuizTitleHi] = useState('');
@@ -653,10 +678,19 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   const [undoStory, setUndoStory] = useState<{ story: Story; index: number } | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
 
-  // Edit States for CMS entities
+  // Edit States for CMS entities across all categories
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
   const [editingFactId, setEditingFactId] = useState<string | null>(null);
   const [editingAudioId, setEditingAudioId] = useState<string | null>(null);
+  const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
+  const [editingWorksheetId, setEditingWorksheetId] = useState<string | null>(null);
+  const [editingLearningId, setEditingLearningId] = useState<string | null>(null);
+  const [editingGameId, setEditingGameId] = useState<string | null>(null);
+  const [editingColoringId, setEditingColoringId] = useState<string | null>(null);
+
+  // Quick Story Thumbnail Change Modal
+  const [storyForThumbnailChange, setStoryForThumbnailChange] = useState<Story | null>(null);
+  const [newThumbnailUrl, setNewThumbnailUrl] = useState<string>('');
 
   // Story Upload Mode: 'standard' or 'picture_book'
   const [storyUploadMode, setStoryUploadMode] = useState<'picture_book' | 'standard'>('picture_book');
@@ -688,6 +722,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     moralEn: '',
     category: 'moral' as Story['category'],
     recommendedAge: '4-9 वर्ष',
+    coverImage: '',
   });
 
   const [newStoryScenes, setNewStoryScenes] = useState<Array<{
@@ -773,10 +808,130 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
   if (!isOpen) return null;
 
+  const handleOpenThumbnailModal = (story: Story) => {
+    if (soundEnabled) playPopSound();
+    setStoryForThumbnailChange(story);
+    setNewThumbnailUrl(story.coverImage || '');
+  };
+
+  const handleSaveThumbnailChange = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!storyForThumbnailChange || !newThumbnailUrl.trim()) return;
+    if (soundEnabled) playSuccessSound();
+
+    const updatedStory: Story = {
+      ...storyForThumbnailChange,
+      coverImage: newThumbnailUrl.trim(),
+      updatedAt: Date.now(),
+    };
+    if (updatedStory.scenes && updatedStory.scenes.length > 0) {
+      const updatedScenes = [...updatedStory.scenes];
+      updatedScenes[0] = { ...updatedScenes[0], image: newThumbnailUrl.trim() };
+      updatedStory.scenes = updatedScenes;
+    }
+
+    const updatedStories = stories.map((s) => (s.id === storyForThumbnailChange.id ? updatedStory : s));
+    onSaveStories(updatedStories);
+    saveStoredStories(updatedStories);
+    syncStoryToFirestore(updatedStory);
+
+    setToastMessage({
+      text: `📸 कहानी "${storyForThumbnailChange.titleHi}" का थंबनेल सफलतापूर्वक बदल दिया गया!`,
+      type: 'success',
+    });
+    setStoryForThumbnailChange(null);
+    setNewThumbnailUrl('');
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleEditLearning = (item: LearningItem) => {
+    if (soundEnabled) playPopSound();
+    setEditingLearningId(item.id);
+    setNewLearning({
+      module: item.module,
+      symbol: item.symbol,
+      name: item.name,
+      pronunciation: item.pronunciation,
+      color: item.color,
+      imageOrEmoji: item.imageOrEmoji,
+      audioUrl: item.audioUrl || '',
+      videoUrl: item.videoUrl || '',
+      pdfUrl: item.pdfUrl || '',
+      imageUrl: item.imageUrl || '',
+      words: item.words || [],
+      story: item.story || '',
+      gameUrl: item.gameUrl || '',
+    });
+    const formElement = document.getElementById('learning-cms-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditLearning = () => {
+    setEditingLearningId(null);
+    setNewLearning({
+      module: 'alphabet',
+      symbol: '',
+      name: '',
+      pronunciation: '',
+      color: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+      imageOrEmoji: '',
+      audioUrl: '',
+      videoUrl: '',
+      pdfUrl: '',
+      imageUrl: '',
+      words: [],
+      story: '',
+      gameUrl: '',
+    });
+  };
+
+  const handleDeleteLearning = (id: string) => {
+    if (soundEnabled) playPopSound();
+    recordDeletedDocId(id);
+    const updated = learningItems.filter((l) => l.id !== id);
+    onSaveLearning(updated);
+    saveStoredLearningItems(updated);
+    deleteLearningItemFromFirestore(id);
+    if (editingLearningId === id) {
+      handleCancelEditLearning();
+    }
+    setToastMessage({ text: 'ज्ञान आइटम हटा दिया गया!', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   const handleAddLearning = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLearning.symbol || !newLearning.name) return;
     if (soundEnabled) playSuccessSound();
+
+    if (editingLearningId) {
+      const existing = learningItems.find((l) => l.id === editingLearningId);
+      const updatedItem: LearningItem = {
+        ...(existing || {}),
+        id: editingLearningId,
+        module: newLearning.module as any,
+        symbol: newLearning.symbol!,
+        name: newLearning.name!,
+        pronunciation: newLearning.pronunciation || newLearning.name!,
+        color: newLearning.color || 'bg-blue-100 text-blue-700 border-blue-300',
+        imageOrEmoji: newLearning.imageOrEmoji || '📚',
+        audioUrl: newLearning.audioUrl,
+        videoUrl: newLearning.videoUrl,
+        pdfUrl: newLearning.pdfUrl,
+        imageUrl: newLearning.imageUrl,
+        words: newLearning.words,
+        story: newLearning.story,
+        gameUrl: newLearning.gameUrl,
+      };
+      const updated = learningItems.map((l) => (l.id === editingLearningId ? updatedItem : l));
+      onSaveLearning(updated);
+      saveStoredLearningItems(updated);
+      syncLearningItemToFirestore(updatedItem);
+      handleCancelEditLearning();
+      setToastMessage({ text: '✅ ज्ञान आइटम सफलतापूर्वक अपडेट हो गया!', type: 'success' });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
 
     const created: LearningItem = {
       id: `learn-${Date.now()}`,
@@ -812,6 +967,8 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       story: '',
       gameUrl: '',
     });
+    setToastMessage({ text: '✅ नया ज्ञान आइटम जुड़ गया!', type: 'success' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleEditStory = (story: Story) => {
@@ -829,6 +986,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
         moralEn: story.moralEn || '',
         category: story.category || 'moral',
         recommendedAge: story.recommendedAge || '4-9 वर्ष',
+        coverImage: story.coverImage || '',
       });
       if (story.scenes && story.scenes.length > 0) {
         setNewStoryScenes(
@@ -1611,10 +1769,139 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // --- Quiz Sets Handlers ---
+  const handleEditQuizSet = (qs: QuizSet) => {
+    if (soundEnabled) playPopSound();
+    setEditingQuizId(qs.id);
+    setNewQuizTitleHi(qs.titleHi);
+    setNewQuizTitleEn(qs.titleEn || qs.titleHi);
+    setNewQuizCategory(qs.category || 'animals');
+    setNewQuizIcon(qs.icon || '🦁');
+    if (qs.questions && qs.questions.length > 0) {
+      setNewQuizQuestions(
+        qs.questions.map((q) => ({
+          questionHi: q.questionHi || '',
+          questionEn: q.questionEn || '',
+          image: q.image || '',
+          options: (q.options?.length === 4 ? q.options : [q.options?.[0] || '', q.options?.[1] || '', q.options?.[2] || '', q.options?.[3] || '']) as [string, string, string, string],
+          optionsEn: (q.optionsEn?.length === 4 ? q.optionsEn : [q.optionsEn?.[0] || '', q.optionsEn?.[1] || '', q.optionsEn?.[2] || '', q.optionsEn?.[3] || '']) as [string, string, string, string],
+          correctIndex: q.correctIndex ?? 0,
+          explanationHi: q.explanationHi || '',
+          explanationEn: q.explanationEn || '',
+          explanationImage: q.explanationImage || '',
+        }))
+      );
+    }
+    const formElement = document.getElementById('quiz-cms-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditQuiz = () => {
+    setEditingQuizId(null);
+    setNewQuizTitleHi('');
+    setNewQuizTitleEn('');
+    setNewQuizCategory('animals');
+    setNewQuizIcon('🦁');
+    setNewQuizQuestions([
+      {
+        questionHi: '',
+        questionEn: '',
+        image: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=600&auto=format&fit=crop&q=80',
+        options: ['', '', '', ''],
+        optionsEn: ['', '', '', ''],
+        correctIndex: 0,
+        explanationHi: '',
+        explanationEn: '',
+        explanationImage: '',
+      },
+      {
+        questionHi: '',
+        questionEn: '',
+        image: 'https://images.unsplash.com/photo-1547721064-da6cfb341d50?w=600&auto=format&fit=crop&q=80',
+        options: ['', '', '', ''],
+        optionsEn: ['', '', '', ''],
+        correctIndex: 0,
+        explanationHi: '',
+        explanationEn: '',
+        explanationImage: '',
+      },
+      {
+        questionHi: '',
+        questionEn: '',
+        image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+        options: ['', '', '', ''],
+        optionsEn: ['', '', '', ''],
+        correctIndex: 0,
+        explanationHi: '',
+        explanationEn: '',
+        explanationImage: '',
+      },
+      {
+        questionHi: '',
+        questionEn: '',
+        image: 'https://images.unsplash.com/photo-1509099836639-18ba1795216d?w=600&auto=format&fit=crop&q=80',
+        options: ['', '', '', ''],
+        optionsEn: ['', '', '', ''],
+        correctIndex: 0,
+        explanationHi: '',
+        explanationEn: '',
+        explanationImage: '',
+      },
+      {
+        questionHi: '',
+        questionEn: '',
+        image: 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=600&auto=format&fit=crop&q=80',
+        options: ['', '', '', ''],
+        optionsEn: ['', '', '', ''],
+        correctIndex: 0,
+        explanationHi: '',
+        explanationEn: '',
+        explanationImage: '',
+      },
+    ]);
+  };
+
   const handleAddQuizSet = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQuizTitleHi) return;
     if (soundEnabled) playSuccessSound();
+
+    if (editingQuizId) {
+      const existing = quizSets.find((q) => q.id === editingQuizId);
+      const updatedItem: QuizSet = {
+        ...(existing || {}),
+        id: editingQuizId,
+        titleHi: newQuizTitleHi,
+        titleEn: newQuizTitleEn || newQuizTitleHi,
+        descriptionHi: existing?.descriptionHi || '5 मजेदार प्रश्नों का अभ्यास सेट',
+        descriptionEn: existing?.descriptionEn || '5 fun practice questions quiz set',
+        category: newQuizCategory,
+        icon: newQuizIcon || '🎯',
+        color: existing?.color || 'bg-emerald-500',
+        difficulty: existing?.difficulty || 'easy',
+        questions: newQuizQuestions.map((q, idx) => ({
+          id: existing?.questions?.[idx]?.id || `q-${Date.now()}-${idx}`,
+          questionHi: q.questionHi || `प्रश्न #${idx + 1}`,
+          questionEn: q.questionEn || `Question #${idx + 1}`,
+          image: q.image,
+          options: q.options,
+          optionsEn: q.optionsEn,
+          correctIndex: q.correctIndex,
+          explanationHi: q.explanationHi || 'यह सही उत्तर है!',
+          explanationEn: q.explanationEn || 'This is the correct answer!',
+          explanationImage: q.explanationImage || q.image,
+        })),
+      };
+      const updated = quizSets.map((q) => (q.id === editingQuizId ? updatedItem : q));
+      setQuizSets(updated);
+      saveStoredQuizSets(updated);
+      if (onSaveQuizSets) onSaveQuizSets(updated);
+      syncQuizSetToFirestore(updatedItem);
+      handleCancelEditQuiz();
+      setToastMessage({ text: '✅ 5-प्रश्नों वाला क्विज़ सेट सफलतापूर्वक अपडेट हो गया!', type: 'success' });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
 
     const created: QuizSet = {
       id: `quiz-${Date.now()}`,
@@ -1653,6 +1940,8 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const updated = [created, ...quizSets];
     setQuizSets(updated);
     saveStoredQuizSets(updated);
+    if (onSaveQuizSets) onSaveQuizSets(updated);
+    syncQuizSetToFirestore(created);
 
     // Reset form
     setNewQuizTitleHi('');
@@ -1663,15 +1952,81 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
   const handleDeleteQuizSet = (id: string) => {
     if (soundEnabled) playPopSound();
+    recordDeletedDocId(id);
     const updated = quizSets.filter((q) => q.id !== id);
     setQuizSets(updated);
     saveStoredQuizSets(updated);
+    if (onSaveQuizSets) onSaveQuizSets(updated);
+    deleteQuizSetFromFirestore(id);
+    if (editingQuizId === id) {
+      handleCancelEditQuiz();
+    }
+    setToastMessage({ text: 'क्विज़ सेट हटा दिया गया!', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // --- Worksheets Handlers ---
+  const handleEditWorksheet = (ws: PrintableWorksheet) => {
+    if (soundEnabled) playPopSound();
+    setEditingWorksheetId(ws.id);
+    setNewWs({
+      titleHi: ws.titleHi,
+      titleEn: ws.titleEn || ws.titleHi,
+      category: ws.category,
+      thumbnailUrl: ws.thumbnailUrl,
+      printUrl: ws.printUrl || ws.thumbnailUrl,
+      ageGroup: ws.ageGroup,
+      descriptionHi: ws.descriptionHi || '',
+      descriptionEn: ws.descriptionEn || '',
+    });
+    const formElement = document.getElementById('worksheet-cms-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditWorksheet = () => {
+    setEditingWorksheetId(null);
+    setNewWs({
+      titleHi: '',
+      titleEn: '',
+      category: 'coloring',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&auto=format&fit=crop&q=80',
+      printUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&auto=format&fit=crop&q=90',
+      ageGroup: '4-9 वर्ष',
+      descriptionHi: '',
+      descriptionEn: '',
+    });
   };
 
   const handleAddWorksheet = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWs.titleHi) return;
     if (soundEnabled) playSuccessSound();
+
+    if (editingWorksheetId) {
+      const existing = worksheets.find((w) => w.id === editingWorksheetId);
+      const updatedItem: PrintableWorksheet = {
+        ...(existing || {}),
+        id: editingWorksheetId,
+        titleHi: newWs.titleHi,
+        titleEn: newWs.titleEn || newWs.titleHi,
+        category: newWs.category,
+        thumbnailUrl: newWs.thumbnailUrl,
+        printUrl: newWs.printUrl || newWs.thumbnailUrl,
+        ageGroup: newWs.ageGroup,
+        descriptionHi: newWs.descriptionHi || 'बच्चों के लिए मजेदार प्रिंट करने योग्य अभ्यास पत्र',
+        descriptionEn: newWs.descriptionEn || 'Fun printable activity sheet for kids',
+        createdAt: existing?.createdAt || Date.now(),
+      };
+      const updated = worksheets.map((w) => (w.id === editingWorksheetId ? updatedItem : w));
+      setWorksheets(updated);
+      saveStoredWorksheets(updated);
+      if (onSaveWorksheets) onSaveWorksheets(updated);
+      syncWorksheetToFirestore(updatedItem);
+      handleCancelEditWorksheet();
+      setToastMessage({ text: '✅ प्रिंटेबल वर्कशीट सफलतापूर्वक अपडेट हो गई!', type: 'success' });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
 
     const created: PrintableWorksheet = {
       id: `ws-${Date.now()}`,
@@ -1689,6 +2044,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const updated = [created, ...worksheets];
     setWorksheets(updated);
     saveStoredWorksheets(updated);
+    if (onSaveWorksheets) onSaveWorksheets(updated);
     syncWorksheetToFirestore(created);
     if (created.thumbnailUrl.startsWith('data:')) {
       uploadImageToFirebaseStorage(created.thumbnailUrl, `worksheets/${created.id}-thumb`).then((cloudUrl) => {
@@ -1719,14 +2075,69 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const updated = worksheets.filter((w) => w.id !== id);
     setWorksheets(updated);
     saveStoredWorksheets(updated);
+    if (onSaveWorksheets) onSaveWorksheets(updated);
     deleteWorksheetFromFirestore(id);
+    if (editingWorksheetId === id) {
+      handleCancelEditWorksheet();
+    }
+    setToastMessage({ text: 'वर्कशीट हटा दी गई!', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   // --- Games Handlers ---
+  const handleEditGame = (game: KidsGameItem) => {
+    if (soundEnabled) playPopSound();
+    setEditingGameId(game.id);
+    setNewGame({
+      titleHi: game.titleHi,
+      titleEn: game.titleEn,
+      category: game.category,
+      descriptionHi: game.descriptionHi,
+      descriptionEn: game.descriptionEn,
+      emoji: game.emoji,
+      color: game.color,
+      badge: game.badge,
+      isFeatured: game.isFeatured,
+    });
+    const formElement = document.getElementById('game-cms-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditGame = () => {
+    setEditingGameId(null);
+    setNewGame({
+      titleHi: '',
+      titleEn: '',
+      category: 'memory',
+      descriptionHi: '',
+      descriptionEn: '',
+      emoji: '🎮',
+      color: 'from-amber-400 to-orange-500',
+      badge: 'नया गेम 🌟',
+      isFeatured: true,
+    });
+  };
+
   const handleAddGame = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGame.titleHi) return;
     if (soundEnabled) playSuccessSound();
+
+    if (editingGameId) {
+      const existing = gamesList.find((g) => g.id === editingGameId);
+      const updatedItem: KidsGameItem = {
+        ...(existing || {}),
+        ...newGame,
+        id: editingGameId,
+      };
+      const updated = gamesList.map((g) => (g.id === editingGameId ? updatedItem : g));
+      setGamesList(updated);
+      saveStoredGames(updated);
+      handleCancelEditGame();
+      setToastMessage({ text: '✅ गेम सफलतापूर्वक अपडेट हो गया!', type: 'success' });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
 
     const created: KidsGameItem = {
       ...newGame,
@@ -1758,13 +2169,59 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const updated = gamesList.filter((g) => g.id !== id);
     setGamesList(updated);
     saveStoredGames(updated);
+    if (editingGameId === id) {
+      handleCancelEditGame();
+    }
+    setToastMessage({ text: 'गेम हटा दिया गया!', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   // --- Coloring Templates Handlers ---
+  const handleEditColoringTemplate = (tpl: ColoringTemplateItem) => {
+    if (soundEnabled) playPopSound();
+    setEditingColoringId(tpl.id);
+    setNewColoringTemplate({
+      nameHi: tpl.nameHi,
+      nameEn: tpl.nameEn,
+      emoji: tpl.emoji,
+      category: tpl.category,
+      imageUrl: tpl.imageUrl || '',
+    });
+    const formElement = document.getElementById('coloring-cms-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditColoring = () => {
+    setEditingColoringId(null);
+    setNewColoringTemplate({
+      nameHi: '',
+      nameEn: '',
+      emoji: '🦁',
+      category: 'animals',
+      imageUrl: '',
+    });
+  };
+
   const handleAddColoringTemplate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newColoringTemplate.nameHi) return;
     if (soundEnabled) playSuccessSound();
+
+    if (editingColoringId) {
+      const existing = coloringTemplates.find((t) => t.id === editingColoringId);
+      const updatedItem: ColoringTemplateItem = {
+        ...(existing || {}),
+        ...newColoringTemplate,
+        id: editingColoringId,
+      };
+      const updated = coloringTemplates.map((t) => (t.id === editingColoringId ? updatedItem : t));
+      setColoringTemplates(updated);
+      saveStoredColoringTemplates(updated);
+      handleCancelEditColoring();
+      setToastMessage({ text: '✅ कलरिंग टेम्पलेट सफलतापूर्वक अपडेट हो गया!', type: 'success' });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
 
     const created: ColoringTemplateItem = {
       ...newColoringTemplate,
@@ -1780,6 +2237,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       nameEn: '',
       emoji: '🦁',
       category: 'animals',
+      imageUrl: '',
     });
 
     setToastMessage({ text: 'नया कलरिंग टेम्पलेट सफलतापूर्वक जुड़ गया!', type: 'success' });
@@ -1791,6 +2249,11 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const updated = coloringTemplates.filter((t) => t.id !== id);
     setColoringTemplates(updated);
     saveStoredColoringTemplates(updated);
+    if (editingColoringId === id) {
+      handleCancelEditColoring();
+    }
+    setToastMessage({ text: 'कलरिंग टेम्पलेट हटा दिया गया!', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   // --- Certificate Awards Handlers ---
@@ -2643,7 +3106,16 @@ service cloud.firestore {
                       </button>
                     </div>
 
-                    <div className="flex justify-end pt-2">
+                    <div className="flex justify-end items-center gap-2 pt-2">
+                      {editingStoryId && (
+                        <button
+                          type="button"
+                          onClick={handleCancelEditStory}
+                          className="px-4 py-2.5 rounded-2xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          रद्द करें (Cancel)
+                        </button>
+                      )}
                       <button
                         type="submit"
                         className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-sm shadow-md flex items-center gap-2 transition-all cursor-pointer"
@@ -2726,10 +3198,19 @@ service cloud.firestore {
                       />
                     </div>
 
-                    <div className="sm:col-span-2 flex justify-end">
+                    <div className="sm:col-span-2 flex justify-end items-center gap-2">
+                      {editingStoryId && (
+                        <button
+                          type="button"
+                          onClick={handleCancelEditStory}
+                          className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          रद्द करें (Cancel)
+                        </button>
+                      )}
                       <button
                         type="submit"
-                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all"
+                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
                       >
                         {editingStoryId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                         <span>{editingStoryId ? '💾 कहानी अपडेट करें (Update Story)' : 'कहानी प्रकाशित करें (Publish Story)'}</span>
@@ -3088,9 +3569,21 @@ service cloud.firestore {
                               </div>
 
                               {/* Action Buttons */}
-                              <div className="flex items-center gap-2 self-end sm:self-center">
+                              <div className="flex items-center gap-2 self-end sm:self-center flex-wrap">
+                                {/* Quick Thumbnail Change Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenThumbnailModal(s)}
+                                  className="px-2.5 py-1.5 rounded-xl border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-900 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="कहानी का थंबनेल बदलें (Change Thumbnail)"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5 text-sky-700" />
+                                  <span>थंबनेल बदलें</span>
+                                </button>
+
                                 {/* Edit Button */}
                                 <button
+                                  type="button"
                                   onClick={() => handleEditStory(s)}
                                   className="px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
                                   title="कहानी संपादित करें (Edit Story)"
@@ -3463,15 +3956,40 @@ service cloud.firestore {
                       </span>
                     </label>
 
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>
-                        {editingVideoId ? 'अपडेट करें (Update Video)' : 'वीडियो कहानी सहेजें (Save Video)'}
-                      </span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {editingVideoId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingVideoId(null);
+                            setNewVideo({
+                              titleHi: '',
+                              titleEn: '',
+                              youtubeUrl: '',
+                              thumbnail: '',
+                              category: videoCategories[0] || 'पंचतंत्र कहानियाँ',
+                              duration: '0:58',
+                              viewsCount: '15K+',
+                              descriptionHi: '',
+                              descriptionEn: '',
+                              isFeatured: false,
+                            });
+                          }}
+                          className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          रद्द करें (Cancel)
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <span>
+                          {editingVideoId ? 'अपडेट करें (Update Video)' : 'वीडियो कहानी सहेजें (Save Video)'}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
@@ -3606,15 +4124,26 @@ service cloud.firestore {
               </div>
 
               {/* Add New Quiz Set Form */}
-              <div className="bg-emerald-50/60 rounded-3xl p-5 border-2 border-emerald-200 space-y-4">
+              <div id="quiz-cms-form" className="bg-emerald-50/60 rounded-3xl p-5 border-2 border-emerald-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-black text-sm text-emerald-950 flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-emerald-600" />
-                    <span>नया 5-प्रश्नों वाला बाल क्विज़ सेट बनाएँ (Add 5-Question Quiz Set)</span>
+                    <span>{editingQuizId ? 'क्विज़ सेट संपादित करें (Edit Quiz Set)' : 'नया 5-प्रश्नों वाला बाल क्विज़ सेट बनाएँ (Add 5-Question Quiz Set)'}</span>
                   </h3>
-                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full">
-                    5 प्रश्न • 4 विकल्प • व्याख्या सहित
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {editingQuizId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditQuiz}
+                        className="px-3 py-1 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                    )}
+                    <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full">
+                      5 प्रश्न • 4 विकल्प • व्याख्या सहित
+                    </span>
+                  </div>
                 </div>
 
                 <form onSubmit={handleAddQuizSet} className="space-y-5 text-xs">
@@ -3885,13 +4414,24 @@ service cloud.firestore {
                     ))}
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-all active:scale-98 flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>5-प्रश्नों वाला नया क्विज़ सेट सेव करें (Save 5-Q Quiz)</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {editingQuizId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditQuiz}
+                        className="px-4 py-3 rounded-2xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {editingQuizId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <span>{editingQuizId ? '💾 5-प्रश्नों वाला क्विज़ सेट अपडेट करें (Update Quiz Set)' : '5-प्रश्नों वाला नया क्विज़ सेट सेव करें (Save 5-Q Quiz)'}</span>
+                    </button>
+                  </div>
                 </form>
               </div>
 
@@ -3919,13 +4459,26 @@ service cloud.firestore {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteQuizSet(qs.id)}
-                        className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>हटाएं</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditQuizSet(qs)}
+                          className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="क्विज़ सेट संपादित करें"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>एडिट</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteQuizSet(qs.id)}
+                          className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="हटाएं"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>हटाएं</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -3960,11 +4513,22 @@ service cloud.firestore {
               </div>
 
               {/* Add Worksheet Form */}
-              <div className="bg-indigo-50/60 rounded-3xl p-5 border-2 border-indigo-200 space-y-4">
-                <h3 className="font-black text-sm text-indigo-950 flex items-center gap-2">
-                  <Printer className="w-4 h-4 text-indigo-600" />
-                  <span>नई प्रिंटेबल वर्कशीट जोड़ें (Add Printable Worksheet)</span>
-                </h3>
+              <div id="worksheet-cms-form" className="bg-indigo-50/60 rounded-3xl p-5 border-2 border-indigo-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-sm text-indigo-950 flex items-center gap-2">
+                    <Printer className="w-4 h-4 text-indigo-600" />
+                    <span>{editingWorksheetId ? 'प्रिंटेबल वर्कशीट संपादित करें (Edit Printable Worksheet)' : 'नई प्रिंटेबल वर्कशीट जोड़ें (Add Printable Worksheet)'}</span>
+                  </h3>
+                  {editingWorksheetId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditWorksheet}
+                      className="px-3 py-1 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      रद्द करें (Cancel)
+                    </button>
+                  )}
+                </div>
 
                 <form onSubmit={handleAddWorksheet} className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                   <div>
@@ -4079,13 +4643,22 @@ service cloud.firestore {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-2 flex items-center gap-2">
+                    {editingWorksheetId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditWorksheet}
+                        className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5"
+                      className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>वर्कशीट सेव करें (Save Worksheet)</span>
+                      {editingWorksheetId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <span>{editingWorksheetId ? '💾 वर्कशीट अपडेट करें (Update Worksheet)' : 'वर्कशीट सेव करें (Save Worksheet)'}</span>
                     </button>
                   </div>
                 </form>
@@ -4111,12 +4684,24 @@ service cloud.firestore {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteWorksheet(ws.id)}
-                        className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleEditWorksheet(ws)}
+                          className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold cursor-pointer transition-colors"
+                          title="वर्कशीट संपादित करें"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWorksheet(ws.id)}
+                          className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold cursor-pointer transition-colors"
+                          title="हटाएं"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -4161,11 +4746,22 @@ service cloud.firestore {
               </div>
 
               {/* Add New Game Form */}
-              <div className="bg-purple-50/60 rounded-3xl p-5 border-2 border-purple-200 space-y-4">
-                <h3 className="font-black text-sm text-purple-950 flex items-center gap-2">
-                  <Gamepad2 className="w-4 h-4 text-purple-600" />
-                  <span>नया खेल जोड़ें (Add New Kid Game)</span>
-                </h3>
+              <div id="game-cms-form" className="bg-purple-50/60 rounded-3xl p-5 border-2 border-purple-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-sm text-purple-950 flex items-center gap-2">
+                    <Gamepad2 className="w-4 h-4 text-purple-600" />
+                    <span>{editingGameId ? 'खेल संपादित करें (Edit Kid Game)' : 'नया खेल जोड़ें (Add New Kid Game)'}</span>
+                  </h3>
+                  {editingGameId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditGame}
+                      className="px-3 py-1 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      रद्द करें (Cancel)
+                    </button>
+                  )}
+                </div>
 
                 <form onSubmit={handleAddGame} className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                   <div>
@@ -4242,13 +4838,22 @@ service cloud.firestore {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-2 flex items-center gap-2">
+                    {editingGameId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditGame}
+                        className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>गेम सेव करें (Save Game)</span>
+                      {editingGameId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <span>{editingGameId ? '💾 खेल अपडेट करें (Update Game)' : 'गेम सेव करें (Save Game)'}</span>
                     </button>
                   </div>
                 </form>
@@ -4277,12 +4882,24 @@ service cloud.firestore {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteGame(g.id)}
-                        className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleEditGame(g)}
+                          className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold cursor-pointer transition-colors"
+                          title="खेल संपादित करें (Edit Game)"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGame(g.id)}
+                          className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold cursor-pointer transition-colors"
+                          title="हटाएं (Delete)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -4317,11 +4934,22 @@ service cloud.firestore {
               </div>
 
               {/* Add Template Form */}
-              <div className="bg-amber-50/60 rounded-3xl p-5 border-2 border-amber-200 space-y-4">
-                <h3 className="font-black text-sm text-amber-950 flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-amber-600" />
-                  <span>नया कलरिंग स्केच जोड़ें (Add Coloring Template)</span>
-                </h3>
+              <div id="coloring-cms-form" className="bg-amber-50/60 rounded-3xl p-5 border-2 border-amber-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-sm text-amber-950 flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-amber-600" />
+                    <span>{editingColoringId ? 'कलरिंग स्केच संपादित करें (Edit Coloring Template)' : 'नया कलरिंग स्केच जोड़ें (Add Coloring Template)'}</span>
+                  </h3>
+                  {editingColoringId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditColoring}
+                      className="px-3 py-1 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      रद्द करें (Cancel)
+                    </button>
+                  )}
+                </div>
 
                 <form onSubmit={handleAddColoringTemplate} className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                   <div>
@@ -4425,13 +5053,22 @@ service cloud.firestore {
                     )}
                   </div>
 
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-2 flex items-center gap-2">
+                    {editingColoringId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditColoring}
+                        className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>कलरिंग टेम्पलेट सेव करें (Save Template)</span>
+                      {editingColoringId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <span>{editingColoringId ? '💾 टेम्पलेट अपडेट करें (Update Template)' : 'कलरिंग टेम्पलेट सेव करें (Save Template)'}</span>
                     </button>
                   </div>
                 </form>
@@ -4457,12 +5094,24 @@ service cloud.firestore {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteColoringTemplate(tpl.id)}
-                        className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEditColoringTemplate(tpl)}
+                          className="p-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold cursor-pointer transition-colors"
+                          title="कलरिंग टेम्पलेट संपादित करें (Edit Template)"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteColoringTemplate(tpl.id)}
+                          className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold cursor-pointer transition-colors"
+                          title="हटाएं (Delete)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -5363,10 +6012,23 @@ service cloud.firestore {
               </div>
 
               {/* Add Learning Form */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-emerald-200">
-                <div className="flex items-center gap-2 mb-3 text-emerald-900">
-                  <Sparkles className="w-5 h-5 text-emerald-600" />
-                  <h4 className="font-extrabold text-sm">Add New Learning Item</h4>
+              <div id="learning-cms-form" className="p-4 sm:p-5 rounded-2xl bg-white border border-emerald-200">
+                <div className="flex items-center justify-between mb-3 text-emerald-900">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-emerald-600" />
+                    <h4 className="font-extrabold text-sm">
+                      {editingLearningId ? 'ज्ञान आइटम संपादित करें (Edit Learning Item)' : 'Add New Learning Item (नया ज्ञान आइटम)'}
+                    </h4>
+                  </div>
+                  {editingLearningId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditLearning}
+                      className="px-3 py-1 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      रद्द करें (Cancel)
+                    </button>
+                  )}
                 </div>
 
                 <form onSubmit={handleAddLearning} className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -5565,13 +6227,22 @@ service cloud.firestore {
                     />
                   </div>
 
-                  <div className="sm:col-span-2 flex justify-end mt-2">
+                  <div className="sm:col-span-2 flex justify-end items-center gap-2 mt-2">
+                    {editingLearningId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditLearning}
+                        className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all"
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Item</span>
+                      {editingLearningId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <span>{editingLearningId ? '💾 ज्ञान आइटम अपडेट करें (Update Item)' : 'ज्ञान आइटम सेव करें (Add Item)'}</span>
                     </button>
                   </div>
                 </form>
@@ -5586,13 +6257,24 @@ service cloud.firestore {
                         <p className="font-black text-slate-800 text-xs truncate">{item.name}</p>
                         <p className="text-[11px] text-slate-400">{item.module} • {item.symbol}</p>
                       </div>
-                      <button
-                        onClick={() => onSaveLearning(learningItems.filter(l => l.id !== item.id))}
-                        className="p-1.5 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
-                        title="Delete Item"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEditLearning(item)}
+                          className="p-1.5 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
+                          title="संपादित करें (Edit Item)"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLearning(item.id)}
+                          className="p-1.5 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
+                          title="हटाएं (Delete Item)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     
                     {/* Tags for attached media */}
@@ -6379,7 +7061,7 @@ service cloud.firestore {
                         <input
                           type="number"
                           value={paymentSettingsAdmin.monthlyPrice}
-                          onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, monthlyPrice: Number(e.target.value) || 29 })}
+                          onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, monthlyPrice: Number(e.target.value) || 49 })}
                           className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-300 font-black text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
                         />
                       </div>
@@ -6394,7 +7076,7 @@ service cloud.firestore {
                         <input
                           type="number"
                           value={paymentSettingsAdmin.annualPrice}
-                          onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, annualPrice: Number(e.target.value) || 299 })}
+                          onChange={(e) => setPaymentSettingsAdmin({ ...paymentSettingsAdmin, annualPrice: Number(e.target.value) || 499 })}
                           className="w-full pl-7 pr-3 py-2 rounded-xl border border-amber-300 font-black text-sm text-amber-900 bg-amber-50/50 focus:ring-2 focus:ring-amber-400 focus:outline-none"
                         />
                       </div>
@@ -7252,6 +7934,86 @@ VITE_FIREBASE_STORAGE_BUCKET="${fbConfig.storageBucket || (fbConfig.projectId ? 
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>हाँ, कहानी हटाएँ (Delete Story)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Story Thumbnail Change Modal */}
+        {storyForThumbnailChange && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border-2 border-sky-200 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sky-950">
+                  <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+                    <ImageIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      कहानी का थंबनेल बदलें (Change Story Thumbnail)
+                    </h3>
+                    <p className="text-xs text-slate-500 font-bold">
+                      #{storyForThumbnailChange.number}. {storyForThumbnailChange.titleHi}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (soundEnabled) playPopSound();
+                    setStoryForThumbnailChange(null);
+                    setNewThumbnailUrl('');
+                  }}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 16:9 Image Uploader / URL for Thumbnail */}
+              <div className="space-y-3">
+                <ImageUpload16x9
+                  label="नया 16:9 थंबनेल / कवर फोटो (Choose File or Paste URL)"
+                  value={newThumbnailUrl}
+                  onChange={(url) => setNewThumbnailUrl(url)}
+                  required
+                  soundEnabled={soundEnabled}
+                  helperText="16:9 आकार की तस्वीर चुनें या नीचे सीधे URL भी पेस्ट कर सकते हैं।"
+                />
+
+                <div className="p-3 bg-sky-50 rounded-2xl border border-sky-200 text-xs text-sky-900 space-y-1">
+                  <p className="font-bold flex items-center gap-1 text-sky-950">
+                    <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                    <span>तुरंत क्लाउड सिंक:</span>
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    थंबनेल बदलते ही यह तुरंत आपके डिवाइस तथा Firebase Cloud Database पर सेव हो जाएगा और वेबसाइट पर तुरंत लाइव दिखेगा।
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (soundEnabled) playPopSound();
+                    setStoryForThumbnailChange(null);
+                    setNewThumbnailUrl('');
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  रद्द करें (Cancel)
+                </button>
+                <button
+                  type="button"
+                  disabled={!newThumbnailUrl.trim()}
+                  onClick={() => handleSaveThumbnailChange()}
+                  className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>📸 थंबनेल सहेजें (Save Thumbnail)</span>
                 </button>
               </div>
             </div>

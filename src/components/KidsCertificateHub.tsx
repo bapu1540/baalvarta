@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   Award,
   Download,
@@ -12,10 +12,10 @@ import {
   Trophy,
   ShieldCheck,
   Check,
-  Camera,
-  Trash2,
-  Image as ImageIcon,
-  Crown
+  Crown,
+  Smile,
+  Eye,
+  BookOpen
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Language } from '../types';
@@ -26,19 +26,20 @@ interface KidsCertificateHubProps {
   language: Language;
   soundEnabled: boolean;
   onBackToHome?: () => void;
+  onOpenProModal?: () => void;
   initialAchievementType?: string;
 }
 
 export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
   language,
   soundEnabled,
+  onOpenProModal,
   initialAchievementType,
 }) => {
   const isHi = language === 'hi';
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [childName, setChildName] = useState<string>('आरव चौहान');
-  const [childPhoto, setChildPhoto] = useState<string | null>(null);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string>('scholar');
   const [achievementType, setAchievementType] = useState<string>(initialAchievementType || 'super_reader');
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -48,6 +49,106 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
       setAchievementType(initialAchievementType);
     }
   }, [initialAchievementType]);
+
+  // Child-friendly Safe Avatars (Zero Personal Photo Upload for Child Privacy & Safety)
+  const avatarOptions = [
+    {
+      id: 'scholar',
+      emoji: '🎓',
+      nameHi: 'नन्हा विद्वान',
+      nameEn: 'Little Scholar',
+      bgGradient: 'from-amber-400 to-orange-500',
+      taglineHi: 'ज्ञान व संस्कार'
+    },
+    {
+      id: 'superhero',
+      emoji: '🦸‍♂️',
+      nameHi: 'सुपरहीरो किड',
+      nameEn: 'Superhero Kid',
+      bgGradient: 'from-rose-500 to-red-600',
+      taglineHi: 'साहसी व मददगार'
+    },
+    {
+      id: 'princess',
+      emoji: '👑',
+      nameHi: 'राजकुमार / परी',
+      nameEn: 'Prince / Princess',
+      bgGradient: 'from-purple-500 to-pink-500',
+      taglineHi: 'शालीन व दयालु'
+    },
+    {
+      id: 'astronaut',
+      emoji: '🚀',
+      nameHi: 'अंतरिक्ष यात्री',
+      nameEn: 'Space Explorer',
+      bgGradient: 'from-indigo-600 to-blue-500',
+      taglineHi: 'जिज्ञासु व खोजी'
+    },
+    {
+      id: 'lion',
+      emoji: '🦁',
+      nameHi: 'साहसी शावक',
+      nameEn: 'Brave Cub',
+      bgGradient: 'from-amber-500 to-yellow-600',
+      taglineHi: 'निर्भीक व निष्ठावान'
+    },
+    {
+      id: 'owl',
+      emoji: '🦉',
+      nameHi: 'ज्ञानी उल्लू',
+      nameEn: 'Wise Owl',
+      bgGradient: 'from-teal-500 to-emerald-600',
+      taglineHi: 'बुद्धिमान व शांत'
+    },
+    {
+      id: 'artist',
+      emoji: '🎨',
+      nameHi: 'बाल कलाकार',
+      nameEn: 'Little Artist',
+      bgGradient: 'from-pink-500 to-rose-500',
+      taglineHi: 'रचनात्मक व कल्पनाशील'
+    },
+    {
+      id: 'scientist',
+      emoji: '🔬',
+      nameHi: 'नन्हा वैज्ञानिक',
+      nameEn: 'Junior Scientist',
+      bgGradient: 'from-cyan-500 to-blue-600',
+      taglineHi: 'वैज्ञानिक सोच'
+    },
+    {
+      id: 'yogi',
+      emoji: '🧘',
+      nameHi: 'शांत योगी',
+      nameEn: 'Mindful Yogi',
+      bgGradient: 'from-emerald-500 to-green-600',
+      taglineHi: 'एकाग्र व संयमी'
+    },
+    {
+      id: 'champion',
+      emoji: '🏆',
+      nameHi: 'गोल्ड चैंपियन',
+      nameEn: 'Gold Champion',
+      bgGradient: 'from-yellow-400 to-amber-600',
+      taglineHi: 'सर्वश्रेष्ठ विजेता'
+    },
+    {
+      id: 'musician',
+      emoji: '🎵',
+      nameHi: 'संगीत प्रेमी',
+      nameEn: 'Little Musician',
+      bgGradient: 'from-violet-500 to-purple-600',
+      taglineHi: 'सदा मुस्कराता'
+    },
+    {
+      id: 'reader',
+      emoji: '📖',
+      nameHi: 'पुस्तक मित्र',
+      nameEn: 'Book Lover',
+      bgGradient: 'from-sky-500 to-indigo-600',
+      taglineHi: 'नियमित पाठक'
+    }
+  ];
 
   const achievementOptions = [
     {
@@ -97,33 +198,13 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
   ];
 
   const currentAch = achievementOptions.find((a) => a.id === achievementType) || achievementOptions[0];
+  const currentAvatar = avatarOptions.find((av) => av.id === selectedAvatarId) || avatarOptions[0];
+
   const currentDate = new Date().toLocaleDateString(isHi ? 'hi-IN' : 'en-US', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
-
-  // Handle Child Photo File Upload
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (soundEnabled) playPopSound();
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setChildPhoto(event.target.result as string);
-        if (soundEnabled) playSuccessSound();
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemovePhoto = () => {
-    if (soundEnabled) playPopSound();
-    setChildPhoto(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   const handleDownloadCertificate = async () => {
     if (soundEnabled) playSuccessSound();
@@ -139,7 +220,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
       return;
     }
 
-    // 1. Vibrant Multi-Color Parchment Background Gradient (Rose -> Amber -> Mint -> Sky Blue)
+    // 1. Multi-Color Parchment Background Gradient
     const bgGrad = ctx.createLinearGradient(0, 0, 1400, 980);
     bgGrad.addColorStop(0, '#FFF5F5');    // Soft Rose
     bgGrad.addColorStop(0.3, '#FFFBEB');  // Warm Cream Gold
@@ -220,7 +301,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     ctx.stroke();
 
     // =========================================================================
-    // 4. MAIN BODY (LEFT: TEXT & DETAILS, RIGHT: LARGE SQUARE PHOTO CARD)
+    // 4. MAIN BODY (LEFT: TEXT & DETAILS, RIGHT: LARGE SQUARE AVATAR CARD)
     // =========================================================================
 
     // LEFT SECTION: Text & Recipient Details
@@ -250,7 +331,6 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     // Award Description
     ctx.fillStyle = '#475569';
     ctx.font = '20px "Baloo 2", sans-serif';
-    // Wrap text if needed
     const descText = currentAch.descHi;
     if (descText.length > 55) {
       ctx.fillText(descText.slice(0, 52) + '...', 100, 480);
@@ -269,7 +349,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     ctx.fillText('🎖️ पठन तपस्या, नैतिक आचरण व ज्ञान संवर्धन में सर्वोच्च प्रदर्शन', 100, 605);
 
     // =========================================================================
-    // RIGHT SECTION: LARGE SQUARE / PORTRAIT PHOTO CARD (Width: 290, Height: 330)
+    // RIGHT SECTION: LARGE SQUARE AVATAR BADGE CARD (Width: 280, Height: 320)
     // =========================================================================
     const photoBoxX = 980;
     const photoBoxY = 265;
@@ -277,7 +357,6 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     const photoBoxH = 320;
     const cornerRadius = 18;
 
-    // Helper: Rounded Rect
     const roundRect = (x: number, y: number, w: number, h: number, r: number) => {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
@@ -310,92 +389,59 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
 
-    if (childPhoto) {
-      try {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = childPhoto;
-        });
+    // Render Chosen Cute Avatar with Circle & Glow
+    ctx.textAlign = 'center';
+    
+    // Decorative Avatar Circle Background
+    const avatarCircleGrad = ctx.createRadialGradient(
+      photoBoxX + (photoBoxW / 2),
+      photoBoxY + 115,
+      10,
+      photoBoxX + (photoBoxW / 2),
+      photoBoxY + 115,
+      68
+    );
+    avatarCircleGrad.addColorStop(0, '#FFFBEB');
+    avatarCircleGrad.addColorStop(0.6, '#FEF3C7');
+    avatarCircleGrad.addColorStop(1, '#FDE68A');
 
-        // Clip child photo inside the rounded card (leave 40px at bottom for name tag)
-        const innerImgH = photoBoxH - 46;
-        ctx.save();
-        roundRect(photoBoxX + 6, photoBoxY + 6, photoBoxW - 12, innerImgH, cornerRadius - 4);
-        ctx.clip();
+    ctx.beginPath();
+    ctx.arc(photoBoxX + (photoBoxW / 2), photoBoxY + 115, 68, 0, Math.PI * 2);
+    ctx.fillStyle = avatarCircleGrad;
+    ctx.fill();
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 4;
+    ctx.stroke();
 
-        // Object cover logic
-        const targetRatio = (photoBoxW - 12) / innerImgH;
-        const imgRatio = img.width / img.height;
-        let sx, sy, sw, sh;
-        if (imgRatio > targetRatio) {
-          sh = img.height;
-          sw = img.height * targetRatio;
-          sx = (img.width - sw) / 2;
-          sy = 0;
-        } else {
-          sw = img.width;
-          sh = img.width / targetRatio;
-          sx = 0;
-          sy = (img.height - sh) / 2;
-        }
-        ctx.drawImage(img, sx, sy, sw, sh, photoBoxX + 6, photoBoxY + 6, photoBoxW - 12, innerImgH);
-        ctx.restore();
+    // Large Avatar Emoji
+    ctx.font = '72px system-ui';
+    ctx.fillText(currentAvatar.emoji, photoBoxX + (photoBoxW / 2), photoBoxY + 142);
 
-        // Bottom Child Star Badge inside Photo Frame
-        roundRect(photoBoxX + 8, photoBoxY + photoBoxH - 40, photoBoxW - 16, 32, 10);
-        ctx.fillStyle = '#0F172A';
-        ctx.fill();
-        ctx.strokeStyle = '#F59E0B';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+    // Crown on Top of Frame
+    ctx.font = '36px system-ui';
+    ctx.fillText('👑', photoBoxX + (photoBoxW / 2), photoBoxY - 12);
 
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#FDE68A';
-        ctx.font = 'bold 15px "Baloo 2", sans-serif';
-        ctx.fillText('🌟 ' + (childName || 'बाल प्रतिभा') + ' 🌟', photoBoxX + (photoBoxW / 2), photoBoxY + photoBoxH - 18);
+    // Avatar Title and Tagline
+    ctx.fillStyle = '#78350F';
+    ctx.font = 'bold 20px "Baloo 2", sans-serif';
+    ctx.fillText(currentAvatar.nameHi, photoBoxX + (photoBoxW / 2), photoBoxY + 218);
 
-        // Crown on Top of Frame
-        ctx.font = '36px system-ui';
-        ctx.fillText('👑', photoBoxX + (photoBoxW / 2), photoBoxY - 12);
-      } catch {
-        // fallback to placeholder
-      }
-    } else {
-      // Elegant Placeholder Frame if No Photo is uploaded
-      ctx.textAlign = 'center';
-      
-      // Decorative Circle
-      ctx.beginPath();
-      ctx.arc(photoBoxX + (photoBoxW / 2), photoBoxY + 110, 55, 0, Math.PI * 2);
-      ctx.fillStyle = '#FEF3C7';
-      ctx.fill();
-      ctx.strokeStyle = '#F59E0B';
-      ctx.lineWidth = 3;
-      ctx.stroke();
+    ctx.fillStyle = '#059669';
+    ctx.font = 'bold 14px "Baloo 2", sans-serif';
+    ctx.fillText(`✨ ${currentAvatar.taglineHi} ✨`, photoBoxX + (photoBoxW / 2), photoBoxY + 244);
 
-      ctx.font = '48px system-ui';
-      ctx.fillText(currentAch.badgeEmoji, photoBoxX + (photoBoxW / 2), photoBoxY + 128);
+    // Bottom Badge: Star Reader
+    roundRect(photoBoxX + 10, photoBoxY + photoBoxH - 46, photoBoxW - 20, 36, 12);
+    ctx.fillStyle = '#0F172A';
+    ctx.fill();
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-      ctx.fillStyle = '#92400E';
-      ctx.font = 'bold 18px "Baloo 2", sans-serif';
-      ctx.fillText('आधिकारिक बाल फ़ोटो', photoBoxX + (photoBoxW / 2), photoBoxY + 205);
+    ctx.fillStyle = '#FDE68A';
+    ctx.font = 'bold 15px "Baloo 2", sans-serif';
+    ctx.fillText('🌟 ' + (childName || 'बाल प्रतिभा') + ' 🌟', photoBoxX + (photoBoxW / 2), photoBoxY + photoBoxH - 22);
 
-      ctx.fillStyle = '#64748B';
-      ctx.font = '13px "Baloo 2", sans-serif';
-      ctx.fillText('PORTRAIT PHOTOGRAPH', photoBoxX + (photoBoxW / 2), photoBoxY + 230);
-
-      // Bottom Badge
-      roundRect(photoBoxX + 10, photoBoxY + photoBoxH - 42, photoBoxW - 20, 32, 10);
-      ctx.fillStyle = '#EA580C';
-      ctx.fill();
-
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 14px "Baloo 2", sans-serif';
-      ctx.fillText('★ EXCELLENCE AWARD ★', photoBoxX + (photoBoxW / 2), photoBoxY + photoBoxH - 21);
-    }
     ctx.restore();
 
     // =========================================================================
@@ -540,7 +586,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
 
   const handleShareWhatsApp = () => {
     if (soundEnabled) playPopSound();
-    const shareText = `🎉 *बालवार्ता बाल पाठक प्रमाण पत्र!*\n\nहमारे प्यारे बच्चे *${childName}* को बालवार्ता पोर्टल पर *${currentAch.titleHi}* का गौरवशाली रंग-बिरंगा प्रमाण पत्र मिला है! ⭐⭐⭐⭐⭐\n\n📖 आप भी अपने बच्चों के लिए सुंदर हिंदी कहानियाँ पढ़ें व बड़े फोटो के साथ प्रमाण पत्र बनाएँ:\n${window.location.origin}`;
+    const shareText = `🎉 *बालवार्ता बाल पाठक प्रमाण पत्र!*\n\nहमारे प्यारे बच्चे *${childName}* को बालवार्ता पोर्टल पर *${currentAch.titleHi}* का गौरवशाली रंग-बिरंगा प्रमाण पत्र मिला है! ⭐⭐⭐⭐⭐\n\n📖 आप भी अपने बच्चों के लिए सुंदर हिंदी कहानियाँ पढ़ें व सुरक्षित सुंदर अवतार के साथ प्रमाण पत्र बनाएँ:\n${window.location.origin}`;
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -558,9 +604,39 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
             </h1>
           </div>
           <span className="bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-xl text-xs font-black border border-white/30 shrink-0">
-            {isHi ? 'मुफ़्त जनरेट करें' : 'Free Download'}
+            {isHi ? '100% मुफ़्त व सुरक्षित' : 'Free & Safe'}
           </span>
         </div>
+      </div>
+
+      {/* Child Privacy & Safety + VIP Banner */}
+      <div className="bg-gradient-to-r from-emerald-50 via-amber-50 to-rose-50 border-2 border-amber-300 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-start sm:items-center gap-2.5">
+          <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
+          <div className="text-xs text-slate-800 font-bold leading-relaxed">
+            <span className="font-black text-emerald-900">
+              {isHi ? '🛡️ सुरक्षित बाल वातावरण:' : '🛡️ Child Safety & Privacy:'}
+            </span>{' '}
+            {isHi
+              ? 'यहाँ बच्चों की वास्तविक फोटो नहीं माँगी जाती। 12 सुंदर अवतारों में से चुनें! 100% विज्ञापन-मुक्त व अतिरिक्त सुरक्षा के लिए वीआईपी सदस्यता उपलब्ध है।'
+              : 'Choose from 12 cute child avatars! VIP Pro membership available for 100% ad-free experience.'}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (soundEnabled) playPopSound();
+            if (onOpenProModal) {
+              onOpenProModal();
+            } else {
+              window.dispatchEvent(new CustomEvent('baalvarta_open_pro_modal'));
+            }
+          }}
+          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-xs flex items-center gap-1.5 shrink-0 transition-all active:scale-95 cursor-pointer"
+        >
+          <Crown className="w-3.5 h-3.5 text-amber-200" />
+          <span>{isHi ? '👑 वीआईपी प्रो प्लान' : 'VIP Pro'}</span>
+        </button>
       </div>
 
       {/* Editor & Controls */}
@@ -587,61 +663,53 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
             />
           </div>
 
-          {/* 📸 CHILD PHOTO UPLOAD SECTION */}
+          {/* 🌟 CUTE CHILD AVATAR PICKER (Zero photo upload for child privacy & safety) */}
           <div className="space-y-2 p-3.5 rounded-2xl bg-gradient-to-br from-amber-50 via-rose-50 to-indigo-50 border-2 border-amber-200">
-            <label className="text-xs font-black text-slate-800 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-rose-500" />
-                <span>{isHi ? 'बच्चे का बड़ा फोटो जोड़ें (Square Photo):' : 'Upload Child Square Photo:'}</span>
-              </span>
-              <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">
-                {isHi ? 'दाईं ओर दिखेगा' : 'Shows on Right'}
-              </span>
-            </label>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              className="hidden"
-              id="child-photo-input"
-            />
-
-            {childPhoto ? (
-              <div className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-amber-300">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-amber-500 shadow-xs relative shrink-0">
-                    <img src={childPhoto} alt="Child Preview" className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> बड़ा फोटो जोड़ा गया ✓
-                    </span>
-                    <span className="text-[10px] text-slate-500">सर्टिफिकेट में दाईं ओर दिखेगा</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleRemovePhoto}
-                  className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
-                  title="फोटो हटाएं"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <label
-                htmlFor="child-photo-input"
-                className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-amber-400 hover:border-amber-600 bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98 shadow-2xs"
-              >
-                <ImageIcon className="w-4 h-4 text-amber-600" />
-                <span className="text-xs font-black text-amber-900">
-                  {isHi ? '📁 गैलरी / कैमरे से बच्चे का फोटो चुनें' : 'Choose Child Photo'}
-                </span>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <Smile className="w-4 h-4 text-rose-500" />
+                <span>{isHi ? 'मनपसंद बाल अवतार चुनें (Avatar):' : 'Select Kid Avatar:'}</span>
               </label>
-            )}
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full border border-emerald-300">
+                {isHi ? '12 प्यारे अवतार' : '12 Avatars'}
+              </span>
+            </div>
+
+            {/* Avatars Grid */}
+            <div className="grid grid-cols-4 gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
+              {avatarOptions.map((av) => {
+                const isSelected = selectedAvatarId === av.id;
+                return (
+                  <button
+                    key={av.id}
+                    type="button"
+                    onClick={() => {
+                      if (soundEnabled) playPopSound();
+                      setSelectedAvatarId(av.id);
+                    }}
+                    className={`flex flex-col items-center justify-center p-2 rounded-2xl border-2 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-amber-500 bg-white ring-2 ring-amber-400 shadow-md scale-105'
+                        : 'border-amber-200/80 bg-white/70 hover:bg-white hover:border-amber-400'
+                    }`}
+                    title={isHi ? av.nameHi : av.nameEn}
+                  >
+                    <span className="text-2xl sm:text-3xl filter drop-shadow-xs">{av.emoji}</span>
+                    <span className="text-[9px] font-black text-slate-800 mt-1 truncate max-w-full text-center">
+                      {isHi ? av.nameHi : av.nameEn}
+                    </span>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 mt-0.5" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[11px] text-slate-600 font-bold flex items-center gap-1 pt-1 text-center justify-center">
+              <span>चयनित:</span>
+              <span className="text-amber-800 font-black">{currentAvatar.emoji} {isHi ? currentAvatar.nameHi : currentAvatar.nameEn}</span>
+              <span className="text-emerald-700">({isHi ? currentAvatar.taglineHi : 'Excellence'})</span>
+            </div>
           </div>
 
           {/* Achievement Type Selection */}
@@ -714,7 +782,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
 
         </div>
 
-        {/* Right Live Preview: Super Vibrant Multi-Color Certificate with Large Right Square Photo */}
+        {/* Right Live Preview: Super Vibrant Multi-Color Certificate with Avatar Badge */}
         <div className="lg:col-span-2">
           <div
             className="bg-gradient-to-br from-rose-50/90 via-amber-50/80 to-indigo-50/90 rounded-3xl p-5 sm:p-8 lg:p-9 border-8 border-double border-indigo-700 shadow-2xl relative overflow-hidden space-y-4"
@@ -743,7 +811,7 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
             </div>
 
             {/* ========================================================================= */}
-            {/* MAIN CERTIFICATE BODY: LEFT DETAILS + RIGHT LARGE SQUARE PHOTO CARD */}
+            {/* MAIN CERTIFICATE BODY: LEFT DETAILS + RIGHT LARGE AVATAR BADGE CARD */}
             {/* ========================================================================= */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center relative z-10 pt-1">
               
@@ -776,30 +844,22 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
                 </div>
               </div>
 
-              {/* Right Large Square Photo Card (4 cols) */}
+              {/* Right Large Avatar Badge Card (4 cols) */}
               <div className="md:col-span-4 flex justify-center">
                 <div className="relative group w-44 sm:w-48 aspect-[1/1.15] rounded-2xl p-1.5 bg-gradient-to-br from-amber-400 via-rose-500 to-indigo-600 shadow-xl border-2 border-amber-300 flex flex-col items-center justify-between">
                   <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-2xl z-20">👑</span>
                   
-                  {/* Photo Container */}
-                  <div className="w-full flex-1 rounded-xl overflow-hidden bg-white/90 border border-amber-200 flex items-center justify-center relative">
-                    {childPhoto ? (
-                      <img
-                        src={childPhoto}
-                        alt={childName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-center p-3 space-y-1">
-                        <span className="text-3xl block">{currentAch.badgeEmoji}</span>
-                        <span className="text-[11px] font-black text-amber-900 block leading-tight">
-                          बच्चे का फोटो
-                        </span>
-                        <span className="text-[9px] text-slate-500 font-semibold block">
-                          Square Portrait
-                        </span>
-                      </div>
-                    )}
+                  {/* Avatar Container */}
+                  <div className="w-full flex-1 rounded-xl overflow-hidden bg-white/95 border border-amber-200 flex flex-col items-center justify-center p-2 relative">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 border-2 border-amber-400 flex items-center justify-center shadow-inner mb-1">
+                      <span className="text-4xl drop-shadow-xs">{currentAvatar.emoji}</span>
+                    </div>
+                    <span className="text-xs font-black text-amber-950 block text-center leading-tight">
+                      {currentAvatar.nameHi}
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 block text-center">
+                      ✨ {currentAvatar.taglineHi} ✨
+                    </span>
                   </div>
 
                   {/* Ribbon Label */}
@@ -870,6 +930,22 @@ export const KidsCertificateHub: React.FC<KidsCertificateHubProps> = ({
         </div>
 
       </div>
+
+      {/* 📖 साथ पढ़ें, साथ सीखें (Co-reading & Family Bonding Guide) */}
+      <div className="bg-gradient-to-r from-amber-50 via-rose-50 to-indigo-50 rounded-3xl p-5 sm:p-6 border-2 border-amber-300 shadow-sm space-y-3">
+        <div className="flex items-center gap-2 text-amber-900">
+          <BookOpen className="w-5 h-5 text-amber-600" />
+          <h3 className="font-black text-base sm:text-lg">
+            {isHi ? 'साथ पढ़ें, साथ सीखें (Family Co-Reading & Moral Learning)' : 'Read Together, Learn Together'}
+          </h3>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed">
+          {isHi
+            ? 'अभिभावक एवं शिक्षक बच्चों के साथ बैठकर कहानियाँ पढ़ें, चित्रों पर चर्चा करें और नैतिक शिक्षा पर बातचीत करें। यह बच्चों के मानसिक विकास, भाषा ज्ञान और पारिवारिक जुड़ाव को मजबूत करता है।'
+            : 'Parents and teachers are encouraged to sit with children, discuss illustrations, and reflect on the moral lessons together for healthy cognitive growth and strong family bonding.'}
+        </p>
+      </div>
+
     </div>
   );
 };

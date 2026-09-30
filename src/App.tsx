@@ -89,10 +89,12 @@ import {
   fetchAudioStoriesFromFirestore,
   fetchQuizSetsFromFirestore,
   syncAllStoriesToFirestore,
+  syncAllWorksheetsToFirestore,
   syncAllVideoStoriesToFirestore,
   syncAllFunFactsToFirestore,
   syncAllLearningItemsToFirestore,
   syncAllAudioStoriesToFirestore,
+  syncAllQuizSetsToFirestore,
 } from './utils/firebase';
 
 export default function App() {
@@ -166,6 +168,10 @@ export default function App() {
 
   // Asynchronously sync with persistent Server Database and IndexedDB
   useEffect(() => {
+    // Global Pro Modal Listener
+    const handleOpenProGlobal = () => setIsProModalOpen(true);
+    window.addEventListener('baalvarta_open_pro_modal', handleOpenProGlobal);
+
     // Record page visit for total visitors counter
     recordSiteVisit();
 
@@ -366,6 +372,7 @@ export default function App() {
       if (unsubLearning) unsubLearning();
       if (unsubAudio) unsubAudio();
       if (unsubQuizzes) unsubQuizzes();
+      window.removeEventListener('baalvarta_open_pro_modal', handleOpenProGlobal);
     };
   }, []);
 
@@ -516,6 +523,20 @@ export default function App() {
   const handleSaveVideoCategories = (newCategories: string[]) => {
     setVideoCategories(newCategories);
     saveStoredVideoCategories(newCategories);
+  };
+
+  const handleSaveWorksheets = (newWorksheets: PrintableWorksheet[]) => {
+    setWorksheets(newWorksheets);
+    saveStoredWorksheets(newWorksheets);
+    saveToServerDatabase({ worksheets: newWorksheets });
+    syncAllWorksheetsToFirestore(newWorksheets);
+  };
+
+  const handleSaveQuizSets = (newQuizzes: QuizSet[]) => {
+    setQuizSets(newQuizzes);
+    saveStoredQuizSets(newQuizzes);
+    saveToServerDatabase({ quizzes: newQuizzes });
+    syncAllQuizSetsToFirestore(newQuizzes);
   };
 
   const handleDeleteReview = (reviewId: string) => {
@@ -861,6 +882,7 @@ export default function App() {
             language={language}
             soundEnabled={soundEnabled}
             onBackToHome={handleBackToHome}
+            onOpenProModal={() => setIsProModalOpen(true)}
           />
         )}
 
@@ -891,6 +913,7 @@ export default function App() {
             language={language}
             soundEnabled={soundEnabled}
             onBackToHome={handleBackToHome}
+            onOpenProModal={() => setIsProModalOpen(true)}
           />
         )}
 
@@ -948,6 +971,10 @@ export default function App() {
         onSaveLearning={handleSaveLearning}
         audioStories={audioStories}
         onSaveAudio={handleSaveAudio}
+        worksheets={worksheets}
+        onSaveWorksheets={handleSaveWorksheets}
+        quizSets={quizSets}
+        onSaveQuizSets={handleSaveQuizSets}
         videoStories={videoStories}
         onSaveVideos={handleSaveVideos}
         videoCategories={videoCategories}

@@ -16,14 +16,14 @@ const DOWNLOAD_TRACKER_KEY = 'baalvarta_daily_downloads_v1';
 export const PRO_PLANS = {
   monthly: {
     id: 'monthly',
-    price: 29,
-    originalPrice: 49,
+    price: 49,
+    originalPrice: 99,
     durationEn: '1 Month',
     durationHi: '1 महीना',
     tagEn: 'Budget Pass',
     tagHi: 'पॉकेट-फ्रेंडली',
-    dailyCostEn: 'Less than ₹1 / day',
-    dailyCostHi: 'रोजाना ₹1 से भी कम',
+    dailyCostEn: 'Only ~₹1.60 / day',
+    dailyCostHi: 'केवल ~₹1.60 प्रतिदिन',
     featuresEn: [
       '100% Ad-Free Website & Kid-Safe Environment',
       'Unlimited HD Printable Worksheets & Coloring Sheets',
@@ -41,14 +41,14 @@ export const PRO_PLANS = {
   },
   annual: {
     id: 'annual',
-    price: 299,
-    originalPrice: 499,
+    price: 499,
+    originalPrice: 799,
     durationEn: '1 Full Year (12 Months)',
     durationHi: 'पूरे 1 साल (12 महीने)',
     tagEn: 'Most Popular • Best Value (Save 15%)',
-    tagHi: '🌟 सबसे लोकप्रिय • 15% की अतिरिक्त बचत',
-    dailyCostEn: 'Only ~₹0.80 / day',
-    dailyCostHi: 'केवल ~80 पैसे प्रतिदिन',
+    tagHi: '🌟 सबसे लोकप्रिय • बेस्ट वैल्यू प्लान',
+    dailyCostEn: 'Only ~₹1.36 / day',
+    dailyCostHi: 'केवल ~₹1.36 प्रतिदिन (₹41/माह)',
     badge: '👑 VIP FAMILY PASS',
     featuresEn: [
       'All Monthly Plan Features for 12 Full Months',
@@ -111,7 +111,7 @@ export function activateProPlan(plan: 'monthly' | 'annual'): ProSubscription {
     plan,
     startDate: now.toISOString(),
     expiryDate: expiry.toISOString(),
-    pricePaid: plan === 'monthly' ? 29 : 299
+    pricePaid: plan === 'monthly' ? 49 : 499
   };
 
   saveProSubscription(sub);

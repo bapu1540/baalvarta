@@ -27,6 +27,8 @@ import {
   History,
   BookmarkCheck,
   X,
+  Crown,
+  Trophy,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { playPopSound, playSuccessSound, speakText } from '../utils/soundEffects';
@@ -884,72 +886,80 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({
 
       </section>
 
-      {/* 6.5 BAALVARTA PRO VIP MEMBERSHIP SHOWCASE SECTION (Medium Sized) */}
-      <section className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-2xl p-4 sm:p-5 text-white shadow-md border-2 border-amber-300 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6">
-          <div className="space-y-2 text-center lg:text-left max-w-xl">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-amber-200 text-[11px] font-black border border-white/30">
-              <Sparkles className="w-3 h-3 text-yellow-300 animate-spin" />
-              <span>{language === 'hi' ? 'विशेष बालवार्ता प्रो सदस्यता' : 'Special Baalvarta Pro VIP Pass'}</span>
+      {/* 6.5 BAALVARTA PRO VIP, CERTIFICATE & PARENT HUB BANNER (Compact & Integrated) */}
+      <section className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-2xl p-3 sm:p-4 text-white shadow-md border-2 border-amber-300 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-3 sm:gap-4">
+          
+          {/* Left: Info & Badges */}
+          <div className="space-y-1 text-center lg:text-left">
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/25 backdrop-blur-md text-amber-100 text-[10px] font-black border border-white/30">
+                <Crown className="w-3 h-3 text-yellow-300 fill-yellow-300" />
+                <span>{language === 'hi' ? 'बालवार्ता वीआईपी व पेरेंट हब' : 'VIP & Parent Hub'}</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-black/20 text-white text-[10px] font-black border border-white/20">
+                🚫 100% Ad-Free
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-black/20 text-white text-[10px] font-black border border-white/20">
+                📥 {language === 'hi' ? 'असीमित PDF' : 'Unlimited PDF'}
+              </span>
             </div>
 
-            <h2 className="text-base sm:text-xl font-black text-white tracking-tight leading-snug">
+            <h2 className="text-xs sm:text-sm md:text-base font-black text-white tracking-tight leading-snug">
               {language === 'hi'
-                ? 'रोजाना ₹1 से भी कम में — 100% Ad-Free व असीमित ज्ञान!'
-                : '100% Ad-Free, Unlimited Worksheets & AI — Under ₹1/day!'}
+                ? '👑 100% विज्ञापन-मुक्त सुरक्षित बाल वातावरण • सिर्फ ₹49/माह या ₹499/वर्ष'
+                : '👑 100% Ad-Free Safe Kids Environment • Only ₹49/mo or ₹499/yr'}
             </h2>
-
-            <p className="text-xs text-amber-100 font-medium leading-relaxed">
-              {language === 'hi'
-                ? 'अपने बच्चे को दें बिना विज्ञापन का सुरक्षित माहौल, असीमित प्रिंटेबल वर्कशीट्स, ऑडियो कहानियाँ और AI बालमित्र।'
-                : 'Safe ad-free learning, unlimited printable worksheets, audio storybooks, and AI Baalmitra.'}
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5 pt-0.5 text-[11px] font-bold text-amber-950">
-              <span className="px-2.5 py-0.5 rounded-lg bg-white/90 shadow-2xs">🚫 100% Ad-Free</span>
-              <span className="px-2.5 py-0.5 rounded-lg bg-white/90 shadow-2xs">
-                {language === 'hi' ? '📥 असीमित PDF' : '📥 Unlimited PDF'}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-lg bg-white/90 shadow-2xs">
-                {language === 'hi' ? '🎧 ऑडियो बुक्स' : '🎧 Audio Books'}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-lg bg-white/90 shadow-2xs">
-                {language === 'hi' ? '🤖 AI बालमित्र' : '🤖 AI Baalmitra'}
-              </span>
-            </div>
           </div>
 
-          {/* Pricing & CTA Card */}
-          <div className="bg-white text-slate-900 rounded-xl p-3.5 sm:p-4 border-2 border-slate-900 shadow-md flex flex-col items-center text-center space-y-2 shrink-0 w-full sm:w-72">
-            <div className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider">
-              {language === 'hi' ? '👑 सबसे पसंदीदा योजना' : '👑 Most Popular Plan'}
-            </div>
-
-            <div>
-              <div className="text-[11px] font-bold text-slate-500 uppercase">
-                {language === 'hi' ? 'वार्षिक VIP पास' : 'Annual VIP Pass'}
-              </div>
-              <div className="flex items-baseline justify-center gap-1.5 mt-0.5">
-                <span className="text-2xl font-black text-amber-600">₹299</span>
-                <span className="text-xs font-bold text-slate-400 line-through">₹499</span>
-                <span className="text-xs font-bold text-slate-600">/ {language === 'hi' ? 'साल' : 'year'}</span>
-              </div>
-              <div className="text-[10px] font-bold text-emerald-600">
-                {language === 'hi' ? 'केवल ₹24/माह (या ₹29/माह प्लान भी)' : 'Only ~₹24/mo (₹29/mo available)'}
-              </div>
-            </div>
-
+          {/* Right: 3 Action Buttons (VIP Pro, Certificate, Parent & Child Development Hub) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 shrink-0 w-full lg:w-auto">
+            {/* 1. VIP Pro Button */}
             <button
+              type="button"
               onClick={() => {
                 if (soundEnabled) playPopSound();
-                if (onOpenProModal) onOpenProModal();
+                if (onOpenProModal) {
+                  onOpenProModal();
+                } else {
+                  window.dispatchEvent(new CustomEvent('baalvarta_open_pro_modal'));
+                }
               }}
-              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-xs shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-amber-50 text-slate-950 font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer border border-amber-200"
             >
-              <span>{language === 'hi' ? 'अभी प्रो लें (₹29 से शुरू) 👑' : 'Get Pro (From ₹29) 👑'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>{language === 'hi' ? '👑 वीआईपी प्रो (₹49)' : '👑 VIP Pro (₹49)'}</span>
+            </button>
+
+            {/* 2. Certificate Hub Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('certificates');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-black text-xs backdrop-blur-md border border-white/40 shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            >
+              <Trophy className="w-3.5 h-3.5 text-yellow-200 shrink-0" />
+              <span>{language === 'hi' ? '🏆 बाल सर्टिफिकेट' : '🏆 Certificates'}</span>
+            </button>
+
+            {/* 3. Parent & Child Development Hub Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (soundEnabled) playPopSound();
+                onNavigate('parent-guide');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-black text-xs backdrop-blur-md border border-white/40 shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+              <span>{language === 'hi' ? '👨‍👩‍👧 पेरेंट व बाल विकास हब' : '👨‍👩‍👧 Parent & Child Hub'}</span>
             </button>
           </div>
+
         </div>
       </section>
 
