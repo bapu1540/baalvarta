@@ -31,6 +31,8 @@ import {
   mergeWithInitialStories,
   recordSiteVisit,
   addRecentlyReadStory,
+  syncDeletedDocIdsFromFirestore,
+  getDeletedDocIds,
 } from './utils/storage';
 import { saveToServerDatabase } from './utils/dbStorage';
 import { WebsiteHeader } from './components/WebsiteHeader';
@@ -167,6 +169,19 @@ export default function App() {
     // Record page visit for total visitors counter
     recordSiteVisit();
 
+    // 0. Sync deleted doc IDs from Firestore across all devices
+    syncDeletedDocIdsFromFirestore().then(() => {
+      const deletedIds = getDeletedDocIds();
+      if (deletedIds.size > 0) {
+        setStories((prev) => prev.filter((s) => !deletedIds.has(s.id)));
+        setFacts((prev) => prev.filter((f) => !deletedIds.has(f.id)));
+        setVideoStories((prev) => prev.filter((v) => !deletedIds.has(v.id)));
+        setAudioStories((prev) => prev.filter((a) => !deletedIds.has(a.id)));
+        setWorksheets((prev) => prev.filter((w) => !deletedIds.has(w.id)));
+        setQuizSets((prev) => prev.filter((q) => !deletedIds.has(q.id)));
+      }
+    });
+
     loadPersistentData().then((persistent) => {
       if (!persistent) return;
       if (persistent.stories && persistent.stories.length > 0) {
@@ -214,46 +229,59 @@ export default function App() {
 
         // Fetch all collections immediately for fresh multi-device state
         fetchStoriesFromFirestore().then((cloudStories) => {
-          if (cloudStories && cloudStories.length > 0) {
-            const merged = mergeWithInitialStories(cloudStories);
+          if (cloudStories && Array.isArray(cloudStories)) {
+            const deletedIds = getDeletedDocIds();
+            const merged = mergeWithInitialStories(cloudStories).filter((s) => !deletedIds.has(s.id));
             setStories(merged);
             saveStoredStories(merged);
           }
         });
         fetchWorksheetsFromFirestore().then((cloudWs) => {
-          if (cloudWs && cloudWs.length > 0) {
-            setWorksheets(cloudWs);
-            saveStoredWorksheets(cloudWs);
+          if (cloudWs && Array.isArray(cloudWs)) {
+            const deletedIds = getDeletedDocIds();
+            const filtered = cloudWs.filter((w) => !deletedIds.has(w.id));
+            setWorksheets(filtered);
+            saveStoredWorksheets(filtered);
           }
         });
         fetchVideoStoriesFromFirestore().then((cloudVids) => {
-          if (cloudVids && cloudVids.length > 0) {
-            setVideoStories(cloudVids);
-            saveStoredVideoStories(cloudVids);
+          if (cloudVids && Array.isArray(cloudVids)) {
+            const deletedIds = getDeletedDocIds();
+            const filtered = cloudVids.filter((v) => !deletedIds.has(v.id));
+            setVideoStories(filtered);
+            saveStoredVideoStories(filtered);
           }
         });
         fetchFunFactsFromFirestore().then((cloudFacts) => {
-          if (cloudFacts && cloudFacts.length > 0) {
-            setFacts(cloudFacts);
-            saveStoredFunFacts(cloudFacts);
+          if (cloudFacts && Array.isArray(cloudFacts)) {
+            const deletedIds = getDeletedDocIds();
+            const filtered = cloudFacts.filter((f) => !deletedIds.has(f.id));
+            setFacts(filtered);
+            saveStoredFunFacts(filtered);
           }
         });
         fetchLearningItemsFromFirestore().then((cloudItems) => {
-          if (cloudItems && cloudItems.length > 0) {
-            setLearningItems(cloudItems);
-            saveStoredLearningItems(cloudItems);
+          if (cloudItems && Array.isArray(cloudItems)) {
+            const deletedIds = getDeletedDocIds();
+            const filtered = cloudItems.filter((item) => !deletedIds.has(item.id));
+            setLearningItems(filtered);
+            saveStoredLearningItems(filtered);
           }
         });
         fetchAudioStoriesFromFirestore().then((cloudAudio) => {
-          if (cloudAudio && cloudAudio.length > 0) {
-            setAudioStories(cloudAudio);
-            saveStoredAudioStories(cloudAudio);
+          if (cloudAudio && Array.isArray(cloudAudio)) {
+            const deletedIds = getDeletedDocIds();
+            const filtered = cloudAudio.filter((a) => !deletedIds.has(a.id));
+            setAudioStories(filtered);
+            saveStoredAudioStories(filtered);
           }
         });
         fetchQuizSetsFromFirestore().then((cloudQuizzes) => {
-          if (cloudQuizzes && cloudQuizzes.length > 0) {
-            setQuizSets(cloudQuizzes);
-            saveStoredQuizSets(cloudQuizzes);
+          if (cloudQuizzes && Array.isArray(cloudQuizzes)) {
+            const deletedIds = getDeletedDocIds();
+            const filtered = cloudQuizzes.filter((q) => !deletedIds.has(q.id));
+            setQuizSets(filtered);
+            saveStoredQuizSets(filtered);
           }
         });
       }
@@ -261,8 +289,9 @@ export default function App() {
 
     // Real-time synchronization with Firebase Firestore across all devices
     const unsubStories = subscribeToFirestoreStories((cloudStories) => {
-      if (cloudStories && cloudStories.length > 0) {
-        const merged = mergeWithInitialStories(cloudStories);
+      if (cloudStories && Array.isArray(cloudStories)) {
+        const deletedIds = getDeletedDocIds();
+        const merged = mergeWithInitialStories(cloudStories).filter((s) => !deletedIds.has(s.id));
         setStories(merged);
         saveStoredStories(merged);
         saveToServerDatabase({ stories: merged });
@@ -270,50 +299,62 @@ export default function App() {
     });
 
     const unsubWorksheets = subscribeToFirestoreWorksheets((cloudWorksheets) => {
-      if (cloudWorksheets && cloudWorksheets.length > 0) {
-        setWorksheets(cloudWorksheets);
-        saveStoredWorksheets(cloudWorksheets);
-        saveToServerDatabase({ worksheets: cloudWorksheets });
+      if (cloudWorksheets && Array.isArray(cloudWorksheets)) {
+        const deletedIds = getDeletedDocIds();
+        const filtered = cloudWorksheets.filter((w) => !deletedIds.has(w.id));
+        setWorksheets(filtered);
+        saveStoredWorksheets(filtered);
+        saveToServerDatabase({ worksheets: filtered });
       }
     });
 
     const unsubVideos = subscribeToFirestoreVideoStories((cloudVideos) => {
-      if (cloudVideos && cloudVideos.length > 0) {
-        setVideoStories(cloudVideos);
-        saveStoredVideoStories(cloudVideos);
-        saveToServerDatabase({ video_stories: cloudVideos });
+      if (cloudVideos && Array.isArray(cloudVideos)) {
+        const deletedIds = getDeletedDocIds();
+        const filtered = cloudVideos.filter((v) => !deletedIds.has(v.id));
+        setVideoStories(filtered);
+        saveStoredVideoStories(filtered);
+        saveToServerDatabase({ video_stories: filtered });
       }
     });
 
     const unsubFacts = subscribeToFirestoreFunFacts((cloudFacts) => {
-      if (cloudFacts && cloudFacts.length > 0) {
-        setFacts(cloudFacts);
-        saveStoredFunFacts(cloudFacts);
-        saveToServerDatabase({ fun_facts: cloudFacts });
+      if (cloudFacts && Array.isArray(cloudFacts)) {
+        const deletedIds = getDeletedDocIds();
+        const filtered = cloudFacts.filter((f) => !deletedIds.has(f.id));
+        setFacts(filtered);
+        saveStoredFunFacts(filtered);
+        saveToServerDatabase({ fun_facts: filtered });
       }
     });
 
     const unsubLearning = subscribeToFirestoreLearningItems((cloudItems) => {
-      if (cloudItems && cloudItems.length > 0) {
-        setLearningItems(cloudItems);
-        saveStoredLearningItems(cloudItems);
-        saveToServerDatabase({ early_learning: cloudItems });
+      if (cloudItems && Array.isArray(cloudItems)) {
+        const deletedIds = getDeletedDocIds();
+        const filtered = cloudItems.filter((i) => !deletedIds.has(i.id));
+        setLearningItems(filtered);
+        saveStoredLearningItems(filtered);
+        saveToServerDatabase({ early_learning: filtered });
       }
     });
 
     const unsubAudio = subscribeToFirestoreAudioStories((cloudAudio) => {
-      if (cloudAudio && cloudAudio.length > 0) {
-        setAudioStories(cloudAudio);
-        saveStoredAudioStories(cloudAudio);
-        saveToServerDatabase({ audio_stories: cloudAudio });
+      if (cloudAudio && Array.isArray(cloudAudio)) {
+        const deletedIds = getDeletedDocIds();
+        const filtered = cloudAudio.filter((a) => !deletedIds.has(a.id));
+        setAudioStories(filtered);
+        saveStoredAudioStories(filtered);
+        saveToServerDatabase({ audio_stories: filtered });
       }
     });
 
     const unsubQuizzes = subscribeToFirestoreQuizSets((cloudQuizzes) => {
-      if (cloudQuizzes && cloudQuizzes.length > 0) {
-        setQuizSets(cloudQuizzes);
-        saveStoredQuizSets(cloudQuizzes);
-        saveToServerDatabase({ quizzes: cloudQuizzes });
+      if (cloudQuizzes && Array.isArray(cloudQuizzes)) {
+        const deletedIds = getDeletedDocIds();
+        const filtered = cloudQuizzes.filter((q) => !deletedIds.has(q.id));
+        setQuizSets(filtered);
+        saveStoredQuizSets(filtered);
+        saveToServerDatabase({ quizzes: filtered });
       }
     });
 

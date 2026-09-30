@@ -53,6 +53,9 @@ import {
   isFirebaseConfigured,
   syncNewsletterSubscriberToFirestore,
   incrementFirestoreVisitorCount,
+  recordDeletedDocIdInFirestore,
+  unrecordDeletedDocIdInFirestore,
+  fetchDeletedDocIdsFromFirestore,
 } from './firebase';
 
 export const KEYS = {
@@ -215,69 +218,106 @@ export const INITIAL_USER_REVIEWS: UserReview[] = [
 
 // --- Synchronous Getters (Fast Initial Render from LocalStorage / Defaults) ---
 
-export function mergeWithInitialStories(stories?: Story[]): Story[] {
-  const storyMap = new Map<string, Story>();
-  INITIAL_STORIES.forEach((s) => storyMap.set(s.id, s));
-  if (Array.isArray(stories)) {
-    stories.forEach((s) => {
-      if (!storyMap.has(s.id)) {
-        storyMap.set(s.id, s);
-      } else {
-        const def = storyMap.get(s.id)!;
-        storyMap.set(s.id, {
-          ...def,
-          ...s,
-          scenes: s.scenes && s.scenes.length > 0 ? s.scenes : def.scenes,
-          coverImage: s.coverImage || def.coverImage,
-        });
+export const DELETED_DOCS_KEY = 'baalvarta_deleted_doc_ids_v1';
+
+export function getDeletedDocIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_DOCS_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+export function recordDeletedDocId(id: string): void {
+  try {
+    const set = getDeletedDocIds();
+    set.add(id);
+    safeLocalStorageSet(DELETED_DOCS_KEY, JSON.stringify(Array.from(set)));
+    idbSet(DELETED_DOCS_KEY, Array.from(set));
+    recordDeletedDocIdInFirestore(id);
+  } catch {}
+}
+
+export function unrecordDeletedDocId(id: string): void {
+  try {
+    const set = getDeletedDocIds();
+    set.delete(id);
+    safeLocalStorageSet(DELETED_DOCS_KEY, JSON.stringify(Array.from(set)));
+    idbSet(DELETED_DOCS_KEY, Array.from(set));
+    unrecordDeletedDocIdInFirestore(id);
+  } catch {}
+}
+
+export function clearDeletedDocIds(): void {
+  try {
+    localStorage.removeItem(DELETED_DOCS_KEY);
+    idbSet(DELETED_DOCS_KEY, []);
+  } catch {}
+}
+
+export async function syncDeletedDocIdsFromFirestore(): Promise<void> {
+  try {
+    const remoteIds = await fetchDeletedDocIdsFromFirestore();
+    if (remoteIds && remoteIds.length > 0) {
+      const set = getDeletedDocIds();
+      let changed = false;
+      for (const id of remoteIds) {
+        if (!set.has(id)) {
+          set.add(id);
+          changed = true;
+        }
       }
+      if (changed) {
+        safeLocalStorageSet(DELETED_DOCS_KEY, JSON.stringify(Array.from(set)));
+        idbSet(DELETED_DOCS_KEY, Array.from(set));
+      }
+    }
+  } catch {}
+}
+
+export function mergeWithInitialStories(stories?: Story[]): Story[] {
+  if (!Array.isArray(stories)) return INITIAL_STORIES;
+  const deletedIds = getDeletedDocIds();
+  const initialMap = new Map<string, Story>(INITIAL_STORIES.map((s) => [s.id, s]));
+
+  // DO NOT resurrect deleted initial stories!
+  // Only enhance existing stories in the list with scenes/coverImage if present in default
+  return stories
+    .filter((s) => !deletedIds.has(s.id))
+    .map((s) => {
+      const def = initialMap.get(s.id);
+      if (def && (!s.scenes || s.scenes.length === 0) && def.scenes && def.scenes.length > 0) {
+        return {
+          ...s,
+          scenes: def.scenes,
+          coverImage: s.coverImage || def.coverImage,
+        };
+      }
+      return s;
     });
-  }
-
-  const getStoryTimestamp = (s: Story): number => {
-    if (s.createdAt) return s.createdAt;
-    if (typeof s.id === 'string') {
-      const match = s.id.match(/\d{10,}/);
-      if (match) return parseInt(match[0], 10);
-    }
-    return 0;
-  };
-
-  return Array.from(storyMap.values()).sort((a, b) => {
-    const timeA = getStoryTimestamp(a);
-    const timeB = getStoryTimestamp(b);
-    // Newly uploaded custom stories with timestamps always appear at the very top (newest first)
-    if (timeA > 0 || timeB > 0) {
-      if (timeA > 0 && timeB > 0) return timeB - timeA;
-      return timeA > 0 ? -1 : 1;
-    }
-    return (a.number || 0) - (b.number || 0);
-  });
 }
 
 export function getStoredStories(): Story[] {
   try {
     const data = localStorage.getItem(KEYS.STORIES);
+    const deletedIds = getDeletedDocIds();
     if (!data) {
-      safeLocalStorageSet(KEYS.STORIES, JSON.stringify(INITIAL_STORIES));
-      idbSet(KEYS.STORIES, INITIAL_STORIES);
-      return INITIAL_STORIES;
+      const filtered = INITIAL_STORIES.filter((s) => !deletedIds.has(s.id));
+      safeLocalStorageSet(KEYS.STORIES, JSON.stringify(filtered));
+      idbSet(KEYS.STORIES, filtered);
+      return filtered;
     }
     const parsed: Story[] = JSON.parse(data);
-    const existingIds = new Set(parsed.map((s) => s.id));
-    const missingAnyInitial = INITIAL_STORIES.some((s) => !existingIds.has(s.id));
-    const hasOldDuplicate = parsed?.some((s) => s.id === 'story-20' && s.titleHi.includes('ईमानदार लकड़हारा'));
-    const isOldStory1Cover = parsed?.some((s) => s.id === 'story-1' && s.coverImage.includes('1579783902614'));
+    if (!Array.isArray(parsed)) return INITIAL_STORIES.filter((s) => !deletedIds.has(s.id));
 
-    if (!parsed || parsed.length < INITIAL_STORIES.length || missingAnyInitial || hasOldDuplicate || isOldStory1Cover) {
-      const merged = mergeWithInitialStories(parsed);
-      safeLocalStorageSet(KEYS.STORIES, JSON.stringify(merged));
-      idbSet(KEYS.STORIES, merged);
-      return merged;
-    }
-    return parsed;
+    // Filter out any explicitly deleted stories
+    const filtered = parsed.filter((s) => !deletedIds.has(s.id));
+    return filtered;
   } catch {
-    return INITIAL_STORIES;
+    return INITIAL_STORIES.filter((s) => !getDeletedDocIds().has(s.id));
   }
 }
 
@@ -290,12 +330,15 @@ export function saveStoredStories(stories: Story[]) {
 export function getStoredFunFacts(): FunFact[] {
   try {
     const data = localStorage.getItem(KEYS.FUN_FACTS);
+    const deletedIds = getDeletedDocIds();
     if (!data) {
-      safeLocalStorageSet(KEYS.FUN_FACTS, JSON.stringify(INITIAL_FUN_FACTS));
-      idbSet(KEYS.FUN_FACTS, INITIAL_FUN_FACTS);
-      return INITIAL_FUN_FACTS;
+      const filtered = INITIAL_FUN_FACTS.filter((f) => !deletedIds.has(f.id));
+      safeLocalStorageSet(KEYS.FUN_FACTS, JSON.stringify(filtered));
+      idbSet(KEYS.FUN_FACTS, filtered);
+      return filtered;
     }
-    return JSON.parse(data);
+    const parsed: FunFact[] = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed.filter((f) => !deletedIds.has(f.id)) : INITIAL_FUN_FACTS;
   } catch {
     return INITIAL_FUN_FACTS;
   }
@@ -310,12 +353,15 @@ export function saveStoredFunFacts(facts: FunFact[]) {
 export function getStoredLearningItems(): LearningItem[] {
   try {
     const data = localStorage.getItem(KEYS.LEARNING);
+    const deletedIds = getDeletedDocIds();
     if (!data) {
-      safeLocalStorageSet(KEYS.LEARNING, JSON.stringify(INITIAL_LEARNING_ITEMS));
-      idbSet(KEYS.LEARNING, INITIAL_LEARNING_ITEMS);
-      return INITIAL_LEARNING_ITEMS;
+      const filtered = INITIAL_LEARNING_ITEMS.filter((l) => !deletedIds.has(l.id));
+      safeLocalStorageSet(KEYS.LEARNING, JSON.stringify(filtered));
+      idbSet(KEYS.LEARNING, filtered);
+      return filtered;
     }
-    return JSON.parse(data);
+    const parsed: LearningItem[] = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed.filter((l) => !deletedIds.has(l.id)) : INITIAL_LEARNING_ITEMS;
   } catch {
     return INITIAL_LEARNING_ITEMS;
   }
@@ -330,21 +376,16 @@ export function saveStoredLearningItems(items: LearningItem[]) {
 export function getStoredQuizSets(): QuizSet[] {
   try {
     const data = localStorage.getItem(KEYS.QUIZZES);
+    const deletedIds = getDeletedDocIds();
     if (!data) {
-      safeLocalStorageSet(KEYS.QUIZZES, JSON.stringify(INITIAL_QUIZ_SETS));
-      idbSet(KEYS.QUIZZES, INITIAL_QUIZ_SETS);
-      return INITIAL_QUIZ_SETS;
+      const filtered = INITIAL_QUIZ_SETS.filter((q) => !deletedIds.has(q.id));
+      safeLocalStorageSet(KEYS.QUIZZES, JSON.stringify(filtered));
+      idbSet(KEYS.QUIZZES, filtered);
+      return filtered;
     }
     const parsed: QuizSet[] = JSON.parse(data);
-    // If cached quiz data is old or contains outdated question images (like the old sun image), refresh
-    const scienceQuiz = parsed?.find((q) => q.id === 'quiz-science');
-    const isOldScienceImage = scienceQuiz?.questions?.some((q) => q.id === 'q2-1' && q.image.includes('1532693322450'));
-    if (!parsed || parsed.length < INITIAL_QUIZ_SETS.length || !parsed.some((q) => q.id === 'quiz-fruits') || isOldScienceImage) {
-      safeLocalStorageSet(KEYS.QUIZZES, JSON.stringify(INITIAL_QUIZ_SETS));
-      idbSet(KEYS.QUIZZES, INITIAL_QUIZ_SETS);
-      return INITIAL_QUIZ_SETS;
-    }
-    return parsed;
+    if (!Array.isArray(parsed)) return INITIAL_QUIZ_SETS;
+    return parsed.filter((q) => !deletedIds.has(q.id));
   } catch {
     return INITIAL_QUIZ_SETS;
   }
@@ -359,12 +400,15 @@ export function saveStoredQuizSets(quizzes: QuizSet[]) {
 export function getStoredWorksheets(): PrintableWorksheet[] {
   try {
     const data = localStorage.getItem(KEYS.WORKSHEETS);
+    const deletedIds = getDeletedDocIds();
     if (!data) {
-      safeLocalStorageSet(KEYS.WORKSHEETS, JSON.stringify(INITIAL_WORKSHEETS));
-      idbSet(KEYS.WORKSHEETS, INITIAL_WORKSHEETS);
-      return INITIAL_WORKSHEETS;
+      const filtered = INITIAL_WORKSHEETS.filter((w) => !deletedIds.has(w.id));
+      safeLocalStorageSet(KEYS.WORKSHEETS, JSON.stringify(filtered));
+      idbSet(KEYS.WORKSHEETS, filtered);
+      return filtered;
     }
-    return JSON.parse(data);
+    const parsed: PrintableWorksheet[] = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed.filter((w) => !deletedIds.has(w.id)) : INITIAL_WORKSHEETS;
   } catch {
     return INITIAL_WORKSHEETS;
   }
@@ -379,12 +423,15 @@ export function saveStoredWorksheets(worksheets: PrintableWorksheet[]) {
 export function getStoredAudioStories(): AudioStory[] {
   try {
     const data = localStorage.getItem(KEYS.AUDIO);
+    const deletedIds = getDeletedDocIds();
     if (!data) {
-      safeLocalStorageSet(KEYS.AUDIO, JSON.stringify(INITIAL_AUDIO_STORIES));
-      idbSet(KEYS.AUDIO, INITIAL_AUDIO_STORIES);
-      return INITIAL_AUDIO_STORIES;
+      const filtered = INITIAL_AUDIO_STORIES.filter((a) => !deletedIds.has(a.id));
+      safeLocalStorageSet(KEYS.AUDIO, JSON.stringify(filtered));
+      idbSet(KEYS.AUDIO, filtered);
+      return filtered;
     }
-    return JSON.parse(data);
+    const parsed: AudioStory[] = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed.filter((a) => !deletedIds.has(a.id)) : INITIAL_AUDIO_STORIES;
   } catch {
     return INITIAL_AUDIO_STORIES;
   }
@@ -399,16 +446,21 @@ export function saveStoredAudioStories(audio: AudioStory[]) {
 export function getStoredVideoStories(): VideoStory[] {
   try {
     const data = localStorage.getItem(KEYS.VIDEOS);
+    const deletedIds = getDeletedDocIds();
     if (!data) {
-      safeLocalStorageSet(KEYS.VIDEOS, JSON.stringify(INITIAL_VIDEO_STORIES));
-      idbSet(KEYS.VIDEOS, INITIAL_VIDEO_STORIES);
-      return INITIAL_VIDEO_STORIES;
+      const filtered = INITIAL_VIDEO_STORIES.filter((v) => !deletedIds.has(v.id));
+      safeLocalStorageSet(KEYS.VIDEOS, JSON.stringify(filtered));
+      idbSet(KEYS.VIDEOS, filtered);
+      return filtered;
     }
     const parsed: VideoStory[] = JSON.parse(data);
-    return parsed.map((v) => ({
-      ...v,
-      category: v.category === 'YouTube Shorts' ? 'एनिमेटेड शॉर्ट्स' : v.category,
-    }));
+    if (!Array.isArray(parsed)) return INITIAL_VIDEO_STORIES;
+    return parsed
+      .filter((v) => !deletedIds.has(v.id))
+      .map((v) => ({
+        ...v,
+        category: v.category === 'YouTube Shorts' ? 'एनिमेटेड शॉर्ट्स' : v.category,
+      }));
   } catch {
     return INITIAL_VIDEO_STORIES;
   }
@@ -1168,6 +1220,7 @@ export function claimDailyTaskReward(taskId: string): { success: boolean; starsA
 }
 
 export function resetAllDataToDefault() {
+  clearDeletedDocIds();
   saveStoredStories(INITIAL_STORIES);
   saveStoredFunFacts(INITIAL_FUN_FACTS);
   saveStoredLearningItems(INITIAL_LEARNING_ITEMS);
@@ -1204,6 +1257,7 @@ export interface FullDatabaseState {
  * was exceeded, the data is never lost.
  */
 export async function loadPersistentData(): Promise<FullDatabaseState | null> {
+  const deletedIds = getDeletedDocIds();
   try {
     // 1. Check Firebase Firestore first (highest priority for multi-device live sync)
     if (isFirebaseConfigured()) {
@@ -1232,40 +1286,46 @@ export async function loadPersistentData(): Promise<FullDatabaseState | null> {
         ) {
           const cloudResult: FullDatabaseState = {};
           if (cloudStories && cloudStories.length > 0) {
-            const mergedCloud = mergeWithInitialStories(cloudStories);
-            cloudResult.stories = mergedCloud;
-            safeLocalStorageSet(KEYS.STORIES, JSON.stringify(mergedCloud));
-            idbSet(KEYS.STORIES, mergedCloud);
+            const filteredStories = cloudStories.filter((s) => !deletedIds.has(s.id));
+            cloudResult.stories = filteredStories;
+            safeLocalStorageSet(KEYS.STORIES, JSON.stringify(filteredStories));
+            idbSet(KEYS.STORIES, filteredStories);
           }
           if (cloudWorksheets && cloudWorksheets.length > 0) {
-            cloudResult.worksheets = cloudWorksheets;
-            safeLocalStorageSet(KEYS.WORKSHEETS, JSON.stringify(cloudWorksheets));
-            idbSet(KEYS.WORKSHEETS, cloudWorksheets);
+            const filteredWs = cloudWorksheets.filter((w) => !deletedIds.has(w.id));
+            cloudResult.worksheets = filteredWs;
+            safeLocalStorageSet(KEYS.WORKSHEETS, JSON.stringify(filteredWs));
+            idbSet(KEYS.WORKSHEETS, filteredWs);
           }
           if (cloudVideos && cloudVideos.length > 0) {
-            cloudResult.video_stories = cloudVideos;
-            safeLocalStorageSet(KEYS.VIDEOS, JSON.stringify(cloudVideos));
-            idbSet(KEYS.VIDEOS, cloudVideos);
+            const filteredVids = cloudVideos.filter((v) => !deletedIds.has(v.id));
+            cloudResult.video_stories = filteredVids;
+            safeLocalStorageSet(KEYS.VIDEOS, JSON.stringify(filteredVids));
+            idbSet(KEYS.VIDEOS, filteredVids);
           }
           if (cloudFacts && cloudFacts.length > 0) {
-            cloudResult.fun_facts = cloudFacts;
-            safeLocalStorageSet(KEYS.FUN_FACTS, JSON.stringify(cloudFacts));
-            idbSet(KEYS.FUN_FACTS, cloudFacts);
+            const filteredFacts = cloudFacts.filter((f) => !deletedIds.has(f.id));
+            cloudResult.fun_facts = filteredFacts;
+            safeLocalStorageSet(KEYS.FUN_FACTS, JSON.stringify(filteredFacts));
+            idbSet(KEYS.FUN_FACTS, filteredFacts);
           }
           if (cloudLearning && cloudLearning.length > 0) {
-            cloudResult.early_learning = cloudLearning;
-            safeLocalStorageSet(KEYS.LEARNING, JSON.stringify(cloudLearning));
-            idbSet(KEYS.LEARNING, cloudLearning);
+            const filteredLearning = cloudLearning.filter((l) => !deletedIds.has(l.id));
+            cloudResult.early_learning = filteredLearning;
+            safeLocalStorageSet(KEYS.LEARNING, JSON.stringify(filteredLearning));
+            idbSet(KEYS.LEARNING, filteredLearning);
           }
           if (cloudAudio && cloudAudio.length > 0) {
-            cloudResult.audio_stories = cloudAudio;
-            safeLocalStorageSet(KEYS.AUDIO, JSON.stringify(cloudAudio));
-            idbSet(KEYS.AUDIO, cloudAudio);
+            const filteredAudio = cloudAudio.filter((a) => !deletedIds.has(a.id));
+            cloudResult.audio_stories = filteredAudio;
+            safeLocalStorageSet(KEYS.AUDIO, JSON.stringify(filteredAudio));
+            idbSet(KEYS.AUDIO, filteredAudio);
           }
           if (cloudQuizzes && cloudQuizzes.length > 0) {
-            cloudResult.quizzes = cloudQuizzes;
-            safeLocalStorageSet(KEYS.QUIZZES, JSON.stringify(cloudQuizzes));
-            idbSet(KEYS.QUIZZES, cloudQuizzes);
+            const filteredQuizzes = cloudQuizzes.filter((q) => !deletedIds.has(q.id));
+            cloudResult.quizzes = filteredQuizzes;
+            safeLocalStorageSet(KEYS.QUIZZES, JSON.stringify(filteredQuizzes));
+            idbSet(KEYS.QUIZZES, filteredQuizzes);
           }
           return cloudResult;
         }
@@ -1278,14 +1338,14 @@ export async function loadPersistentData(): Promise<FullDatabaseState | null> {
     const serverDb = await fetchServerDatabase();
     if (serverDb && typeof serverDb === 'object') {
       const result: FullDatabaseState = {};
-      if (Array.isArray(serverDb.stories)) result.stories = mergeWithInitialStories(serverDb.stories);
-      if (Array.isArray(serverDb.fun_facts)) result.fun_facts = serverDb.fun_facts;
-      if (Array.isArray(serverDb.early_learning)) result.early_learning = serverDb.early_learning;
-      if (Array.isArray(serverDb.audio_stories)) result.audio_stories = serverDb.audio_stories;
-      if (Array.isArray(serverDb.video_stories)) result.video_stories = serverDb.video_stories;
+      if (Array.isArray(serverDb.stories)) result.stories = serverDb.stories.filter((s: Story) => !deletedIds.has(s.id));
+      if (Array.isArray(serverDb.fun_facts)) result.fun_facts = serverDb.fun_facts.filter((f: FunFact) => !deletedIds.has(f.id));
+      if (Array.isArray(serverDb.early_learning)) result.early_learning = serverDb.early_learning.filter((l: LearningItem) => !deletedIds.has(l.id));
+      if (Array.isArray(serverDb.audio_stories)) result.audio_stories = serverDb.audio_stories.filter((a: AudioStory) => !deletedIds.has(a.id));
+      if (Array.isArray(serverDb.video_stories)) result.video_stories = serverDb.video_stories.filter((v: VideoStory) => !deletedIds.has(v.id));
       if (Array.isArray(serverDb.video_categories)) result.video_categories = serverDb.video_categories;
-      if (Array.isArray(serverDb.quizzes)) result.quizzes = serverDb.quizzes;
-      if (Array.isArray(serverDb.worksheets)) result.worksheets = serverDb.worksheets;
+      if (Array.isArray(serverDb.quizzes)) result.quizzes = serverDb.quizzes.filter((q: QuizSet) => !deletedIds.has(q.id));
+      if (Array.isArray(serverDb.worksheets)) result.worksheets = serverDb.worksheets.filter((w: PrintableWorksheet) => !deletedIds.has(w.id));
       if (Array.isArray(serverDb.user_reviews)) result.user_reviews = serverDb.user_reviews;
       if (serverDb.footer_image !== undefined) result.footer_image = serverDb.footer_image;
       if (serverDb.admin_passwords) result.admin_passwords = serverDb.admin_passwords;
@@ -1318,12 +1378,12 @@ export async function loadPersistentData(): Promise<FullDatabaseState | null> {
     const idbWorksheets = await idbGet<PrintableWorksheet[]>(KEYS.WORKSHEETS);
 
     if (idbStories && idbStories.length > 0) {
-      const mergedIdb = mergeWithInitialStories(idbStories);
+      const filteredIdb = idbStories.filter((s) => !deletedIds.has(s.id));
       return {
-        stories: mergedIdb,
-        video_stories: idbVideos || undefined,
-        quizzes: idbQuizzes || undefined,
-        worksheets: idbWorksheets || undefined,
+        stories: filteredIdb,
+        video_stories: idbVideos ? idbVideos.filter((v) => !deletedIds.has(v.id)) : undefined,
+        quizzes: idbQuizzes ? idbQuizzes.filter((q) => !deletedIds.has(q.id)) : undefined,
+        worksheets: idbWorksheets ? idbWorksheets.filter((w) => !deletedIds.has(w.id)) : undefined,
       };
     }
   } catch (err) {

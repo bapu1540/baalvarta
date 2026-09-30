@@ -89,6 +89,11 @@ import {
   saveStoredQuizSets,
   getStoredWorksheets,
   saveStoredWorksheets,
+  saveStoredStories,
+  saveStoredFunFacts,
+  saveStoredAudioStories,
+  recordDeletedDocId,
+  unrecordDeletedDocId,
   getStoredGames,
   saveStoredGames,
   getStoredColoringTemplates,
@@ -648,6 +653,11 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   const [undoStory, setUndoStory] = useState<{ story: Story; index: number } | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
 
+  // Edit States for CMS entities
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+  const [editingFactId, setEditingFactId] = useState<string | null>(null);
+  const [editingAudioId, setEditingAudioId] = useState<string | null>(null);
+
   // Story Upload Mode: 'standard' or 'picture_book'
   const [storyUploadMode, setStoryUploadMode] = useState<'picture_book' | 'standard'>('picture_book');
 
@@ -804,6 +814,101 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     });
   };
 
+  const handleEditStory = (story: Story) => {
+    if (soundEnabled) playPopSound();
+    setEditingStoryId(story.id);
+
+    if (story.format === 'picture_book' || (story.scenes && story.scenes.length > 0)) {
+      setStoryUploadMode('picture_book');
+      setNewPictureBook({
+        titleHi: story.titleHi || '',
+        titleEn: story.titleEn || '',
+        summaryHi: story.summaryHi || '',
+        summaryEn: story.summaryEn || '',
+        moralHi: story.moralHi || '',
+        moralEn: story.moralEn || '',
+        category: story.category || 'moral',
+        recommendedAge: story.recommendedAge || '4-9 वर्ष',
+      });
+      if (story.scenes && story.scenes.length > 0) {
+        setNewStoryScenes(
+          story.scenes.map((sc, idx) => ({
+            id: sc.id || `sc-${idx + 1}`,
+            image: sc.image || '',
+            textHi: sc.textHi || '',
+            textEn: sc.textEn || '',
+            captionHi: sc.captionHi || `दृश्य ${idx + 1}`,
+          }))
+        );
+      }
+    } else {
+      setStoryUploadMode('standard');
+      setNewStory({
+        titleHi: story.titleHi || '',
+        titleEn: story.titleEn || '',
+        summaryHi: story.summaryHi || '',
+        summaryEn: story.summaryEn || '',
+        contentHi: story.contentHi || '',
+        contentEn: story.contentEn || '',
+        moralHi: story.moralHi || '',
+        moralEn: story.moralEn || '',
+        category: story.category || 'moral',
+        coverImage: story.coverImage || 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=700&auto=format&fit=crop&q=80',
+        illustrationsText: (story.illustrations || []).join('\n'),
+        readTime: story.readTime || '3 मिनट',
+        recommendedAge: story.recommendedAge || '4-9 वर्ष',
+      });
+    }
+
+    const formElement = document.getElementById('story-cms-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditStory = () => {
+    setEditingStoryId(null);
+    setNewStory({
+      titleHi: '',
+      titleEn: '',
+      summaryHi: '',
+      summaryEn: '',
+      contentHi: '',
+      contentEn: '',
+      moralHi: '',
+      moralEn: '',
+      category: 'moral',
+      coverImage: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=700&auto=format&fit=crop&q=80',
+      illustrationsText: '',
+      readTime: '3 मिनट',
+      recommendedAge: '4-9 वर्ष',
+    });
+    setNewPictureBook({
+      titleHi: '',
+      titleEn: '',
+      summaryHi: '',
+      summaryEn: '',
+      moralHi: '',
+      moralEn: '',
+      category: 'moral',
+      recommendedAge: '4-9 वर्ष',
+    });
+    setNewStoryScenes([
+      {
+        id: 'sc-1',
+        image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=700&auto=format&fit=crop&q=80',
+        textHi: '',
+        textEn: '',
+        captionHi: 'दृश्य 1 (Scene 1)',
+      },
+      {
+        id: 'sc-2',
+        image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=700&auto=format&fit=crop&q=80',
+        textHi: '',
+        textEn: '',
+        captionHi: 'दृश्य 2 (Scene 2)',
+      },
+    ]);
+  };
+
   const handleAddStory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStory.titleHi || !newStory.contentHi) return;
@@ -815,6 +920,44 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
     const isHindi = hasDevanagari(newStory.titleHi) || hasDevanagari(newStory.contentHi) || hasDevanagari(newStory.moralHi);
     const originalLanguage: 'hi' | 'en' = isHindi ? 'hi' : 'en';
+
+    if (editingStoryId) {
+      const existing = stories.find((s) => s.id === editingStoryId);
+      const updatedStory: Story = {
+        ...(existing || {}),
+        id: editingStoryId,
+        number: existing ? existing.number : stories.length + 1,
+        titleHi: newStory.titleHi,
+        titleEn: newStory.titleEn || newStory.titleHi,
+        summaryHi: newStory.summaryHi || newStory.contentHi.slice(0, 80) + '...',
+        summaryEn: newStory.summaryEn || (newStory.contentEn ? newStory.contentEn.slice(0, 80) + '...' : newStory.summaryHi || newStory.contentHi.slice(0, 80) + '...'),
+        contentHi: newStory.contentHi,
+        contentEn: newStory.contentEn || newStory.contentHi,
+        moralHi: newStory.moralHi || (isHindi ? 'सदा सच और अच्छाई के मार्ग पर चलें।' : (newStory.moralEn || 'Always walk on the path of truth and goodness.')),
+        moralEn: newStory.moralEn || newStory.moralHi || (isHindi ? 'सदा सच और अच्छाई के मार्ग पर चलें।' : 'Always walk on the path of truth and goodness.'),
+        originalLanguage,
+        category: newStory.category,
+        coverImage: newStory.coverImage,
+        readTime: newStory.readTime,
+        recommendedAge: newStory.recommendedAge,
+        illustrations: illustrationList,
+        updatedAt: Date.now(),
+        likes: existing?.likes ?? 1,
+        viewsCount: existing?.viewsCount,
+        isFeatured: existing?.isFeatured ?? true,
+      };
+
+      const updatedStories = stories.map((s) => (s.id === editingStoryId ? updatedStory : s));
+      onSaveStories(updatedStories);
+      saveStoredStories(updatedStories);
+      syncStoryToFirestore(updatedStory).then((ok) => {
+        if (ok) {
+          setToastMessage({ text: '✅ कहानी सफलतापूर्वक अपडेट हो गई और क्लाउड पर सिंक हो गई!', type: 'success' });
+        }
+      });
+      handleCancelEditStory();
+      return;
+    }
 
     const created: Story = {
       id: `story-${Date.now()}`,
@@ -840,6 +983,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
     const updatedStories = [created, ...stories];
     onSaveStories(updatedStories);
+    saveStoredStories(updatedStories);
     syncStoryToFirestore(created).then((ok) => {
       if (ok) {
         setToastMessage({ text: '✅ कहानी प्रकाशित हुई और Firebase पर 100% सिंक हो गई! सभी फोन पर तुरंत लाइव दिखेगी।', type: 'success' });
@@ -935,6 +1079,46 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     const isHindi = hasDevanagari(newPictureBook.titleHi) || hasDevanagari(combinedHi) || hasDevanagari(newPictureBook.moralHi);
     const originalLanguage: 'hi' | 'en' = isHindi ? 'hi' : 'en';
 
+    if (editingStoryId) {
+      const existing = stories.find((s) => s.id === editingStoryId);
+      const updatedStory: Story = {
+        ...(existing || {}),
+        id: editingStoryId,
+        number: existing ? existing.number : stories.length + 1,
+        titleHi: newPictureBook.titleHi,
+        titleEn: newPictureBook.titleEn || newPictureBook.titleHi,
+        summaryHi: newPictureBook.summaryHi || formattedScenes[0].textHi.slice(0, 80) + '...',
+        summaryEn: newPictureBook.summaryEn || (formattedScenes[0].textEn || formattedScenes[0].textHi).slice(0, 80) + '...',
+        contentHi: combinedHi,
+        contentEn: combinedEn,
+        moralHi: newPictureBook.moralHi || (isHindi ? 'सच्चाई और अच्छाई की सदा जीत होती है।' : (newPictureBook.moralEn || 'Goodness and truth always prevail.')),
+        moralEn: newPictureBook.moralEn || newPictureBook.moralHi || (isHindi ? 'सच्चाई और अच्छाई की सदा जीत होती है।' : 'Goodness and truth always prevail.'),
+        originalLanguage,
+        category: newPictureBook.category,
+        coverImage: formattedScenes[0].image,
+        format: 'picture_book',
+        scenes: formattedScenes,
+        illustrations: sceneImages,
+        readTime: `${Math.max(2, Math.ceil(formattedScenes.length * 0.8))} मिनट`,
+        recommendedAge: newPictureBook.recommendedAge,
+        updatedAt: Date.now(),
+        likes: existing?.likes ?? 1,
+        viewsCount: existing?.viewsCount,
+        isFeatured: existing?.isFeatured ?? true,
+      };
+
+      const updatedStories = stories.map((s) => (s.id === editingStoryId ? updatedStory : s));
+      onSaveStories(updatedStories);
+      saveStoredStories(updatedStories);
+      syncStoryToFirestore(updatedStory).then((ok) => {
+        if (ok) {
+          setToastMessage({ text: '✅ सचित्र कथा सफलतापूर्वक अपडेट हो गई और क्लाउड पर सिंक हो गई!', type: 'success' });
+        }
+      });
+      handleCancelEditStory();
+      return;
+    }
+
     const created: Story = {
       id: `story-pb-${Date.now()}`,
       number: stories.length + 1,
@@ -961,6 +1145,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
     const updatedStories = [created, ...stories];
     onSaveStories(updatedStories);
+    saveStoredStories(updatedStories);
     syncStoryToFirestore(created).then((ok) => {
       if (ok) {
         setToastMessage({ text: '✅ सचित्र कथा प्रकाशित हुई और Firebase पर 100% सिंक हो गई! सभी फोन पर तुरंत लाइव दिखेगी।', type: 'success' });
@@ -1020,8 +1205,10 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       .filter((s) => s.id !== storyToDelete.id)
       .map((s, idx) => ({ ...s, number: idx + 1 }));
 
-    onSaveStories(updated);
+    recordDeletedDocId(storyToDelete.id);
     deleteStoryFromFirestore(storyToDelete.id);
+    onSaveStories(updated);
+    saveStoredStories(updated);
     setUndoStory({ story: storyToDelete, index: deleteIndex >= 0 ? deleteIndex : 0 });
     setToastMessage({
       text: `कहानी "${storyToDelete.titleHi}" सफलतापूर्वक हटा दी गई।`,
@@ -1038,10 +1225,12 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     if (!undoStory) return;
     if (soundEnabled) playSuccessSound();
 
+    unrecordDeletedDocId(undoStory.story.id);
     const restored = [...stories];
     restored.splice(undoStory.index, 0, undoStory.story);
     const reordered = restored.map((s, idx) => ({ ...s, number: idx + 1 }));
     onSaveStories(reordered);
+    saveStoredStories(reordered);
     syncStoryToFirestore(undoStory.story);
 
     setToastMessage({
@@ -1056,8 +1245,11 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     if (target) {
       handleRequestDelete(target);
     } else {
+      recordDeletedDocId(id);
+      deleteStoryFromFirestore(id);
       const updated = stories.filter((s) => s.id !== id).map((s, idx) => ({ ...s, number: idx + 1 }));
       onSaveStories(updated);
+      saveStoredStories(updated);
     }
   };
 
@@ -1088,10 +1280,63 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
     return true;
   });
 
+  const handleEditFact = (fact: FunFact) => {
+    if (soundEnabled) playPopSound();
+    setEditingFactId(fact.id);
+    setNewFact({
+      titleHi: fact.titleHi,
+      titleEn: fact.titleEn || fact.titleHi,
+      factHi: fact.factHi,
+      factEn: fact.factEn || fact.factHi,
+      category: fact.category,
+      image: fact.image,
+      emoji: fact.emoji || '💡',
+    });
+    const formElement = document.getElementById('fact-cms-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditFact = () => {
+    setEditingFactId(null);
+    setNewFact({
+      titleHi: '',
+      titleEn: '',
+      factHi: '',
+      factEn: '',
+      category: 'animals',
+      image: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=600&auto=format&fit=crop&q=80',
+      emoji: '🦁',
+    });
+  };
+
   const handleAddFact = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFact.titleHi || !newFact.factHi) return;
     if (soundEnabled) playSuccessSound();
+
+    if (editingFactId) {
+      const existing = facts.find((f) => f.id === editingFactId);
+      const updatedItem: FunFact = {
+        ...(existing || {}),
+        id: editingFactId,
+        titleHi: newFact.titleHi,
+        titleEn: newFact.titleEn || newFact.titleHi,
+        factHi: newFact.factHi,
+        factEn: newFact.factEn || newFact.factHi,
+        category: newFact.category,
+        image: newFact.image,
+        emoji: newFact.emoji || '💡',
+        likes: existing?.likes ?? 1,
+      };
+      const updated = facts.map((f) => (f.id === editingFactId ? updatedItem : f));
+      onSaveFacts(updated);
+      saveStoredFunFacts(updated);
+      syncFunFactToFirestore(updatedItem);
+      handleCancelEditFact();
+      setToastMessage({ text: '✅ रोचक तथ्य सफलतापूर्वक अपडेट हो गया!', type: 'success' });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
 
     const created: FunFact = {
       id: `fact-${Date.now()}`,
@@ -1105,7 +1350,9 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       likes: 1,
     };
 
-    onSaveFacts([...facts, created]);
+    const updated = [...facts, created];
+    onSaveFacts(updated);
+    saveStoredFunFacts(updated);
     syncFunFactToFirestore(created);
     setNewFact({
       titleHi: '',
@@ -1116,18 +1363,89 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       image: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=600&auto=format&fit=crop&q=80',
       emoji: '🦁',
     });
+    setToastMessage({ text: '✅ नया रोचक तथ्य प्रकाशित हुआ!', type: 'success' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleDeleteFact = (id: string) => {
     if (soundEnabled) playPopSound();
-    onSaveFacts(facts.filter((f) => f.id !== id));
+    recordDeletedDocId(id);
+    const updated = facts.filter((f) => f.id !== id);
+    onSaveFacts(updated);
+    saveStoredFunFacts(updated);
     deleteFunFactFromFirestore(id);
+    if (editingFactId === id) {
+      handleCancelEditFact();
+    }
+    setToastMessage({ text: 'रोचक तथ्य हटा दिया गया!', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleEditAudio = (audio: AudioStory) => {
+    if (soundEnabled) playPopSound();
+    setEditingAudioId(audio.id);
+    setNewAudio({
+      titleHi: audio.titleHi,
+      titleEn: audio.titleEn || audio.titleHi,
+      narrator: audio.narrator,
+      duration: audio.duration,
+      durationSeconds: audio.durationSeconds,
+      coverImage: audio.coverImage,
+      audioUrl: audio.audioUrl,
+      descriptionHi: audio.descriptionHi,
+      descriptionEn: audio.descriptionEn,
+      tags: audio.tags || [],
+    });
+    const formElement = document.getElementById('audio-cms-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelEditAudio = () => {
+    setEditingAudioId(null);
+    setNewAudio({
+      titleHi: '',
+      titleEn: '',
+      narrator: 'दादी माँ',
+      duration: '3:30',
+      durationSeconds: 210,
+      coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=700&auto=format&fit=crop&q=80',
+      audioUrl: 'https://actions.google.com/sounds/v1/water/rain_heavy.ogg',
+      descriptionHi: '',
+      descriptionEn: '',
+      tags: ['प्रेरणादायक', 'नीति कथा'],
+    });
   };
 
   const handleAddAudio = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAudio.titleHi) return;
     if (soundEnabled) playSuccessSound();
+
+    if (editingAudioId) {
+      const existing = audioStories.find((a) => a.id === editingAudioId);
+      const updatedItem: AudioStory = {
+        ...(existing || {}),
+        id: editingAudioId,
+        titleHi: newAudio.titleHi,
+        titleEn: newAudio.titleEn || newAudio.titleHi,
+        narrator: newAudio.narrator || 'दादी माँ',
+        duration: newAudio.duration || '3:30',
+        durationSeconds: newAudio.durationSeconds || 210,
+        coverImage: newAudio.coverImage,
+        audioUrl: newAudio.audioUrl || 'https://actions.google.com/sounds/v1/water/rain_heavy.ogg',
+        descriptionHi: newAudio.descriptionHi || newAudio.titleHi,
+        descriptionEn: newAudio.descriptionEn || newAudio.titleEn,
+        tags: newAudio.tags,
+      };
+      const updated = audioStories.map((a) => (a.id === editingAudioId ? updatedItem : a));
+      onSaveAudio(updated);
+      saveStoredAudioStories(updated);
+      syncAudioStoryToFirestore(updatedItem);
+      handleCancelEditAudio();
+      setToastMessage({ text: '✅ ऑडियो कहानी सफलतापूर्वक अपडेट हो गई!', type: 'success' });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
 
     const created: AudioStory = {
       id: `audio-${Date.now()}`,
@@ -1143,7 +1461,9 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       tags: newAudio.tags,
     };
 
-    onSaveAudio([...audioStories, created]);
+    const updated = [...audioStories, created];
+    onSaveAudio(updated);
+    saveStoredAudioStories(updated);
     syncAudioStoryToFirestore(created);
     setNewAudio({
       titleHi: '',
@@ -1157,12 +1477,22 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       descriptionEn: '',
       tags: ['प्रेरणादायक', 'नीति कथा'],
     });
+    setToastMessage({ text: '✅ नई ऑडियो कहानी प्रकाशित हुई!', type: 'success' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleDeleteAudio = (id: string) => {
     if (soundEnabled) playPopSound();
-    onSaveAudio(audioStories.filter((a) => a.id !== id));
+    recordDeletedDocId(id);
+    const updated = audioStories.filter((a) => a.id !== id);
+    onSaveAudio(updated);
+    saveStoredAudioStories(updated);
     deleteAudioStoryFromFirestore(id);
+    if (editingAudioId === id) {
+      handleCancelEditAudio();
+    }
+    setToastMessage({ text: 'ऑडियो कहानी हटा दी गई!', type: 'info' });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   // Video Stories & Categories Handlers
@@ -1238,6 +1568,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   };
 
   const handleDeleteVideo = (id: string) => {
+    recordDeletedDocId(id);
     const updated = videoStories.filter((v) => v.id !== id);
     onSaveVideos(updated);
     saveStoredVideoStories(updated);
@@ -1384,6 +1715,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
   const handleDeleteWorksheet = (id: string) => {
     if (soundEnabled) playPopSound();
+    recordDeletedDocId(id);
     const updated = worksheets.filter((w) => w.id !== id);
     setWorksheets(updated);
     saveStoredWorksheets(updated);
@@ -2094,11 +2426,28 @@ service cloud.firestore {
                 </div>
               </div>
               {/* Add Story Card Form with Dual Mode Selector */}
-              <div className="bg-amber-50/60 rounded-3xl p-5 border-2 border-amber-200 space-y-4">
+              <div id="story-cms-form" className="bg-amber-50/60 rounded-3xl p-5 border-2 border-amber-200 space-y-4">
+                {editingStoryId && (
+                  <div className="p-3.5 bg-gradient-to-r from-amber-100 to-orange-100 border-2 border-amber-400 rounded-2xl flex items-center justify-between gap-3 text-amber-950 font-bold shadow-xs animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Edit3 className="w-5 h-5 text-amber-700 flex-shrink-0 animate-pulse" />
+                      <span className="truncate">
+                        ✏️ संपादन मोड सक्रिय: <span className="underline font-black">{stories.find((s) => s.id === editingStoryId)?.titleHi}</span>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCancelEditStory}
+                      className="px-3 py-1.5 bg-white hover:bg-rose-50 border border-rose-300 text-rose-700 rounded-xl text-xs font-black transition-colors flex-shrink-0 shadow-2xs"
+                    >
+                      ✕ संपादन रद्द करें (Cancel)
+                    </button>
+                  </div>
+                )}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
                   <h3 className="font-black text-sm text-amber-950 flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-amber-600" />
-                    <span>नई बाल कहानी जोड़ें (Add Story)</span>
+                    {editingStoryId ? <Edit3 className="w-4 h-4 text-amber-600" /> : <Plus className="w-4 h-4 text-amber-600" />}
+                    <span>{editingStoryId ? 'कहानी संपादित करें (Edit Story)' : 'नई बाल कहानी जोड़ें (Add Story)'}</span>
                   </h3>
 
                   {/* Mode Selector Tabs */}
@@ -2300,7 +2649,7 @@ service cloud.firestore {
                         className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-sm shadow-md flex items-center gap-2 transition-all cursor-pointer"
                       >
                         <Sparkles className="w-4 h-4 text-amber-200" />
-                        <span>📸 पूरी सचित्र बाल-कथा प्रकाशित करें (Publish Illustrated Story)</span>
+                        <span>{editingStoryId ? '💾 सचित्र बाल-कथा अपडेट करें (Update Illustrated Story)' : '📸 पूरी सचित्र बाल-कथा प्रकाशित करें (Publish Illustrated Story)'}</span>
                       </button>
                     </div>
                   </form>
@@ -2382,8 +2731,8 @@ service cloud.firestore {
                         type="submit"
                         className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all"
                       >
-                        <Plus className="w-4 h-4" />
-                        <span>कहानी प्रकाशित करें (Publish Story)</span>
+                        {editingStoryId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        <span>{editingStoryId ? '💾 कहानी अपडेट करें (Update Story)' : 'कहानी प्रकाशित करें (Publish Story)'}</span>
                       </button>
                     </div>
                   </form>
@@ -2740,6 +3089,16 @@ service cloud.firestore {
 
                               {/* Action Buttons */}
                               <div className="flex items-center gap-2 self-end sm:self-center">
+                                {/* Edit Button */}
+                                <button
+                                  onClick={() => handleEditStory(s)}
+                                  className="px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="कहानी संपादित करें (Edit Story)"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                                  <span>एडिट (Edit)</span>
+                                </button>
+
                                 {/* Preview / Expand Toggle */}
                                 <button
                                   onClick={() => {
@@ -4845,11 +5204,23 @@ service cloud.firestore {
                 </div>
               </div>
 
-              <div className="bg-sky-50/60 rounded-3xl p-5 border-2 border-sky-200 space-y-4">
-                <h3 className="font-black text-sm text-sky-950 flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-sky-600" />
-                  <span>नया रोचक तथ्य जोड़ें (Add Fun Fact)</span>
-                </h3>
+              <div id="fact-cms-form" className="bg-sky-50/60 rounded-3xl p-5 border-2 border-sky-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-sm text-sky-950 flex items-center gap-2">
+                    {editingFactId ? <Edit3 className="w-4 h-4 text-sky-600" /> : <Plus className="w-4 h-4 text-sky-600" />}
+                    <span>{editingFactId ? 'रोचक तथ्य संपादित करें (Edit Fun Fact)' : 'नया रोचक तथ्य जोड़ें (Add Fun Fact)'}</span>
+                  </h3>
+                  {editingFactId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditFact}
+                      className="px-3 py-1 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>रद्द करें (Cancel)</span>
+                    </button>
+                  )}
+                </div>
 
                 <form onSubmit={handleAddFact} className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                   <div>
@@ -4898,13 +5269,22 @@ service cloud.firestore {
                     />
                   </div>
 
-                  <div className="sm:col-span-2 flex justify-end">
+                  <div className="sm:col-span-2 flex justify-end gap-2">
+                    {editingFactId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditFact}
+                        className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all"
+                      className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>तथ्य जोड़ें (Save Fact)</span>
+                      {editingFactId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <span>{editingFactId ? '💾 तथ्य अपडेट करें (Update Fact)' : 'तथ्य जोड़ें (Save Fact)'}</span>
                     </button>
                   </div>
                 </form>
@@ -4917,7 +5297,7 @@ service cloud.firestore {
                 </h4>
                 <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
                   {facts.map((f) => (
-                    <div key={f.id} className="p-3.5 bg-white flex items-center justify-between gap-3 text-xs">
+                    <div key={f.id} className="p-3.5 bg-white flex items-center justify-between gap-3 text-xs hover:bg-slate-50 transition-colors">
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{f.emoji}</span>
                         <div>
@@ -4926,12 +5306,25 @@ service cloud.firestore {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteFact(f.id)}
-                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditFact(f)}
+                          className="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                          title="संपादित करें (Edit Fact)"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>एडिट</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFact(f.id)}
+                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="हटाएँ (Delete)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -5243,12 +5636,24 @@ service cloud.firestore {
               </div>
 
               {/* Add Audio Form */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-purple-50/70 border border-purple-200">
-                <div className="flex items-center gap-2 mb-3 text-purple-900">
-                  <Headphones className="w-5 h-5 text-purple-600" />
-                  <h4 className="font-extrabold text-sm">
-                    नई ऑडियो कहानी जोड़ें (Add Audio Story)
-                  </h4>
+              <div id="audio-cms-form" className="p-4 sm:p-5 rounded-2xl bg-purple-50/70 border border-purple-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-purple-900">
+                    <Headphones className="w-5 h-5 text-purple-600" />
+                    <h4 className="font-extrabold text-sm">
+                      {editingAudioId ? 'ऑडियो कहानी संपादित करें (Edit Audio Story)' : 'नई ऑडियो कहानी जोड़ें (Add Audio Story)'}
+                    </h4>
+                  </div>
+                  {editingAudioId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditAudio}
+                      className="px-3 py-1 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>रद्द करें (Cancel)</span>
+                    </button>
+                  )}
                 </div>
 
                 <form onSubmit={handleAddAudio} className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -5330,13 +5735,22 @@ service cloud.firestore {
                     />
                   </div>
 
-                  <div className="sm:col-span-2 flex justify-end">
+                  <div className="sm:col-span-2 flex justify-end gap-2">
+                    {editingAudioId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditAudio}
+                        className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all"
+                      className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>ऑडियो जोड़ें (Save Audio)</span>
+                      {editingAudioId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <span>{editingAudioId ? '💾 ऑडियो अपडेट करें (Update Audio)' : 'ऑडियो जोड़ें (Save Audio)'}</span>
                     </button>
                   </div>
                 </form>
@@ -5363,9 +5777,18 @@ service cloud.firestore {
                         </span>
                         <button
                           type="button"
+                          onClick={() => handleEditAudio(a)}
+                          className="px-2.5 py-1.5 rounded-lg border border-purple-200 bg-purple-50 text-purple-800 hover:bg-purple-100 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                          title="संपादित करें (Edit Audio)"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>एडिट</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleDeleteAudio(a.id)}
                           title="हटाएँ (Delete)"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

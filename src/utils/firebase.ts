@@ -14,6 +14,9 @@ import {
   setDoc,
   deleteDoc,
   getDocs,
+  getDoc,
+  arrayUnion,
+  arrayRemove,
   onSnapshot,
   writeBatch,
   Unsubscribe,
@@ -273,6 +276,7 @@ export async function deleteStoryFromFirestore(storyId: string): Promise<boolean
   try {
     const docRef = doc(db, 'stories', storyId);
     await deleteDoc(docRef);
+    await recordDeletedDocIdInFirestore(storyId);
     return true;
   } catch (err: any) {
     console.warn('Failed to delete story from Firestore:', storyId, err?.message || err);
@@ -314,18 +318,15 @@ export function subscribeToFirestoreStories(callback: (stories: Story[]) => void
     return onSnapshot(
       colRef,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const loaded: Story[] = [];
-          snapshot.forEach((d) => {
-            const data = d.data() as Story;
-            if (data && data.id) {
-              loaded.push(data);
-            }
-          });
-          if (loaded.length > 0) {
-            callback(loaded);
+        const loaded: Story[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data() as Story;
+          if (data && data.id) {
+            loaded.push(data);
           }
-        }
+        });
+        loaded.sort((a, b) => (a.number || 0) - (b.number || 0));
+        callback(loaded);
       },
       (err: any) => {
         console.warn('Firestore stories subscription error:', err?.message || err);
@@ -381,6 +382,7 @@ export async function deleteWorksheetFromFirestore(worksheetId: string): Promise
   try {
     const docRef = doc(db, 'worksheets', worksheetId);
     await deleteDoc(docRef);
+    await recordDeletedDocIdInFirestore(worksheetId);
     return true;
   } catch (err: any) {
     console.warn('Failed to delete worksheet from Firestore:', worksheetId, err?.message || err);
@@ -479,6 +481,7 @@ export async function deleteVideoStoryFromFirestore(videoId: string): Promise<bo
   try {
     const docRef = doc(db, 'video_stories', videoId);
     await deleteDoc(docRef);
+    await recordDeletedDocIdInFirestore(videoId);
     return true;
   } catch (err: any) {
     console.warn('Failed to delete video story from Firestore:', videoId, err?.message || err);
@@ -577,6 +580,7 @@ export async function deleteFunFactFromFirestore(factId: string): Promise<boolea
   try {
     const docRef = doc(db, 'fun_facts', factId);
     await deleteDoc(docRef);
+    await recordDeletedDocIdInFirestore(factId);
     return true;
   } catch (err: any) {
     console.warn('Failed to delete fun fact from Firestore:', factId, err?.message || err);
@@ -675,6 +679,7 @@ export async function deleteLearningItemFromFirestore(itemId: string): Promise<b
   try {
     const docRef = doc(db, 'early_learning', itemId);
     await deleteDoc(docRef);
+    await recordDeletedDocIdInFirestore(itemId);
     return true;
   } catch (err: any) {
     console.warn('Failed to delete learning item from Firestore:', itemId, err?.message || err);
@@ -773,6 +778,7 @@ export async function deleteAudioStoryFromFirestore(audioId: string): Promise<bo
   try {
     const docRef = doc(db, 'audio_stories', audioId);
     await deleteDoc(docRef);
+    await recordDeletedDocIdInFirestore(audioId);
     return true;
   } catch (err: any) {
     console.warn('Failed to delete audio story from Firestore:', audioId, err?.message || err);
@@ -871,6 +877,7 @@ export async function deleteQuizSetFromFirestore(quizId: string): Promise<boolea
   try {
     const docRef = doc(db, 'quiz_sets', quizId);
     await deleteDoc(docRef);
+    await recordDeletedDocIdInFirestore(quizId);
     return true;
   } catch (err: any) {
     console.warn('Failed to delete quiz set from Firestore:', quizId, err?.message || err);
@@ -1162,7 +1169,51 @@ export function subscribeToFirestoreVisitorCount(callback: (count: number) => vo
 }
 
 // ==========================================
-// 9. AUTOMATIC SEEDING FOR NEW DEVICES
+// 8.5 DELETED DOCS SYNCHRONIZATION (CROSS-DEVICE)
+// ==========================================
+
+export async function recordDeletedDocIdInFirestore(id: string): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+  try {
+    const docRef = doc(db, 'site_content', 'deleted_ids');
+    await setDoc(docRef, { ids: arrayUnion(id), updatedAt: Date.now() }, { merge: true });
+  } catch (err) {
+    console.warn('Failed to record deleted ID in Firestore:', err);
+  }
+}
+
+export async function unrecordDeletedDocIdInFirestore(id: string): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+  try {
+    const docRef = doc(db, 'site_content', 'deleted_ids');
+    await setDoc(docRef, { ids: arrayRemove(id), updatedAt: Date.now() }, { merge: true });
+  } catch (err) {
+    console.warn('Failed to unrecord deleted ID in Firestore:', err);
+  }
+}
+
+export async function fetchDeletedDocIdsFromFirestore(): Promise<string[]> {
+  const db = getFirestoreDb();
+  if (!db) return [];
+  try {
+    const docRef = doc(db, 'site_content', 'deleted_ids');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (Array.isArray(data?.ids)) {
+        return data.ids;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch deleted IDs from Firestore:', err);
+  }
+  return [];
+}
+
+// ==========================================
+// 9. AUTOMATIC SEEDING FOR NEW DEVICES (SAFE & PERSISTENT)
 // ==========================================
 
 export async function seedInitialFirestoreDataIfNeeded(
@@ -1178,61 +1229,90 @@ export async function seedInitialFirestoreDataIfNeeded(
   if (!db) return;
 
   try {
-    // Stories check
+    // 1. If seed_status is already set, NEVER re-seed or resurrect deleted documents
+    const statusRef = doc(db, 'site_content', 'seed_status');
+    const statusSnap = await getDoc(statusRef);
+    if (statusSnap.exists() && statusSnap.data()?.isSeeded) {
+      return;
+    }
+
+    const remoteDeletedIds = new Set(await fetchDeletedDocIdsFromFirestore());
+
+    // Stories check: ONLY seed if collection is completely empty
     const storySnap = await getDocs(collection(db, 'stories'));
-    const existingStoryIds = new Set(storySnap.docs.map((d) => d.id));
-    const missingStories = stories.filter((s) => !existingStoryIds.has(s.id));
-    if (missingStories.length > 0) {
-      await syncAllStoriesToFirestore(missingStories);
+    if (storySnap.empty) {
+      const toSeed = stories.filter((s) => !remoteDeletedIds.has(s.id));
+      if (toSeed.length > 0) {
+        await syncAllStoriesToFirestore(toSeed);
+      }
     }
 
-    // Worksheets check
+    // Worksheets check: ONLY seed if collection is completely empty
     const wsSnap = await getDocs(collection(db, 'worksheets'));
-    const existingWsIds = new Set(wsSnap.docs.map((d) => d.id));
-    const missingWs = worksheets.filter((w) => !existingWsIds.has(w.id));
-    if (missingWs.length > 0) {
-      await syncAllWorksheetsToFirestore(missingWs);
+    if (wsSnap.empty) {
+      const toSeed = worksheets.filter((w) => !remoteDeletedIds.has(w.id));
+      if (toSeed.length > 0) {
+        await syncAllWorksheetsToFirestore(toSeed);
+      }
     }
 
-    // Video stories check
+    // Video stories check: ONLY if empty
     if (videos && videos.length > 0) {
       const vidSnap = await getDocs(collection(db, 'video_stories'));
       if (vidSnap.empty) {
-        await syncAllVideoStoriesToFirestore(videos);
+        const toSeed = videos.filter((v) => !remoteDeletedIds.has(v.id));
+        if (toSeed.length > 0) {
+          await syncAllVideoStoriesToFirestore(toSeed);
+        }
       }
     }
 
-    // Fun facts check
+    // Fun facts check: ONLY if empty
     if (facts && facts.length > 0) {
       const factSnap = await getDocs(collection(db, 'fun_facts'));
       if (factSnap.empty) {
-        await syncAllFunFactsToFirestore(facts);
+        const toSeed = facts.filter((f) => !remoteDeletedIds.has(f.id));
+        if (toSeed.length > 0) {
+          await syncAllFunFactsToFirestore(toSeed);
+        }
       }
     }
 
-    // Early learning check
+    // Early learning check: ONLY if empty
     if (learningItems && learningItems.length > 0) {
       const learnSnap = await getDocs(collection(db, 'early_learning'));
       if (learnSnap.empty) {
-        await syncAllLearningItemsToFirestore(learningItems);
+        const toSeed = learningItems.filter((l) => !remoteDeletedIds.has(l.id));
+        if (toSeed.length > 0) {
+          await syncAllLearningItemsToFirestore(toSeed);
+        }
       }
     }
 
-    // Audio stories check
+    // Audio stories check: ONLY if empty
     if (audioStories && audioStories.length > 0) {
       const audioSnap = await getDocs(collection(db, 'audio_stories'));
       if (audioSnap.empty) {
-        await syncAllAudioStoriesToFirestore(audioStories);
+        const toSeed = audioStories.filter((a) => !remoteDeletedIds.has(a.id));
+        if (toSeed.length > 0) {
+          await syncAllAudioStoriesToFirestore(toSeed);
+        }
       }
     }
 
-    // Quizzes check
+    // Quizzes check: ONLY if empty
     if (quizzes && quizzes.length > 0) {
       const quizSnap = await getDocs(collection(db, 'quiz_sets'));
       if (quizSnap.empty) {
-        await syncAllQuizSetsToFirestore(quizzes);
+        const toSeed = quizzes.filter((q) => !remoteDeletedIds.has(q.id));
+        if (toSeed.length > 0) {
+          await syncAllQuizSetsToFirestore(toSeed);
+        }
       }
     }
+
+    // Mark as seeded so future runs never attempt seeding again
+    await setDoc(statusRef, { isSeeded: true, seededAt: Date.now() }, { merge: true });
   } catch (err: any) {
     console.warn('Firestore initial seeding error:', err?.message || err);
   }
